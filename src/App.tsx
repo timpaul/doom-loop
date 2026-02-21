@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import { AudioEngine, initializeSharedAudio, getSharedStream } from './audio/AudioEngine'
-import type { SoundType } from './audio/AudioEngine'
-import type { NoiseColor } from './audio/NoiseGenerator'
-
+import type { SoundType, NoiseColor } from './audio/AudioEngine'
 export const COLOR_MAP: Record<NoiseColor, string> = {
   white: '#ffffff',
   pink: '#ffb6c1',
