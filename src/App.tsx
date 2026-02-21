@@ -29,6 +29,12 @@ export interface SoundState {
   chorusAmount: number;
 }
 
+export interface SceneState {
+  id: string;
+  name: string;
+  sounds: SoundState[];
+}
+
 const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
   sourceType: 'noise',
   noiseColor: 'brown',
@@ -299,6 +305,23 @@ function SoundPanel({
 function App() {
   const [isPlaying, setIsPlaying] = useState(false)
 
+  const [currentScreen, setCurrentScreen] = useState<'main' | 'load'>('load')
+
+  const [currentSceneId, setCurrentSceneId] = useState<string>(() => {
+    return localStorage.getItem('noisemaker_currentSceneId') || 'scene-1'
+  })
+  const [currentSceneName, setCurrentSceneName] = useState<string>(() => {
+    return localStorage.getItem('noisemaker_currentSceneName') || 'Scene 1'
+  })
+
+  const [savedScenes, setSavedScenes] = useState<SceneState[]>(() => {
+    const saved = localStorage.getItem('noisemaker_scenes')
+    if (saved) {
+      try { return JSON.parse(saved) } catch (e) { console.error(e) }
+    }
+    return [{ id: 'scene-1', name: 'Scene 1', sounds: [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }] }]
+  })
+
   const [sounds, setSounds] = useState<SoundState[]>(() => {
     const saved = localStorage.getItem('noisemaker_sounds')
     if (saved) {
@@ -323,6 +346,34 @@ function App() {
   useEffect(() => {
     localStorage.setItem('noisemaker_sounds', JSON.stringify(sounds))
   }, [sounds])
+
+  useEffect(() => {
+    localStorage.setItem('noisemaker_currentSceneName', currentSceneName)
+  }, [currentSceneName])
+
+  useEffect(() => {
+    localStorage.setItem('noisemaker_currentSceneId', currentSceneId)
+  }, [currentSceneId])
+
+  useEffect(() => {
+    setSavedScenes(prev => {
+      const existingIdx = prev.findIndex(s => s.id === currentSceneId);
+      if (existingIdx >= 0) {
+        const current = prev[existingIdx];
+        if (current.name === currentSceneName && current.sounds === sounds) {
+          return prev;
+        }
+        const newScenes = [...prev];
+        newScenes[existingIdx] = { id: currentSceneId, name: currentSceneName, sounds };
+        return newScenes;
+      }
+      return [...prev, { id: currentSceneId, name: currentSceneName, sounds }];
+    });
+  }, [currentSceneId, currentSceneName, sounds]);
+
+  useEffect(() => {
+    localStorage.setItem('noisemaker_scenes', JSON.stringify(savedScenes))
+  }, [savedScenes])
 
   useEffect(() => {
     localStorage.setItem('noisemaker_expandedId', expandedId)
@@ -392,9 +443,69 @@ function App() {
     setExpandedId(prev => prev === id ? '' : id)
   }
 
+  const loadScene = (scene: SceneState) => {
+    setCurrentSceneId(scene.id);
+    setCurrentSceneName(scene.name);
+    setSounds(scene.sounds);
+    setCurrentScreen('main');
+    // auto-stop playing when loading a new scene to avoid jarring transitions
+    if (isPlaying) togglePlay();
+
+    // expand first sound id
+    if (scene.sounds.length > 0) {
+      setExpandedId(scene.sounds[0].id)
+    }
+  }
+
+  const removeSavedScene = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setSavedScenes(prev => prev.filter(s => s.id !== id));
+  }
+
+  const handleCreateNewScene = () => {
+    const newId = `scene-${Date.now()}`;
+    const newName = `Scene ${savedScenes.length + 1}`;
+    setCurrentSceneId(newId);
+    setCurrentSceneName(newName);
+    const initialSound: SoundState = { id: '1', name: 'Sound 1', ...DEFAULT_SOUND };
+    setSounds([initialSound]);
+    setExpandedId('1');
+    setCurrentScreen('main');
+  }
+
+  if (currentScreen === 'load') {
+    return (
+      <div className="app-container load-screen">
+        <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
+        <main className="main-content">
+          <div className="scene-list">
+            {savedScenes.length === 0 ? (
+              <p className="empty-state">No saved scenes yet.</p>
+            ) : (
+              savedScenes.map(scene => (
+                <div key={scene.id} className="scene-list-item" onClick={() => loadScene(scene)}>
+                  <span className="scene-item-name">{scene.name}</span>
+                  <button className="icon-btn delete-btn" onClick={(e) => removeSavedScene(e, scene.id)}>
+                    <TrashIcon />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="create-scene-container">
+            <button className="create-scene-btn" onClick={handleCreateNewScene}>Create new scene</button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <div className="top-play-area">
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+          <button className="scene-btn" style={{ margin: 0 }} onClick={() => setCurrentScreen('load')}>Scenes</button>
+        </div>
         <button
           className="play-button"
           onClick={togglePlay}
@@ -402,11 +513,18 @@ function App() {
         >
           {isPlaying ? <PauseIcon /> : <PlayIcon />}
         </button>
+        <div style={{ flex: 1 }}></div>
       </div>
 
       <header>
-        {/* H1 was moved, we can keep it inside header or simply omit if the mockup just shows Sound 1 */}
-        {/* However mockup actually doesn't say "NOISEMAKER", wait, wait. The previous mock had NOISEMAKER at the top. Let's keep it if we want. Actually the new mockup just has the Play Button. Let's look at the mockup: There is no NOISEMAKER title visible. I'll remove it. */}
+        <input
+          type="text"
+          className="scene-name-input"
+          value={currentSceneName}
+          onChange={(e) => setCurrentSceneName(e.target.value)}
+          aria-label="Scene Name"
+          placeholder="Name your scene..."
+        />
       </header>
 
       <main className="main-content">
@@ -426,8 +544,6 @@ function App() {
           <button className="add-noise-btn" onClick={addSound}>Add a sound</button>
         </div>
       </main>
-
-      <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" />
 
       <audio ref={audioRef} preload="none" playsInline />
     </div>
