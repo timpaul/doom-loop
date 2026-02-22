@@ -63,6 +63,7 @@ class AudioManager {
         engine.setPan(sound.pan);
         engine.setFilter(sound.filterFreq, sound.filterQ);
         engine.setLFO(sound.duration, sound.intensity);
+        engine.setTremolo(sound.tremoloRate, sound.tremoloDepth);
         engine.setReverb(sound.reverbAmount);
         engine.setDelay(sound.delayAmount);
         engine.setChorus(sound.chorusAmount);

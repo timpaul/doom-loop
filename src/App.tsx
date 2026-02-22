@@ -3,7 +3,7 @@ import { Chord, Note } from '@tonaljs/tonal'
 import './App.css'
 import { useAppState } from './state/AppContext'
 import { audioManager } from './audio/AudioManager'
-import type { SoundState, SceneState } from './types'
+import type { SoundState, SceneState, LFOScale } from './types'
 import type { NoiseColor } from './audio/AudioEngine'
 
 const PlayIcon = () => (
@@ -107,7 +107,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 className={`segment-btn ${sound.sourceType === 'tone' ? 'active' : ''}`}
                 onClick={() => update({ sourceType: 'tone' })}
               >
-                Tone
+                Tones
               </button>
             </div>
           </section>
@@ -184,13 +184,13 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   />
                 </div>
               </div>
-              <div className="control-row" style={{ marginTop: '16px' }}>
+              <div className="control-row">
                 <span className="control-label">Octave</span>
                 <div className="slider-wrapper">
                   <input type="range" min="1" max="5" step="1" value={sound.octave ?? 3} onChange={e => update({ octave: parseInt(e.target.value, 10) })} aria-label="Octave" />
                 </div>
               </div>
-              <div className="control-row" style={{ marginTop: '16px' }}>
+              <div className="control-row">
                 <span className="control-label">Detune</span>
                 <div className="slider-wrapper">
                   <input type="range" min="-50" max="50" step="1" value={sound.detune ?? 0} onChange={e => update({ detune: parseInt(e.target.value, 10) })} aria-label="Detune" />
@@ -234,15 +234,59 @@ function SoundPanel({ sound }: { sound: SoundState }) {
           <section className="panel-group">
             <h2 className="panel-title">LFO</h2>
             <div className="control-row">
-              <span className="control-label">Intensity</span>
+              <span className="control-label">Scale</span>
+              <div className="segmented-control">
+                {(['second', 'minute', 'hour'] as LFOScale[]).map(scale => (
+                  <button
+                    key={scale}
+                    className={`segment-btn ${sound.lfoScale === scale ? 'active' : ''}`}
+                    onClick={() => {
+                      let newDuration = sound.duration;
+                      if (scale === 'second') newDuration = Math.min(Math.max(newDuration, 0.01), 1);
+                      else if (scale === 'minute') newDuration = Math.min(Math.max(newDuration, 1), 60);
+                      else if (scale === 'hour') newDuration = Math.min(Math.max(newDuration, 60), 3600);
+                      update({ lfoScale: scale, duration: newDuration });
+                    }}
+                  >
+                    {scale.charAt(0).toUpperCase() + scale.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="control-row" style={{ marginTop: '5px' }}>
+              <span className="control-label">Rate</span>
               <div className="slider-wrapper">
-                <input type="range" min="0" max="1" step="0.01" value={sound.intensity} onChange={e => update({ intensity: parseFloat(e.target.value) })} aria-label="LFO Intensity" />
+                <input
+                  type="range"
+                  min={sound.lfoScale === 'hour' ? 60 : sound.lfoScale === 'minute' ? 1 : 0.01}
+                  max={sound.lfoScale === 'hour' ? 3600 : sound.lfoScale === 'minute' ? 60 : 1}
+                  step={sound.lfoScale === 'second' ? 0.01 : 1}
+                  value={sound.duration}
+                  onChange={e => update({ duration: parseFloat(e.target.value) })}
+                  aria-label="LFO Rate"
+                />
               </div>
             </div>
             <div className="control-row">
-              <span className="control-label">Duration</span>
+              <span className="control-label">Depth</span>
               <div className="slider-wrapper">
-                <input type="range" min="0.01" max="10" step="0.01" value={sound.duration} onChange={e => update({ duration: parseFloat(e.target.value) })} aria-label="LFO Duration" />
+                <input type="range" min="0" max="1" step="0.01" value={sound.intensity} onChange={e => update({ intensity: parseFloat(e.target.value) })} aria-label="LFO Depth" />
+              </div>
+            </div>
+          </section>
+
+          <section className="panel-group">
+            <h2 className="panel-title">TREMOLO</h2>
+            <div className="control-row">
+              <span className="control-label">Rate</span>
+              <div className="slider-wrapper">
+                <input type="range" min="0.1" max="20" step="0.1" value={sound.tremoloRate ?? 5} onChange={e => update({ tremoloRate: parseFloat(e.target.value) })} aria-label="Tremolo Rate" />
+              </div>
+            </div>
+            <div className="control-row">
+              <span className="control-label">Depth</span>
+              <div className="slider-wrapper">
+                <input type="range" min="0" max="1" step="0.01" value={sound.tremoloDepth ?? 0} onChange={e => update({ tremoloDepth: parseFloat(e.target.value) })} aria-label="Tremolo Depth" />
               </div>
             </div>
           </section>

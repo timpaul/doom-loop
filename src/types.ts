@@ -1,5 +1,7 @@
 import type { SoundType, NoiseColor } from './audio/AudioEngine';
 
+export type LFOScale = 'second' | 'minute' | 'hour';
+
 export interface SoundState {
     id: string;
     name: string;
@@ -13,10 +15,13 @@ export interface SoundState {
     filterQ: number;
     intensity: number;
     duration: number;
+    lfoScale: LFOScale;
     reverbAmount: number;
     delayAmount: number;
     chorusAmount: number;
     detune: number;
+    tremoloRate: number;
+    tremoloDepth: number;
 }
 
 export interface SceneState {
@@ -34,10 +39,13 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     pan: 0,
     filterFreq: 1000,
     filterQ: 1,
-    intensity: 0,
-    duration: 0.2,
+    intensity: 0.15,
+    duration: 30,
+    lfoScale: 'minute',
     reverbAmount: 0,
     delayAmount: 0,
     chorusAmount: 0,
-    detune: 0
+    detune: 0,
+    tremoloRate: 5,
+    tremoloDepth: 0
 };

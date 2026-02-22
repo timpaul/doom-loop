@@ -16,6 +16,7 @@ export class AudioEngine {
     // Effects
     private filter: Tone.Filter;
     private autoFilter: Tone.AutoFilter; // LFO
+    private tremolo: Tone.Tremolo;
     private reverb: Tone.Reverb;
     private delay: Tone.FeedbackDelay;
     private chorus: Tone.Chorus;
@@ -28,6 +29,7 @@ export class AudioEngine {
         // Create effects
         this.filter = new Tone.Filter({ type: 'bandpass', Q: 1, frequency: 1000 });
         this.autoFilter = new Tone.AutoFilter({ frequency: 1, depth: 0, baseFrequency: 1000, octaves: 4, type: 'sine' }).start();
+        this.tremolo = new Tone.Tremolo().start();
         this.reverb = new Tone.Reverb({ decay: 4, wet: 0 });
         this.delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.5, wet: 0 });
         this.chorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0 });
@@ -36,7 +38,7 @@ export class AudioEngine {
         this.channel = new Tone.Channel({ volume: 0, pan: 0 });
 
         // Chain effects
-        this.channel.chain(this.filter, this.autoFilter, this.chorus, this.delay, this.reverb, outputDestination);
+        this.channel.chain(this.filter, this.autoFilter, this.tremolo, this.chorus, this.delay, this.reverb, outputDestination);
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
@@ -65,6 +67,7 @@ export class AudioEngine {
         this.polySynth.dispose();
         this.filter.dispose();
         this.autoFilter.dispose();
+        this.tremolo.dispose();
         this.reverb.dispose();
         this.delay.dispose();
         this.chorus.dispose();
@@ -144,6 +147,10 @@ export class AudioEngine {
         // We'll calculate frequency as 1 / duration
         const freq = rate > 0 ? 1 / rate : 0.1;
         this.autoFilter.set({ frequency: freq, depth: depth });
+    }
+
+    public setTremolo(rate: number, depth: number) {
+        this.tremolo.set({ frequency: rate, depth: depth });
     }
 
     public setReverb(amount: number) {
