@@ -234,9 +234,9 @@ function SoundPanel({ sound }: { sound: SoundState }) {
           <section className="panel-group">
             <h2 className="panel-title">LFO</h2>
             <div className="control-row">
-              <span className="control-label">Scale</span>
+              <span className="control-label">Speed</span>
               <div className="segmented-control">
-                {(['second', 'minute', 'hour'] as LFOScale[]).map(scale => (
+                {(['hour', 'minute', 'second'] as LFOScale[]).map(scale => (
                   <button
                     key={scale}
                     className={`segment-btn ${sound.lfoScale === scale ? 'active' : ''}`}
@@ -248,13 +248,13 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       update({ lfoScale: scale, duration: newDuration });
                     }}
                   >
-                    {scale.charAt(0).toUpperCase() + scale.slice(1)}
+                    {scale === 'hour' ? 'Slow' : scale === 'minute' ? 'Med' : 'Fast'}
                   </button>
                 ))}
               </div>
             </div>
             <div className="control-row" style={{ marginTop: '5px' }}>
-              <span className="control-label">Rate</span>
+              <span className="control-label">Adjust</span>
               <div className="slider-wrapper">
                 <input
                   type="range"
