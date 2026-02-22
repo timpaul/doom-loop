@@ -503,9 +503,6 @@ function App() {
   return (
     <div className="app-container">
       <div className="top-play-area">
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
-          <button className="scene-btn" style={{ margin: 0 }} onClick={() => setCurrentScreen('load')}>Scenes</button>
-        </div>
         <button
           className="play-button"
           onClick={togglePlay}
@@ -513,10 +510,11 @@ function App() {
         >
           {isPlaying ? <PauseIcon /> : <PlayIcon />}
         </button>
-        <div style={{ flex: 1 }}></div>
       </div>
 
-      <header>
+      <header className="breadcrumb-header">
+        <button className="breadcrumb-link" onClick={() => setCurrentScreen('load')}>Scenes</button>
+        <span className="breadcrumb-separator">/</span>
         <input
           type="text"
           className="scene-name-input"

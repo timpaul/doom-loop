@@ -65,9 +65,10 @@ button {
 /* App Container */
 .app-container {
     width: 100%;
-    max-width: 500px;
+    max-width: 600px;
     margin: 0 auto;
     padding: 0 24px 40px 24px;
+    padding: 0 12px 40px 12px;
     display: flex;
     flex-direction: column;
     gap: 32px;
@@ -80,11 +81,10 @@ header {
 /* Play/Pause Top Container */
 .top-play-area {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     width: 100%;
-    max-width: 500px;
-    margin: 0 auto 32px auto;
+    margin: 0 auto;
     padding: 32px 1rem 32px 1rem;
     border-bottom: 2px solid #222222;
 }
@@ -103,7 +103,6 @@ header {
     overflow: hidden;
     transition: all 0.3s;
     width: 100%;
-    padding: 1rem;
     background-color: var(--bg-primary);
 }
 
@@ -150,24 +149,50 @@ header {
     color: var(--text-primary);
 }
 
+.breadcrumb-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.breadcrumb-link {
+    color: var(--accent-color);
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    margin-right: 8px;
+}
+
+.breadcrumb-link:hover {
+    color: var(--accent-hover);
+}
+
+.breadcrumb-separator {
+    color: #aaaaaa;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
 .scene-name-input {
     background: transparent;
     border: none;
-    color: var(--text-primary);
-    font-size: 1.8rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-align: center;
+    color: #aaaaaa;
+    font-size: 1.4rem;
+    font-weight: 600;
     width: 100%;
     outline: none;
-    caret-color: transparent;
-    cursor: pointer;
-    margin-bottom: 24px;
+    caret-color: var(--text-primary);
+    cursor: text;
+    text-align: left;
+    margin: 0;
 }
 
 .scene-name-input:focus {
-    caret-color: var(--text-primary);
-    cursor: text;
+    color: var(--text-primary);
 }
 
 .noise-name-input {
