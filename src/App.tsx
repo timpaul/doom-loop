@@ -286,6 +286,13 @@ function App() {
     <div className="app-container">
       <div className="top-play-area">
         <button
+          className="scenes-nav-btn"
+          onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'load' })}
+          aria-label="Back to Scenes"
+        >
+          <img src="/grid-icon.png" alt="Back to scenes" className="grid-icon-img" />
+        </button>
+        <button
           className="play-button"
           onClick={togglePlay}
           aria-label={state.isPlaying ? "Pause" : "Play"}
@@ -294,9 +301,7 @@ function App() {
         </button>
       </div>
 
-      <header className="breadcrumb-header">
-        <button className="breadcrumb-link" onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'load' })}>Scenes</button>
-        <span className="breadcrumb-separator">/</span>
+      <header className="scene-header">
         <input
           type="text"
           className="scene-name-input"

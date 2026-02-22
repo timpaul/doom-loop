@@ -87,6 +87,30 @@ header {
     margin: 0 auto;
     padding: 32px 1rem 32px 1rem;
     border-bottom: 2px solid #222222;
+    position: relative;
+}
+
+.scenes-nav-btn {
+    position: absolute;
+    left: 1rem;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.scenes-nav-btn:hover {
+    opacity: 0.8;
+}
+
+.grid-icon-img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
 }
 
 .main-content {
@@ -149,46 +173,28 @@ header {
     color: var(--text-primary);
 }
 
-.breadcrumb-header {
+.scene-header {
     display: flex;
+    justify-content: center;
     align-items: center;
     width: 100%;
-    margin: 0 auto;
+    margin: 0 auto 32px auto;
     padding: 0;
-}
-
-.breadcrumb-link {
-    color: var(--accent-color);
-    font-size: 1.4rem;
-    font-weight: 600;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    margin-right: 8px;
-}
-
-.breadcrumb-link:hover {
-    color: var(--accent-hover);
-}
-
-.breadcrumb-separator {
-    color: #aaaaaa;
-    font-size: 1.4rem;
-    font-weight: 600;
-    margin-right: 8px;
 }
 
 .scene-name-input {
     background: transparent;
     border: none;
-    color: #aaaaaa;
-    font-size: 1.4rem;
-    font-weight: 600;
+    color: #888888;
+    font-size: 2rem;
+    font-weight: 500;
     width: 100%;
     outline: none;
     caret-color: var(--text-primary);
     cursor: text;
-    text-align: left;
+    text-align: center;
     margin: 0;
+    letter-spacing: -0.5px;
 }
 
 .scene-name-input:focus {
