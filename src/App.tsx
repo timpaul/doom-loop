@@ -445,6 +445,8 @@ function App() {
         <div className="add-noise-container">
           <button className="add-noise-btn" onClick={addSound}>Add a sound</button>
         </div>
+
+        <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" />
       </main>
 
       <audio ref={audioRef} preload="none" playsInline />
