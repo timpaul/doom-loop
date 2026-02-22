@@ -5,8 +5,8 @@ export interface SoundState {
     name: string;
     sourceType: SoundType;
     noiseColor: NoiseColor;
-    toneMode: 'note' | 'chord';
-    tonePitch: 'Low' | 'Mid' | 'High';
+    activeNotes: string[];
+    octave: number;
     volume: number;
     pan: number;
     filterFreq: number;
@@ -28,8 +28,8 @@ export interface SceneState {
 export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     sourceType: 'noise',
     noiseColor: 'brown',
-    toneMode: 'note',
-    tonePitch: 'Low',
+    activeNotes: ['C', 'Eb', 'G', 'Bb'],
+    octave: 3,
     volume: 0.5,
     pan: 0,
     filterFreq: 1000,

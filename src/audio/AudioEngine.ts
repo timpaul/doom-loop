@@ -71,7 +71,7 @@ export class AudioEngine {
         this.channel.dispose();
     }
 
-    public play(sourceType: SoundType, value: string) {
+    public play(sourceType: SoundType, value: any) {
         if (!this.isInitialized) return;
 
         this.stop(); // Stop current playing
@@ -97,22 +97,17 @@ export class AudioEngine {
             }
             this.noise.start();
         } else if (sourceType === 'tone') {
-            const toneType = value as ToneType;
-            let notes: string[] = [];
+            // value is { activeNotes: string[], octave: number }
+            const { activeNotes, octave } = value as { activeNotes: string[], octave: number };
 
-            // Map tone string to musical notes
-            const octave = toneType.includes('Low') ? 2 : toneType.includes('High') ? 4 : 3;
-
-            if (toneType.includes('chord')) {
-                // Minor 7th chord: C, Eb, G, Bb
-                notes = [`C${octave}`, `Eb${octave}`, `G${octave}`, `Bb${octave}`];
-            } else {
-                notes = [`C${octave}`];
-            }
-
+            // Construct the exact Tone.js note targets (e.g. C3, Eb3)
+            const notes = activeNotes.map(n => `${n}${octave}`);
             this.currentToneValues = notes;
+
             // Trigger notes with a gentle attack
-            this.polySynth.triggerAttack(notes);
+            if (notes.length > 0) {
+                this.polySynth.triggerAttack(notes);
+            }
         }
     }
 

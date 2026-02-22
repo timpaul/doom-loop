@@ -277,9 +277,7 @@ header {
 .color-btn {
     background: #333333;
     border: 4px solid #333333;
-    /* Acts as the grey padding */
     background-clip: padding-box;
-    /* Ensures background color only fills the inside */
     color: var(--text-primary);
     border-radius: 20px;
     padding: 6px 12px;
@@ -299,6 +297,58 @@ header {
 .color-btn.active {
     background-color: var(--accent-color);
     color: #000;
+}
+
+/* Keyboard UI */
+.keyboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+    align-items: center;
+    width: 100%;
+}
+
+.keyboard-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+}
+
+.key-btn {
+    height: 36px;
+    border-radius: 18px;
+    background-color: #333333;
+    border: 4px solid #333333;
+    background-clip: padding-box;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.key-btn:hover {
+    background-color: #444444;
+}
+
+.key-btn.active {
+    background-color: var(--accent-color);
+}
+
+.white-key,
+.black-key {
+    width: calc((100% - 48px) / 7);
+}
+
+.black-keys .key-btn:nth-child(2) {
+    margin-right: calc(((100% - 48px) / 7) + 8px);
+}
+
+.keyboard-divider {
+    height: 2px;
+    background-color: #333333;
+    margin: 16px 0 8px 0;
+    width: 100%;
+    border-radius: 1px;
 }
 
 /* Panels */

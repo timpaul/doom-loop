@@ -74,10 +74,10 @@ class AudioManager {
             return;
         }
 
-        const sourceConfigStr = `${sound.sourceType}-${sound.sourceType === 'noise' ? sound.noiseColor : sound.tonePitch + sound.toneMode}`;
+        const sourceConfigStr = `${sound.sourceType}-${sound.sourceType === 'noise' ? sound.noiseColor : [...sound.activeNotes].sort().join('') + sound.octave}`;
 
         if (this.previousSources.get(sound.id) !== sourceConfigStr) {
-            engine.play(sound.sourceType, sound.sourceType === 'noise' ? sound.noiseColor : `${sound.tonePitch} ${sound.toneMode}`);
+            engine.play(sound.sourceType, sound.sourceType === 'noise' ? sound.noiseColor : { activeNotes: sound.activeNotes, octave: sound.octave });
             this.previousSources.set(sound.id, sourceConfigStr);
         }
     }

@@ -26,7 +26,6 @@ function SoundPanel({ sound }: { sound: SoundState }) {
   const isExpanded = state.expandedId === sound.id;
 
   const noiseColors: NoiseColor[] = ['white', 'pink', 'blue', 'brown', 'green', 'purple'];
-  const pitchTypes = ['Low', 'Mid', 'High'] as const;
 
   const update = (updates: Partial<SoundState>) => dispatch({ type: 'UPDATE_SOUND', payload: { id: sound.id, updates } });
   const onDelete = () => dispatch({ type: 'DELETE_SOUND', payload: sound.id });
@@ -91,34 +90,46 @@ function SoundPanel({ sound }: { sound: SoundState }) {
           ) : (
             <section className="panel-group">
               <h2 className="panel-title">TONE</h2>
-              <div className="segmented-control" role="group" aria-label="Select Tone Mode">
-                <button
-                  className={`segment-btn ${sound.toneMode === 'note' ? 'active' : ''}`}
-                  onClick={() => update({ toneMode: 'note' })}
-                >
-                  Note
-                </button>
-                <button
-                  className={`segment-btn ${sound.toneMode === 'chord' ? 'active' : ''}`}
-                  onClick={() => update({ toneMode: 'chord' })}
-                >
-                  Chord
-                </button>
+              <div className="keyboard-container" role="group" aria-label="Select notes">
+                <div className="keyboard-row black-keys">
+                  {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
+                    <button
+                      key={note}
+                      className={`key-btn black-key ${sound.activeNotes?.includes(note) ? 'active' : ''}`}
+                      onClick={() => {
+                        const notes = sound.activeNotes || [];
+                        const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
+                        update({ activeNotes: newNotes });
+                      }}
+                      aria-pressed={sound.activeNotes?.includes(note)}
+                      aria-label={note}
+                    />
+                  ))}
+                </div>
+                <div className="keyboard-row white-keys">
+                  {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(note => (
+                    <button
+                      key={note}
+                      className={`key-btn white-key ${sound.activeNotes?.includes(note) ? 'active' : ''}`}
+                      onClick={() => {
+                        const notes = sound.activeNotes || [];
+                        const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
+                        update({ activeNotes: newNotes });
+                      }}
+                      aria-pressed={sound.activeNotes?.includes(note)}
+                      aria-label={note}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="colour-picker-grid" style={{ marginTop: '12px' }} role="group" aria-label="Select tone pitch">
-                {pitchTypes.map(p => (
-                  <button
-                    key={p}
-                    className={`color-btn ${sound.tonePitch === p ? 'active' : ''}`}
-                    onClick={() => update({ tonePitch: p })}
-                    aria-pressed={sound.tonePitch === p}
-                    aria-label={p}
-                  >
-                    {p}
-                  </button>
-                ))}
+              <div className="keyboard-divider"></div>
+              <div className="control-row" style={{ marginTop: '16px' }}>
+                <span className="control-label">Octave</span>
+                <div className="slider-wrapper">
+                  <input type="range" min="1" max="5" step="1" value={sound.octave ?? 3} onChange={e => update({ octave: parseInt(e.target.value, 10) })} aria-label="Octave" />
+                </div>
               </div>
-              <div className="control-row" style={{ marginTop: '6px' }}>
+              <div className="control-row" style={{ marginTop: '16px' }}>
                 <span className="control-label">Detune</span>
                 <div className="slider-wrapper">
                   <input type="range" min="-50" max="50" step="1" value={sound.detune ?? 0} onChange={e => update({ detune: parseInt(e.target.value, 10) })} aria-label="Detune" />
