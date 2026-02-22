@@ -1,4 +1,5 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { Chord, Note } from '@tonaljs/tonal'
 import './App.css'
 import { useAppState } from './state/AppContext'
 import { audioManager } from './audio/AudioManager'
@@ -21,15 +22,56 @@ const HamburgerIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
 )
 
+const myKeys = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
+
 function SoundPanel({ sound }: { sound: SoundState }) {
   const { state, dispatch } = useAppState();
   const isExpanded = state.expandedId === sound.id;
+
+  const [chordInput, setChordInput] = useState('');
 
   const noiseColors: NoiseColor[] = ['white', 'pink', 'blue', 'brown', 'green', 'purple'];
 
   const update = (updates: Partial<SoundState>) => dispatch({ type: 'UPDATE_SOUND', payload: { id: sound.id, updates } });
   const onDelete = () => dispatch({ type: 'DELETE_SOUND', payload: sound.id });
   const onToggleExpand = () => dispatch({ type: 'TOGGLE_EXPAND', payload: sound.id });
+
+  // Update input text when external notes sequence changes (bi-directional sync)
+  useEffect(() => {
+    if (sound.sourceType === 'tone' && sound.activeNotes && sound.activeNotes.length > 0) {
+      const detected = Chord.detect(sound.activeNotes);
+      if (detected.length > 0) {
+        // Tonal returns multiple options, pick the primary one
+        setChordInput(detected[0]);
+      } else {
+        setChordInput('');
+      }
+    } else {
+      setChordInput('');
+    }
+  }, [sound.activeNotes, sound.sourceType]);
+
+  const handleChordCommit = () => {
+    if (!chordInput.trim()) return;
+
+    // Parse the input via Tonal
+    const c = Chord.get(chordInput);
+    if (!c.empty) {
+      // Valid chord, map tonal's potentially weird accidentals (like F##) back to our explicit key array
+      const mappedNotes = c.notes.map(n => {
+        const pc = Note.pitchClass(n);
+        const midi = Note.midi(pc + '4')! % 12;
+        return myKeys[midi];
+      });
+      // De-duplicate in case of weird mappings
+      const uniqueNotes = Array.from(new Set(mappedNotes));
+      update({ activeNotes: uniqueNotes });
+    } else {
+      // Invalid chord text, revert to whatever the active notes currently yield
+      const detected = Chord.detect(sound.activeNotes || []);
+      setChordInput(detected.length > 0 ? detected[0] : '');
+    }
+  };
 
   return (
     <div className={`noise-panel ${isExpanded ? 'expanded' : 'collapsed'}`}>
@@ -89,7 +131,8 @@ function SoundPanel({ sound }: { sound: SoundState }) {
             </section>
           ) : (
             <section className="panel-group">
-              <h2 className="panel-title">TONE</h2>
+              <h2 className="panel-title">TONES</h2>
+
               <div className="keyboard-container" role="group" aria-label="Select notes">
                 <div className="keyboard-row black-keys">
                   {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
@@ -122,7 +165,25 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   ))}
                 </div>
               </div>
-              <div className="keyboard-divider"></div>
+
+              <div className="control-row" style={{ marginTop: '21px' }}>
+                <span className="control-label">Chord</span>
+                <div className="slider-wrapper">
+                  <input
+                    type="text"
+                    className="chord-input"
+                    value={chordInput}
+                    onChange={(e) => setChordInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleChordCommit();
+                    }}
+                    onBlur={handleChordCommit}
+                    style={{ width: '100%', backgroundColor: 'var(--bg-color)' }}
+                    spellCheck={false}
+                    aria-label="Chord Notation"
+                  />
+                </div>
+              </div>
               <div className="control-row" style={{ marginTop: '16px' }}>
                 <span className="control-label">Octave</span>
                 <div className="slider-wrapper">
