@@ -118,6 +118,12 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   </button>
                 ))}
               </div>
+              <div className="control-row" style={{ marginTop: '6px' }}>
+                <span className="control-label">Detune</span>
+                <div className="slider-wrapper">
+                  <input type="range" min="-50" max="50" step="1" value={sound.detune ?? 0} onChange={e => update({ detune: parseInt(e.target.value, 10) })} aria-label="Detune" />
+                </div>
+              </div>
             </section>
           )}
 

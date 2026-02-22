@@ -66,6 +66,7 @@ class AudioManager {
         engine.setReverb(sound.reverbAmount);
         engine.setDelay(sound.delayAmount);
         engine.setChorus(sound.chorusAmount);
+        engine.setDetune(sound.detune ?? 0);
 
         if (!isPlaying) {
             engine.stop();

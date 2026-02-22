@@ -166,4 +166,8 @@ export class AudioEngine {
     public setPan(pan: number) {
         this.channel.pan.rampTo(pan, 0.1);
     }
+
+    public setDetune(cents: number) {
+        this.polySynth.set({ detune: cents });
+    }
 }
