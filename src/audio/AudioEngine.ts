@@ -4,25 +4,6 @@ export type NoiseColor = 'white' | 'pink' | 'brown' | 'blue' | 'purple' | 'green
 export type ToneType = 'Low note' | 'Mid note' | 'High note' | 'Low chord' | 'Mid chord' | 'High chord';
 export type SoundType = 'noise' | 'tone';
 
-let sharedDestination: MediaStreamAudioDestinationNode | null = null;
-let destinationConnected = false;
-
-export async function initializeSharedAudio() {
-    await Tone.start();
-
-    if (!sharedDestination) {
-        sharedDestination = Tone.getContext().createMediaStreamDestination();
-    }
-
-    if (!destinationConnected) {
-        Tone.getDestination().connect(sharedDestination);
-        destinationConnected = true;
-    }
-}
-
-export function getSharedStream(): MediaStream | null {
-    return sharedDestination ? sharedDestination.stream : null;
-}
 
 export class AudioEngine {
     public channel: Tone.Channel;
@@ -43,7 +24,7 @@ export class AudioEngine {
     private currentToneValues: string[] = [];
     private isInitialized = false;
 
-    constructor() {
+    constructor(outputDestination: Tone.ToneAudioNode = Tone.getDestination()) {
         // Create effects
         this.filter = new Tone.Filter({ type: 'bandpass', Q: 1, frequency: 1000 });
         this.autoFilter = new Tone.AutoFilter({ frequency: 1, depth: 0, baseFrequency: 1000, octaves: 4, type: 'sine' }).start();
@@ -55,7 +36,7 @@ export class AudioEngine {
         this.channel = new Tone.Channel({ volume: 0, pan: 0 });
 
         // Chain effects
-        this.channel.chain(this.filter, this.autoFilter, this.chorus, this.delay, this.reverb, Tone.getDestination());
+        this.channel.chain(this.filter, this.autoFilter, this.chorus, this.delay, this.reverb, outputDestination);
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
@@ -72,10 +53,22 @@ export class AudioEngine {
 
     public async initialize() {
         if (this.isInitialized) return;
-        await Tone.start();
-        // Reverb needs generating in older Tone.js or for good measure
+        // Initialization of Tone context is now handled centrally by AudioManager
         await this.reverb.generate();
         this.isInitialized = true;
+    }
+
+    public dispose() {
+        this.stop();
+        this.noise.dispose();
+        this.noiseFilter.dispose();
+        this.polySynth.dispose();
+        this.filter.dispose();
+        this.autoFilter.dispose();
+        this.reverb.dispose();
+        this.delay.dispose();
+        this.chorus.dispose();
+        this.channel.dispose();
     }
 
     public play(sourceType: SoundType, value: string) {

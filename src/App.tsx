@@ -1,55 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 import './App.css'
-import { AudioEngine, initializeSharedAudio, getSharedStream } from './audio/AudioEngine'
-import type { SoundType, NoiseColor } from './audio/AudioEngine'
-export const COLOR_MAP: Record<NoiseColor, string> = {
-  white: '#ffffff',
-  pink: '#ffb6c1',
-  brown: '#b8621b',
-  blue: '#3b82f6',
-  green: '#5cb85c',
-  purple: '#673ab7'
-};
-
-export interface SoundState {
-  id: string;
-  name: string;
-  sourceType: SoundType;
-  noiseColor: NoiseColor;
-  toneMode: 'note' | 'chord';
-  tonePitch: 'Low' | 'Mid' | 'High';
-  volume: number;
-  pan: number;
-  filterFreq: number;
-  filterQ: number;
-  intensity: number;
-  duration: number;
-  reverbAmount: number;
-  delayAmount: number;
-  chorusAmount: number;
-}
-
-export interface SceneState {
-  id: string;
-  name: string;
-  sounds: SoundState[];
-}
-
-const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
-  sourceType: 'noise',
-  noiseColor: 'brown',
-  toneMode: 'note',
-  tonePitch: 'Low',
-  volume: 0.5,
-  pan: 0,
-  filterFreq: 1000,
-  filterQ: 1,
-  intensity: 0,
-  duration: 0.2,
-  reverbAmount: 0,
-  delayAmount: 0,
-  chorusAmount: 0
-};
+import { useAppState } from './state/AppContext'
+import { audioManager } from './audio/AudioManager'
+import type { SoundState, SceneState } from './types'
+import type { NoiseColor } from './audio/AudioEngine'
 
 const PlayIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
@@ -67,76 +21,16 @@ const HamburgerIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
 )
 
-function SoundPanel({
-  sound,
-  isExpanded,
-  isPlaying,
-  onUpdate,
-  onDelete,
-  onToggleExpand
-}: {
-  sound: SoundState;
-  isExpanded: boolean;
-  isPlaying: boolean;
-  onUpdate: (id: string, updates: Partial<SoundState>) => void;
-  onDelete: (id: string) => void;
-  onToggleExpand: () => void;
-}) {
-  const engineRef = useRef<AudioEngine | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    const initEngine = async () => {
-      const engine = new AudioEngine();
-      await engine.initialize();
-      if (!mounted) return;
-      engineRef.current = engine;
-      engine.setVolume(sound.volume);
-      engine.setPan(sound.pan);
-      engine.setFilter(sound.filterFreq, sound.filterQ);
-      engine.setLFO(sound.intensity > 0 ? sound.duration : 0, sound.intensity);
-      engine.setReverb(sound.reverbAmount);
-      engine.setDelay(sound.delayAmount);
-      engine.setChorus(sound.chorusAmount);
-      if (isPlaying) {
-        engine.play(sound.sourceType, sound.sourceType === 'noise' ? sound.noiseColor : `${sound.tonePitch} ${sound.toneMode}`);
-      }
-    };
-    initEngine();
-    return () => {
-      mounted = false;
-      if (engineRef.current) engineRef.current.stop();
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Apply updates to the engine
-  useEffect(() => {
-    if (engineRef.current) {
-      engineRef.current.setVolume(sound.volume);
-      engineRef.current.setPan(sound.pan);
-      engineRef.current.setFilter(sound.filterFreq, sound.filterQ);
-      engineRef.current.setLFO(sound.intensity > 0 ? sound.duration : 0, sound.intensity);
-      engineRef.current.setReverb(sound.reverbAmount);
-      engineRef.current.setDelay(sound.delayAmount);
-      engineRef.current.setChorus(sound.chorusAmount);
-    }
-  }, [sound.volume, sound.pan, sound.filterFreq, sound.filterQ, sound.intensity, sound.duration, sound.reverbAmount, sound.delayAmount, sound.chorusAmount]);
-
-  useEffect(() => {
-    if (engineRef.current) {
-      if (isPlaying) {
-        engineRef.current.play(sound.sourceType, sound.sourceType === 'noise' ? sound.noiseColor : `${sound.tonePitch} ${sound.toneMode}`);
-      } else {
-        // Just stop playback, don't destroy engine
-        engineRef.current.stop();
-      }
-    }
-  }, [isPlaying, sound.sourceType, sound.noiseColor, sound.toneMode, sound.tonePitch]);
+function SoundPanel({ sound }: { sound: SoundState }) {
+  const { state, dispatch } = useAppState();
+  const isExpanded = state.expandedId === sound.id;
 
   const noiseColors: NoiseColor[] = ['white', 'pink', 'blue', 'brown', 'green', 'purple'];
   const pitchTypes = ['Low', 'Mid', 'High'] as const;
 
-  const update = (updates: Partial<SoundState>) => onUpdate(sound.id, updates);
+  const update = (updates: Partial<SoundState>) => dispatch({ type: 'UPDATE_SOUND', payload: { id: sound.id, updates } });
+  const onDelete = () => dispatch({ type: 'DELETE_SOUND', payload: sound.id });
+  const onToggleExpand = () => dispatch({ type: 'TOGGLE_EXPAND', payload: sound.id });
 
   return (
     <div className={`noise-panel ${isExpanded ? 'expanded' : 'collapsed'}`}>
@@ -151,7 +45,7 @@ function SoundPanel({
           onChange={(e) => update({ name: e.target.value })}
           aria-label="Sound Name"
         />
-        <button className="icon-btn delete-btn" onClick={() => onDelete(sound.id)} aria-label="Delete Sound">
+        <button className="icon-btn delete-btn" onClick={onDelete} aria-label="Delete Sound">
           <TrashIcon />
         </button>
       </div>
@@ -303,114 +197,34 @@ function SoundPanel({
 }
 
 function App() {
-  const [isPlaying, setIsPlaying] = useState(false)
-
-  const [currentScreen, setCurrentScreen] = useState<'main' | 'load'>('load')
-
-  const [currentSceneId, setCurrentSceneId] = useState<string>(() => {
-    return localStorage.getItem('noisemaker_currentSceneId') || 'scene-1'
-  })
-  const [currentSceneName, setCurrentSceneName] = useState<string>(() => {
-    return localStorage.getItem('noisemaker_currentSceneName') || 'Scene 1'
-  })
-
-  const [savedScenes, setSavedScenes] = useState<SceneState[]>(() => {
-    const saved = localStorage.getItem('noisemaker_scenes')
-    if (saved) {
-      try { return JSON.parse(saved) } catch (e) { console.error(e) }
-    }
-    return [{ id: 'scene-1', name: 'Scene 1', sounds: [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }] }]
-  })
-
-  const [sounds, setSounds] = useState<SoundState[]>(() => {
-    const saved = localStorage.getItem('noisemaker_sounds')
-    if (saved) {
-      try { return JSON.parse(saved) } catch (e) { console.error(e) }
-    }
-    return [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }]
-  })
-
-  const [expandedId, setExpandedId] = useState<string>(() => {
-    const saved = localStorage.getItem('noisemaker_expandedId')
-    return saved !== null ? saved : '1'
-  })
-
-  const [nextId, setNextId] = useState(() => {
-    const saved = localStorage.getItem('noisemaker_nextId')
-    if (saved) {
-      try { return parseInt(saved, 10) } catch (e) { console.error(e) }
-    }
-    return 2
-  })
-
-  useEffect(() => {
-    localStorage.setItem('noisemaker_sounds', JSON.stringify(sounds))
-  }, [sounds])
-
-  useEffect(() => {
-    localStorage.setItem('noisemaker_currentSceneName', currentSceneName)
-  }, [currentSceneName])
-
-  useEffect(() => {
-    localStorage.setItem('noisemaker_currentSceneId', currentSceneId)
-  }, [currentSceneId])
-
-  useEffect(() => {
-    setSavedScenes(prev => {
-      const existingIdx = prev.findIndex(s => s.id === currentSceneId);
-      if (existingIdx >= 0) {
-        const current = prev[existingIdx];
-        if (current.name === currentSceneName && current.sounds === sounds) {
-          return prev;
-        }
-        const newScenes = [...prev];
-        newScenes[existingIdx] = { id: currentSceneId, name: currentSceneName, sounds };
-        return newScenes;
-      }
-      return [...prev, { id: currentSceneId, name: currentSceneName, sounds }];
-    });
-  }, [currentSceneId, currentSceneName, sounds]);
-
-  useEffect(() => {
-    localStorage.setItem('noisemaker_scenes', JSON.stringify(savedScenes))
-  }, [savedScenes])
-
-  useEffect(() => {
-    localStorage.setItem('noisemaker_expandedId', expandedId)
-  }, [expandedId])
-
-  useEffect(() => {
-    localStorage.setItem('noisemaker_nextId', nextId.toString())
-  }, [nextId])
-
+  const { state, dispatch } = useAppState();
   const audioRef = useRef<HTMLAudioElement>(null)
   const initialized = useRef(false)
 
   const togglePlay = useCallback(async () => {
     if (!initialized.current) {
-      await initializeSharedAudio();
+      await audioManager.initialize();
       initialized.current = true;
       if (audioRef.current && !audioRef.current.srcObject) {
-        audioRef.current.srcObject = getSharedStream();
+        audioRef.current.srcObject = audioManager.getSharedStream();
       }
     }
 
-    if (isPlaying) {
-      setIsPlaying(false)
+    if (state.isPlaying) {
       if (audioRef.current) audioRef.current.pause()
     } else {
-      setIsPlaying(true)
       if (audioRef.current) {
         audioRef.current.play().catch(e => console.log('Background audio play failed:', e))
       }
     }
-  }, [isPlaying])
+    dispatch({ type: 'TOGGLE_PLAY' });
+  }, [state.isPlaying, dispatch])
 
   useEffect(() => {
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying) togglePlay() });
-      navigator.mediaSession.setActionHandler('pause', () => { if (isPlaying) togglePlay() });
-      if (isPlaying) {
+      navigator.mediaSession.setActionHandler('play', () => { if (!state.isPlaying) togglePlay() });
+      navigator.mediaSession.setActionHandler('pause', () => { if (state.isPlaying) togglePlay() });
+      if (state.isPlaying) {
         navigator.mediaSession.metadata = new MediaMetadata({
           title: 'Playing Sounds',
           artist: 'Noisemaker',
@@ -422,67 +236,35 @@ function App() {
         });
       }
     }
-  }, [isPlaying, togglePlay]);
+  }, [state.isPlaying, togglePlay]);
 
   const addSound = () => {
-    const id = nextId.toString()
-    setNextId(prev => prev + 1)
-    setSounds(prev => [...prev, { id, name: `Sound ${id}`, ...DEFAULT_SOUND }])
-    setExpandedId(id)
-  }
-
-  const updateSound = (id: string, updates: Partial<SoundState>) => {
-    setSounds(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n))
-  }
-
-  const deleteSound = (id: string) => {
-    setSounds(prev => prev.filter(n => n.id !== id))
-  }
-
-  const toggleExpand = (id: string) => {
-    setExpandedId(prev => prev === id ? '' : id)
+    dispatch({ type: 'ADD_SOUND' });
   }
 
   const loadScene = (scene: SceneState) => {
-    setCurrentSceneId(scene.id);
-    setCurrentSceneName(scene.name);
-    setSounds(scene.sounds);
-    setCurrentScreen('main');
-    // auto-stop playing when loading a new scene to avoid jarring transitions
-    if (isPlaying) togglePlay();
-
-    // expand first sound id
-    if (scene.sounds.length > 0) {
-      setExpandedId(scene.sounds[0].id)
-    }
+    dispatch({ type: 'LOAD_SCENE', payload: scene });
   }
 
   const removeSavedScene = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setSavedScenes(prev => prev.filter(s => s.id !== id));
+    dispatch({ type: 'DELETE_SCENE', payload: id });
   }
 
   const handleCreateNewScene = () => {
-    const newId = `scene-${Date.now()}`;
-    const newName = `Scene ${savedScenes.length + 1}`;
-    setCurrentSceneId(newId);
-    setCurrentSceneName(newName);
-    const initialSound: SoundState = { id: '1', name: 'Sound 1', ...DEFAULT_SOUND };
-    setSounds([initialSound]);
-    setExpandedId('1');
-    setCurrentScreen('main');
+    dispatch({ type: 'CREATE_SCENE' });
   }
 
-  if (currentScreen === 'load') {
+  if (state.currentScreen === 'load') {
     return (
       <div className="app-container load-screen">
         <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
         <main className="main-content">
           <div className="scene-list">
-            {savedScenes.length === 0 ? (
+            {state.savedScenes.length === 0 ? (
               <p className="empty-state">No saved scenes yet.</p>
             ) : (
-              savedScenes.map(scene => (
+              state.savedScenes.map(scene => (
                 <div key={scene.id} className="scene-list-item" onClick={() => loadScene(scene)}>
                   <span className="scene-item-name">{scene.name}</span>
                   <button className="icon-btn delete-btn" onClick={(e) => removeSavedScene(e, scene.id)}>
@@ -506,35 +288,30 @@ function App() {
         <button
           className="play-button"
           onClick={togglePlay}
-          aria-label={isPlaying ? "Pause" : "Play"}
+          aria-label={state.isPlaying ? "Pause" : "Play"}
         >
-          {isPlaying ? <PauseIcon /> : <PlayIcon />}
+          {state.isPlaying ? <PauseIcon /> : <PlayIcon />}
         </button>
       </div>
 
       <header className="breadcrumb-header">
-        <button className="breadcrumb-link" onClick={() => setCurrentScreen('load')}>Scenes</button>
+        <button className="breadcrumb-link" onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'load' })}>Scenes</button>
         <span className="breadcrumb-separator">/</span>
         <input
           type="text"
           className="scene-name-input"
-          value={currentSceneName}
-          onChange={(e) => setCurrentSceneName(e.target.value)}
+          value={state.currentSceneName}
+          onChange={(e) => dispatch({ type: 'SET_SCENE_NAME', payload: e.target.value })}
           aria-label="Scene Name"
           placeholder="Name your scene..."
         />
       </header>
 
       <main className="main-content">
-        {sounds.map(sound => (
+        {state.sounds.map(sound => (
           <SoundPanel
             key={sound.id}
             sound={sound}
-            isExpanded={expandedId === sound.id}
-            isPlaying={isPlaying}
-            onUpdate={updateSound}
-            onDelete={deleteSound}
-            onToggleExpand={() => toggleExpand(sound.id)}
           />
         ))}
 
