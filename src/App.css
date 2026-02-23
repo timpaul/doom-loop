@@ -370,6 +370,17 @@ header {
     color: var(--text-secondary);
     text-transform: uppercase;
     margin-bottom: 4px;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+
+.panel-title:hover {
+    color: var(--text-primary);
+}
+
+.panel-group.collapsed .panel-title {
+    margin-bottom: 0;
 }
 
 /* Chord Input */
