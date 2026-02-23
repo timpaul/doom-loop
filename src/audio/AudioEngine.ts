@@ -15,7 +15,9 @@ export class AudioEngine {
 
     // Effects
     private filter: Tone.Filter;
-    private autoFilter: Tone.AutoFilter; // LFO
+    private volLfoGain: Tone.Gain;
+    private volLfo: Tone.LFO;
+    private panLfo: Tone.LFO;
 
     private reverb: Tone.Reverb;
     private delay: Tone.FeedbackDelay;
@@ -28,7 +30,12 @@ export class AudioEngine {
     constructor(outputDestination: Tone.ToneAudioNode = Tone.getDestination()) {
         // Create effects
         this.filter = new Tone.Filter({ type: 'bandpass', Q: 1, frequency: 1000 });
-        this.autoFilter = new Tone.AutoFilter({ frequency: 1, depth: 0, baseFrequency: 1000, octaves: 4, type: 'sine' }).start();
+
+        this.volLfoGain = new Tone.Gain(0); // Intrinsic gain 0, fully driven by LFO
+        this.volLfo = new Tone.LFO({ frequency: 1, min: 1, max: 1 }).start();
+        this.volLfo.connect(this.volLfoGain.gain);
+
+        this.panLfo = new Tone.LFO({ frequency: 1, min: 0, max: 0 }).start();
 
         this.reverb = new Tone.Reverb({ decay: 4, wet: 0 });
         this.delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.5, wet: 0 });
@@ -36,9 +43,10 @@ export class AudioEngine {
 
         // Channel for Volume and Pan
         this.channel = new Tone.Channel({ volume: 0, pan: 0 });
+        this.panLfo.connect(this.channel.pan);
 
         // Chain effects
-        this.channel.chain(this.filter, this.autoFilter, this.chorus, this.delay, this.reverb, outputDestination);
+        this.channel.chain(this.filter, this.volLfoGain, this.chorus, this.delay, this.reverb, outputDestination);
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
@@ -53,11 +61,17 @@ export class AudioEngine {
         this.polySynth.connect(this.channel);
     }
 
+    private initPromise: Promise<void> | null = null;
+
     public async initialize() {
         if (this.isInitialized) return;
-        // Initialization of Tone context is now handled centrally by AudioManager
-        await this.reverb.generate();
-        this.isInitialized = true;
+        if (!this.initPromise) {
+            this.initPromise = (async () => {
+                await this.reverb.generate();
+                this.isInitialized = true;
+            })();
+        }
+        await this.initPromise;
     }
 
     public dispose() {
@@ -66,7 +80,9 @@ export class AudioEngine {
         this.noiseFilter.dispose();
         this.polySynth.dispose();
         this.filter.dispose();
-        this.autoFilter.dispose();
+        this.volLfoGain.dispose();
+        this.volLfo.dispose();
+        this.panLfo.dispose();
 
         this.reverb.dispose();
         this.delay.dispose();
@@ -74,8 +90,10 @@ export class AudioEngine {
         this.channel.dispose();
     }
 
-    public play(sourceType: SoundType, value: any) {
-        if (!this.isInitialized) return;
+    public async play(sourceType: SoundType, value: any) {
+        if (!this.isInitialized) {
+            await this.initialize();
+        }
 
         this.stop(); // Stop current playing
 
@@ -138,15 +156,20 @@ export class AudioEngine {
 
     public setFilter(frequency: number, q: number = 1) {
         this.filter.set({ frequency, Q: q });
-        // Update AutoFilter base frequency to match
-        this.autoFilter.baseFrequency = frequency;
     }
 
-    public setLFO(rate: number, depth: number) {
-        // Rate from UI is duration (0.01 to 10 seconds), UI label says "Duration" so lower freq = longer duration
-        // We'll calculate frequency as 1 / duration
+    public setVolLFO(rate: number, depth: number) {
         const freq = rate > 0 ? 1 / rate : 0.1;
-        this.autoFilter.set({ frequency: freq, depth: depth });
+        this.volLfo.frequency.rampTo(freq, 0.1);
+        this.volLfo.min = 1 - depth;
+        this.volLfo.max = 1;
+    }
+
+    public setPanLFO(rate: number, depth: number) {
+        const freq = rate > 0 ? 1 / rate : 0.1;
+        this.panLfo.frequency.rampTo(freq, 0.1);
+        this.panLfo.min = -depth;
+        this.panLfo.max = depth;
     }
 
 

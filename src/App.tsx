@@ -29,7 +29,10 @@ function SoundPanel({ sound }: { sound: SoundState }) {
   const isExpanded = state.expandedId === sound.id;
 
   const [chordInput, setChordInput] = useState('');
-  const [collapsedPanels, setCollapsedPanels] = useState<Record<string, boolean>>({});
+  const [collapsedPanels, setCollapsedPanels] = useState<Record<string, boolean>>({
+    'VOLUME_LFO': true,
+    'PAN_LFO': true
+  });
 
   const togglePanel = (panelName: string) => {
     setCollapsedPanels(prev => ({ ...prev, [panelName]: !prev[panelName] }));
@@ -211,95 +214,127 @@ function SoundPanel({ sound }: { sound: SoundState }) {
             </section>
           )}
 
-          <section className={`panel-group ${collapsedPanels['MIX'] ? 'collapsed' : ''}`}>
-            <h2 className="panel-title" onClick={() => togglePanel('MIX')}>MIX</h2>
-            {!collapsedPanels['MIX'] && (
+          <section className={`panel-group ${collapsedPanels['VOLUME'] ? 'collapsed' : ''}`}>
+            <h2 className="panel-title" onClick={() => togglePanel('VOLUME')}>VOLUME</h2>
+            {!collapsedPanels['VOLUME'] && (
               <>
                 <div className="control-row">
-                  <span className="control-label">Volume</span>
                   <div className="slider-wrapper">
                     <input type="range" min="0" max="1" step="0.01" value={sound.volume} onChange={e => update({ volume: parseFloat(e.target.value) })} aria-label="Volume" />
                   </div>
                 </div>
+
+                <div className={`sub-panel ${collapsedPanels['VOLUME_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                  <h3 className="panel-title" onClick={() => togglePanel('VOLUME_LFO')} >LFO</h3>
+                  {!collapsedPanels['VOLUME_LFO'] && (
+                    <>
+                      <div className="control-row">
+                        <span className="control-label">Speed</span>
+                        <div className="segmented-control">
+                          {(['hour', 'minute', 'second'] as LFOScale[]).map(scale => (
+                            <button
+                              key={scale}
+                              className={`segment-btn ${sound.volLfoScale === scale ? 'active' : ''}`}
+                              onClick={() => {
+                                let newDuration = sound.volLfoRate;
+                                if (scale === 'second') newDuration = Math.min(Math.max(newDuration, 0.01), 1);
+                                else if (scale === 'minute') newDuration = Math.min(Math.max(newDuration, 1), 60);
+                                else if (scale === 'hour') newDuration = Math.min(Math.max(newDuration, 60), 3600);
+                                update({ volLfoScale: scale, volLfoRate: newDuration });
+                              }}
+                            >
+                              {scale === 'hour' ? 'Slow' : scale === 'minute' ? 'Med' : 'Fast'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="control-row" style={{ marginTop: '5px' }}>
+                        <span className="control-label">Adjust</span>
+                        <div className="slider-wrapper">
+                          <input
+                            type="range"
+                            min={sound.volLfoScale === 'hour' ? 60 : sound.volLfoScale === 'minute' ? 1 : 0.01}
+                            max={sound.volLfoScale === 'hour' ? 3600 : sound.volLfoScale === 'minute' ? 60 : 1}
+                            step={sound.volLfoScale === 'second' ? 0.01 : 1}
+                            value={sound.volLfoRate}
+                            onChange={e => update({ volLfoRate: parseFloat(e.target.value) })}
+                            aria-label="Volume LFO Rate"
+                          />
+                        </div>
+                      </div>
+                      <div className="control-row">
+                        <span className="control-label">Depth</span>
+                        <div className="slider-wrapper">
+                          <input type="range" min="0" max="1" step="0.01" value={sound.volLfoDepth ?? 0} onChange={e => update({ volLfoDepth: parseFloat(e.target.value) })} aria-label="Volume LFO Depth" />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </section>
+
+          <section className={`panel-group ${collapsedPanels['PAN'] ? 'collapsed' : ''}`}>
+            <h2 className="panel-title" onClick={() => togglePanel('PAN')}>PAN</h2>
+            {!collapsedPanels['PAN'] && (
+              <>
                 <div className="control-row">
-                  <span className="control-label">Pan</span>
                   <div className="slider-wrapper">
                     <input type="range" min="-1" max="1" step="0.01" value={sound.pan} onChange={e => update({ pan: parseFloat(e.target.value) })} aria-label="Pan" />
                   </div>
                 </div>
-              </>
-            )}
-          </section>
 
-          <section className={`panel-group ${collapsedPanels['FILTER'] ? 'collapsed' : ''}`}>
-            <h2 className="panel-title" onClick={() => togglePanel('FILTER')}>FILTER</h2>
-            {!collapsedPanels['FILTER'] && (
-              <>
-                <div className="control-row">
-                  <span className="control-label">Frequency</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="100" max="10000" step="10" value={sound.filterFreq} onChange={e => update({ filterFreq: parseFloat(e.target.value) })} aria-label="Filter Frequency" />
-                  </div>
-                </div>
-                <div className="control-row">
-                  <span className="control-label">Sharpness</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0.1" max="10" step="0.1" value={sound.filterQ} onChange={e => update({ filterQ: parseFloat(e.target.value) })} aria-label="Filter Sharpness" />
-                  </div>
-                </div>
-              </>
-            )}
-          </section>
-
-          <section className={`panel-group ${collapsedPanels['LFO'] ? 'collapsed' : ''}`}>
-            <h2 className="panel-title" onClick={() => togglePanel('LFO')}>LFO</h2>
-            {!collapsedPanels['LFO'] && (
-              <>
-                <div className="control-row">
-                  <span className="control-label">Speed</span>
-                  <div className="segmented-control">
-                    {(['hour', 'minute', 'second'] as LFOScale[]).map(scale => (
-                      <button
-                        key={scale}
-                        className={`segment-btn ${sound.lfoScale === scale ? 'active' : ''}`}
-                        onClick={() => {
-                          let newDuration = sound.duration;
-                          if (scale === 'second') newDuration = Math.min(Math.max(newDuration, 0.01), 1);
-                          else if (scale === 'minute') newDuration = Math.min(Math.max(newDuration, 1), 60);
-                          else if (scale === 'hour') newDuration = Math.min(Math.max(newDuration, 60), 3600);
-                          update({ lfoScale: scale, duration: newDuration });
-                        }}
-                      >
-                        {scale === 'hour' ? 'Slow' : scale === 'minute' ? 'Med' : 'Fast'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="control-row" style={{ marginTop: '5px' }}>
-                  <span className="control-label">Adjust</span>
-                  <div className="slider-wrapper">
-                    <input
-                      type="range"
-                      min={sound.lfoScale === 'hour' ? 60 : sound.lfoScale === 'minute' ? 1 : 0.01}
-                      max={sound.lfoScale === 'hour' ? 3600 : sound.lfoScale === 'minute' ? 60 : 1}
-                      step={sound.lfoScale === 'second' ? 0.01 : 1}
-                      value={sound.duration}
-                      onChange={e => update({ duration: parseFloat(e.target.value) })}
-                      aria-label="LFO Rate"
-                    />
-                  </div>
-                </div>
-                <div className="control-row">
-                  <span className="control-label">Depth</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={sound.intensity} onChange={e => update({ intensity: parseFloat(e.target.value) })} aria-label="LFO Depth" />
-                  </div>
+                <div className={`sub-panel ${collapsedPanels['PAN_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                  <h3 className="panel-title" onClick={() => togglePanel('PAN_LFO')} >LFO</h3>
+                  {!collapsedPanels['PAN_LFO'] && (
+                    <>
+                      <div className="control-row">
+                        <span className="control-label">Speed</span>
+                        <div className="segmented-control">
+                          {(['hour', 'minute', 'second'] as LFOScale[]).map(scale => (
+                            <button
+                              key={scale}
+                              className={`segment-btn ${sound.panLfoScale === scale ? 'active' : ''}`}
+                              onClick={() => {
+                                let newDuration = sound.panLfoRate || 1;
+                                if (scale === 'second') newDuration = Math.min(Math.max(newDuration, 0.01), 1);
+                                else if (scale === 'minute') newDuration = Math.min(Math.max(newDuration, 1), 60);
+                                else if (scale === 'hour') newDuration = Math.min(Math.max(newDuration, 60), 3600);
+                                update({ panLfoScale: scale, panLfoRate: newDuration });
+                              }}
+                            >
+                              {scale === 'hour' ? 'Slow' : scale === 'minute' ? 'Med' : 'Fast'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="control-row" style={{ marginTop: '5px' }}>
+                        <span className="control-label">Adjust</span>
+                        <div className="slider-wrapper">
+                          <input
+                            type="range"
+                            min={sound.panLfoScale === 'hour' ? 60 : sound.panLfoScale === 'minute' ? 1 : 0.01}
+                            max={sound.panLfoScale === 'hour' ? 3600 : sound.panLfoScale === 'minute' ? 60 : 1}
+                            step={sound.panLfoScale === 'second' ? 0.01 : 1}
+                            value={sound.panLfoRate || 1}
+                            onChange={e => update({ panLfoRate: parseFloat(e.target.value) })}
+                            aria-label="Pan LFO Rate"
+                          />
+                        </div>
+                      </div>
+                      <div className="control-row">
+                        <span className="control-label">Depth</span>
+                        <div className="slider-wrapper">
+                          <input type="range" min="0" max="1" step="0.01" value={sound.panLfoDepth || 0} onChange={e => update({ panLfoDepth: parseFloat(e.target.value) })} aria-label="Pan LFO Depth" />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
           </section>
-
-
 
           <section className={`panel-group ${collapsedPanels['EFFECTS'] ? 'collapsed' : ''}`}>
             <h2 className="panel-title" onClick={() => togglePanel('EFFECTS')}>EFFECTS</h2>
@@ -338,6 +373,9 @@ function App() {
   const initialized = useRef(false)
 
   const togglePlay = useCallback(async () => {
+    // ALWAYS ensure the context is running on user interaction to prevent iOS or browser suspending
+    await audioManager.resumeContext();
+
     if (!initialized.current) {
       await audioManager.initialize();
       initialized.current = true;

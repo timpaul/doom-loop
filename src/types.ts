@@ -13,9 +13,12 @@ export interface SoundState {
     pan: number;
     filterFreq: number;
     filterQ: number;
-    intensity: number;
-    duration: number;
-    lfoScale: LFOScale;
+    volLfoScale: LFOScale;
+    volLfoRate: number; // rate is duration in UI confusingly
+    volLfoDepth: number;
+    panLfoScale: LFOScale;
+    panLfoRate: number;
+    panLfoDepth: number;
     reverbAmount: number;
     delayAmount: number;
     chorusAmount: number;
@@ -37,9 +40,12 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     pan: 0,
     filterFreq: 1000,
     filterQ: 1,
-    intensity: 0.15,
-    duration: 30,
-    lfoScale: 'minute',
+    volLfoScale: 'minute',
+    volLfoRate: 30,
+    volLfoDepth: 0,
+    panLfoScale: 'minute',
+    panLfoRate: 30,
+    panLfoDepth: 0,
     reverbAmount: 0,
     delayAmount: 0,
     chorusAmount: 0,

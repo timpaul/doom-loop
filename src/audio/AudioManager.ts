@@ -40,6 +40,12 @@ class AudioManager {
         this.isInitialized = true;
     }
 
+    public async resumeContext() {
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+        }
+    }
+
     public getSharedStream(): MediaStream | null {
         return this.sharedDestination ? this.sharedDestination.stream : null;
     }
@@ -62,7 +68,9 @@ class AudioManager {
         engine.setVolume(sound.volume);
         engine.setPan(sound.pan);
         engine.setFilter(sound.filterFreq, sound.filterQ);
-        engine.setLFO(sound.duration, sound.intensity);
+        // Updated calls to use new LFO properties
+        engine.setVolLFO(sound.volLfoRate, sound.volLfoDepth);
+        engine.setPanLFO(sound.panLfoRate, sound.panLfoDepth);
 
         engine.setReverb(sound.reverbAmount);
         engine.setDelay(sound.delayAmount);
