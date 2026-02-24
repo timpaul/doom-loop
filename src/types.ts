@@ -19,6 +19,10 @@ export interface SoundState {
     panLfoScale: LFOScale;
     panLfoRate: number;
     panLfoDepth: number;
+    autoFilterRate: number;
+    autoFilterScale: LFOScale;
+    autoFilterBaseFreq: number;
+    autoFilterOctaves: number;
     reverbAmount: number;
     delayAmount: number;
     chorusAmount: number;
@@ -46,6 +50,10 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     panLfoScale: 'minute',
     panLfoRate: 30,
     panLfoDepth: 0,
+    autoFilterRate: 45,
+    autoFilterScale: 'minute',
+    autoFilterBaseFreq: 8000,
+    autoFilterOctaves: 1,
     reverbAmount: 0,
     delayAmount: 0,
     chorusAmount: 0,

@@ -31,7 +31,8 @@ function SoundPanel({ sound }: { sound: SoundState }) {
   const [chordInput, setChordInput] = useState('');
   const [collapsedPanels, setCollapsedPanels] = useState<Record<string, boolean>>({
     'VOLUME_LFO': true,
-    'PAN_LFO': true
+    'PAN_LFO': true,
+    'FILTER_LFO': true
   });
 
   const togglePanel = (panelName: string) => {
@@ -327,6 +328,67 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                         <span className="control-label">Depth</span>
                         <div className="slider-wrapper">
                           <input type="range" min="0" max="1" step="0.01" value={sound.panLfoDepth || 0} onChange={e => update({ panLfoDepth: parseFloat(e.target.value) })} aria-label="Pan LFO Depth" />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </section>
+
+          <section className={`panel-group ${collapsedPanels['FILTER'] ? 'collapsed' : ''}`}>
+            <h2 className="panel-title" onClick={() => togglePanel('FILTER')}>FILTER</h2>
+            {!collapsedPanels['FILTER'] && (
+              <>
+                <div className="control-row">
+                  <div className="slider-wrapper">
+                    <input type="range" min="10" max="10000" step="10" value={sound.autoFilterBaseFreq || 100} onChange={e => update({ autoFilterBaseFreq: parseFloat(e.target.value) })} aria-label="Filter Base Freq" />
+                  </div>
+                </div>
+
+                <div className={`sub-panel ${collapsedPanels['FILTER_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                  <h3 className="panel-title" onClick={() => togglePanel('FILTER_LFO')} >LFO</h3>
+                  {!collapsedPanels['FILTER_LFO'] && (
+                    <>
+                      <div className="control-row">
+                        <span className="control-label">Speed</span>
+                        <div className="segmented-control">
+                          {(['hour', 'minute', 'second'] as LFOScale[]).map(scale => (
+                            <button
+                              key={scale}
+                              className={`segment-btn ${sound.autoFilterScale === scale ? 'active' : ''}`}
+                              onClick={() => {
+                                let newDuration = sound.autoFilterRate || 1;
+                                if (scale === 'second') newDuration = Math.min(Math.max(newDuration, 0.01), 1);
+                                else if (scale === 'minute') newDuration = Math.min(Math.max(newDuration, 1), 60);
+                                else if (scale === 'hour') newDuration = Math.min(Math.max(newDuration, 60), 3600);
+                                update({ autoFilterScale: scale, autoFilterRate: newDuration });
+                              }}
+                            >
+                              {scale === 'hour' ? 'Slow' : scale === 'minute' ? 'Med' : 'Fast'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="control-row" style={{ marginTop: '5px' }}>
+                        <span className="control-label">Adjust</span>
+                        <div className="slider-wrapper">
+                          <input
+                            type="range"
+                            min={sound.autoFilterScale === 'hour' ? 60 : sound.autoFilterScale === 'minute' ? 1 : 0.01}
+                            max={sound.autoFilterScale === 'hour' ? 3600 : sound.autoFilterScale === 'minute' ? 60 : 1}
+                            step={sound.autoFilterScale === 'second' ? 0.01 : 1}
+                            value={sound.autoFilterRate || 1}
+                            onChange={e => update({ autoFilterRate: parseFloat(e.target.value) })}
+                            aria-label="Filter LFO Rate"
+                          />
+                        </div>
+                      </div>
+                      <div className="control-row">
+                        <span className="control-label">Depth</span>
+                        <div className="slider-wrapper">
+                          <input type="range" min="0.1" max="10" step="0.1" value={sound.autoFilterOctaves || 4} onChange={e => update({ autoFilterOctaves: parseFloat(e.target.value) })} aria-label="Filter LFO Depth" />
                         </div>
                       </div>
                     </>

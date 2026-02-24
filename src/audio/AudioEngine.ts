@@ -15,6 +15,7 @@ export class AudioEngine {
 
     // Effects
     private filter: Tone.Filter;
+    private autoFilter: Tone.AutoFilter;
     private volLfoGain: Tone.Gain;
     private volLfo: Tone.LFO;
     private panLfo: Tone.LFO;
@@ -29,7 +30,8 @@ export class AudioEngine {
 
     constructor(outputDestination: Tone.ToneAudioNode = Tone.getDestination()) {
         // Create effects
-        this.filter = new Tone.Filter({ type: 'bandpass', Q: 1, frequency: 1000 });
+        this.filter = new Tone.Filter({ type: 'lowpass', frequency: 20000 }); // open by default so AutoFilter works
+        this.autoFilter = new Tone.AutoFilter({ frequency: 1, depth: 1, baseFrequency: 100, octaves: 4, type: 'sine' }).start();
 
         this.volLfoGain = new Tone.Gain(0); // Intrinsic gain 0, fully driven by LFO
         this.volLfo = new Tone.LFO({ frequency: 1, min: 1, max: 1 }).start();
@@ -46,7 +48,7 @@ export class AudioEngine {
         this.panLfo.connect(this.channel.pan);
 
         // Chain effects
-        this.channel.chain(this.filter, this.volLfoGain, this.chorus, this.delay, this.reverb, outputDestination);
+        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.delay, this.reverb, outputDestination);
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
@@ -80,6 +82,7 @@ export class AudioEngine {
         this.noiseFilter.dispose();
         this.polySynth.dispose();
         this.filter.dispose();
+        this.autoFilter.dispose();
         this.volLfoGain.dispose();
         this.volLfo.dispose();
         this.panLfo.dispose();
@@ -155,7 +158,17 @@ export class AudioEngine {
     }
 
     public setFilter(frequency: number, q: number = 1) {
-        this.filter.set({ frequency, Q: q });
+        // Only apply if user changes it to something audible, else let it pass
+        if (frequency < 19000) {
+            this.filter.set({ frequency, Q: q, type: 'bandpass' });
+        } else {
+            this.filter.set({ frequency: 20000, type: 'lowpass' });
+        }
+    }
+
+    public setAutoFilter(rate: number, baseFrequency: number, octaves: number) {
+        const freq = rate > 0 ? 1 / rate : 0.1;
+        this.autoFilter.set({ frequency: freq, baseFrequency: baseFrequency, octaves: octaves, depth: 1 });
     }
 
     public setVolLFO(rate: number, depth: number) {

@@ -71,6 +71,7 @@ class AudioManager {
         // Updated calls to use new LFO properties
         engine.setVolLFO(sound.volLfoRate, sound.volLfoDepth);
         engine.setPanLFO(sound.panLfoRate, sound.panLfoDepth);
+        engine.setAutoFilter(sound.autoFilterRate, sound.autoFilterBaseFreq, sound.autoFilterOctaves);
 
         engine.setReverb(sound.reverbAmount);
         engine.setDelay(sound.delayAmount);
