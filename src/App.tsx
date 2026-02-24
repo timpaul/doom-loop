@@ -82,6 +82,23 @@ function SoundPanel({ sound }: { sound: SoundState }) {
     }
   };
 
+  // --- Filter Logarithmic Slider Math ---
+  const filterMinFreq = 10;
+  const filterMaxFreq = sound.sourceType === 'noise' ? 10000 : ((sound.octave ?? 3) * 500) + 1000;
+  const filterMinLog = Math.log10(filterMinFreq);
+  const filterMaxLog = Math.log10(filterMaxFreq);
+  const filterClampedFreq = Math.max(filterMinFreq, Math.min(sound.autoFilterBaseFreq || 8000, filterMaxFreq));
+
+  // Calculate value (0-100) for the input slider
+  const filterSliderVal = ((Math.log10(filterClampedFreq) - filterMinLog) / (filterMaxLog - filterMinLog)) * 100;
+
+  const handleFilterBaseFreqChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sliderPercent = parseFloat(e.target.value) / 100;
+    const newLog = filterMinLog + (sliderPercent * (filterMaxLog - filterMinLog));
+    const newFreq = Math.pow(10, newLog);
+    update({ autoFilterBaseFreq: newFreq });
+  };
+
   return (
     <div className={`noise-panel ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <div className="noise-header">
@@ -343,7 +360,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
               <>
                 <div className="control-row">
                   <div className="slider-wrapper">
-                    <input type="range" min="10" max="10000" step="10" value={sound.autoFilterBaseFreq || 100} onChange={e => update({ autoFilterBaseFreq: parseFloat(e.target.value) })} aria-label="Filter Base Freq" />
+                    <input type="range" min="0" max="100" step="0.1" value={filterSliderVal} onChange={handleFilterBaseFreqChange} aria-label="Filter Base Freq" />
                   </div>
                 </div>
 
@@ -406,6 +423,12 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   <span className="control-label">Reverb</span>
                   <div className="slider-wrapper">
                     <input type="range" min="0" max="1" step="0.01" value={sound.reverbAmount} onChange={e => update({ reverbAmount: parseFloat(e.target.value) })} aria-label="Reverb" />
+                  </div>
+                </div>
+                <div className="control-row">
+                  <span className="control-label">Distortion</span>
+                  <div className="slider-wrapper">
+                    <input type="range" min="0" max="1" step="0.01" value={sound.distortionAmount ?? 0} onChange={e => update({ distortionAmount: parseFloat(e.target.value) })} aria-label="Distortion" />
                   </div>
                 </div>
                 <div className="control-row">

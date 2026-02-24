@@ -26,6 +26,7 @@ export interface SoundState {
     reverbAmount: number;
     delayAmount: number;
     chorusAmount: number;
+    distortionAmount: number;
     detune: number;
 }
 
@@ -57,5 +58,6 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     reverbAmount: 0,
     delayAmount: 0,
     chorusAmount: 0,
+    distortionAmount: 0,
     detune: 0
 };

@@ -23,6 +23,7 @@ export class AudioEngine {
     private reverb: Tone.Reverb;
     private delay: Tone.FeedbackDelay;
     private chorus: Tone.Chorus;
+    private distortion: Tone.Distortion;
 
     private currentSource: SoundType | null = null;
     private currentToneValues: string[] = [];
@@ -42,13 +43,14 @@ export class AudioEngine {
         this.reverb = new Tone.Reverb({ decay: 4, wet: 0 });
         this.delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.5, wet: 0 });
         this.chorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0 });
+        this.distortion = new Tone.Distortion(0);
 
         // Channel for Volume and Pan
         this.channel = new Tone.Channel({ volume: 0, pan: 0 });
         this.panLfo.connect(this.channel.pan);
 
         // Chain effects
-        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.delay, this.reverb, outputDestination);
+        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.distortion, this.delay, this.reverb, outputDestination);
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
@@ -90,6 +92,7 @@ export class AudioEngine {
         this.reverb.dispose();
         this.delay.dispose();
         this.chorus.dispose();
+        this.distortion.dispose();
         this.channel.dispose();
     }
 
@@ -196,6 +199,10 @@ export class AudioEngine {
 
     public setChorus(amount: number) {
         this.chorus.wet.rampTo(amount, 0.1);
+    }
+
+    public setDistortion(amount: number) {
+        this.distortion.distortion = amount;
     }
 
     public setPan(pan: number) {
