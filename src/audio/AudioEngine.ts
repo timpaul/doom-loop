@@ -18,6 +18,7 @@ export class AudioEngine {
     private autoFilter: Tone.AutoFilter;
     private volLfoGain: Tone.Gain;
     private volLfo: Tone.LFO;
+    private panner: Tone.Panner;
     private panLfo: Tone.LFO;
 
     private reverb: Tone.Reverb;
@@ -45,12 +46,15 @@ export class AudioEngine {
         this.chorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0 });
         this.distortion = new Tone.Distortion(0);
 
-        // Channel for Volume and Pan
-        this.channel = new Tone.Channel({ volume: 0, pan: 0 });
-        this.panLfo.connect(this.channel.pan);
+        // Channel alternatives for Volume and Pan
+        this.channel = new Tone.Channel({ volume: 0, pan: 0 }); // Keeping just for routing volume currently, could be simplified to Gain
 
-        // Chain effects
-        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.distortion, this.delay, this.reverb, outputDestination);
+        // Dedicated Panner at the end of the chain
+        this.panner = new Tone.Panner(0);
+        this.panLfo.connect(this.panner.pan);
+
+        // Chain effects - note the panner is LAST before output
+        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.distortion, this.delay, this.reverb, this.panner, outputDestination);
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
@@ -93,6 +97,7 @@ export class AudioEngine {
         this.delay.dispose();
         this.chorus.dispose();
         this.distortion.dispose();
+        this.panner.dispose();
         this.channel.dispose();
     }
 
@@ -206,7 +211,8 @@ export class AudioEngine {
     }
 
     public setPan(pan: number) {
-        this.channel.pan.rampTo(pan, 0.1);
+        // Disconnect from channel pan and route to explicit panner
+        this.panner.pan.rampTo(pan, 0.1);
     }
 
     public setDetune(cents: number) {
