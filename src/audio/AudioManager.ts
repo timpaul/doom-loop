@@ -15,7 +15,8 @@ class AudioManager {
 
     private constructor() {
         this.masterChannel = new Tone.Channel({ volume: 0, pan: 0 });
-        this.masterChannel.toDestination();
+        // Removed toDestination() to prevent the native WebAudio output from duplicating 
+        // the MediaStream output routed to the visible HTML <audio> element for iOS background play.
     }
 
     public static getInstance(): AudioManager {
@@ -78,6 +79,12 @@ class AudioManager {
         engine.setChorus(sound.chorusAmount);
         engine.setDistortion(sound.distortionAmount ?? 0);
         engine.setDetune(sound.detune ?? 0);
+        engine.setEnvelope({
+            attack: sound.envAttack,
+            decay: sound.envDecay,
+            sustain: sound.envSustain,
+            release: sound.envRelease
+        });
 
         if (!isPlaying) {
             engine.stop();
@@ -91,7 +98,15 @@ class AudioManager {
 
         if (sound.sourceType === 'noise') {
             sourceConfigStr = `noise-${sound.noiseColor}`;
-            playArgs = sound.noiseColor;
+            playArgs = {
+                color: sound.noiseColor,
+                envelope: {
+                    attack: sound.envAttack,
+                    decay: sound.envDecay,
+                    sustain: sound.envSustain,
+                    release: sound.envRelease
+                }
+            };
         } else {
             // Compute sequence events
             // Rate is in seconds directly if scale is second, otherwise it's handled as such
@@ -121,7 +136,16 @@ class AudioManager {
 
             // Build cache key based on EVERYTHING that changes the sequence structurally
             sourceConfigStr = `tone-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${JSON.stringify(sound.stepConfigs)}`;
-            playArgs = { events, loopLength: totalDuration || 1 }; // prevent 0 length loop
+            playArgs = {
+                events,
+                loopLength: totalDuration || 1,
+                envelope: {
+                    attack: sound.envAttack,
+                    decay: sound.envDecay,
+                    sustain: sound.envSustain,
+                    release: sound.envRelease
+                }
+            };
         }
 
         if (this.previousSources.get(sound.id) !== sourceConfigStr) {

@@ -32,6 +32,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
   const [selectedStep, setSelectedStep] = useState(0);
   const [collapsedPanels, setCollapsedPanels] = useState<Record<string, boolean>>({
     'SEQUENCER': false,
+    'ENVELOPE': false,
     'VOLUME_LFO': true,
     'PAN_LFO': true,
     'FILTER_LFO': true
@@ -181,7 +182,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 {!collapsedPanels['SEQUENCER'] && sound.stepConfigs && sound.stepRatios && (
                   <>
                     <div className="control-row">
-                      <span className="control-label">Steps</span>
+                      <span className="control-label">Step</span>
                       <div className="segmented-control" style={{ marginTop: 0 }}>
                         {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
                           <button
@@ -257,7 +258,9 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 )}
               </section>
               <section className={`panel-group ${collapsedPanels['TONES'] ? 'collapsed' : ''}`}>
-                <h2 className="panel-title" onClick={() => togglePanel('TONES')}>TONES</h2>
+                <h2 className="panel-title" onClick={() => togglePanel('TONES')}>
+                  TONES {sound.stepConfigs ? `- STEP ${selectedStep + 1}` : ''}
+                </h2>
                 {!collapsedPanels['TONES'] && (
                   <>
                     <div className="keyboard-container" role="group" aria-label="Select notes">
@@ -344,6 +347,38 @@ function SoundPanel({ sound }: { sound: SoundState }) {
               </section>
             </>
           )}
+
+          <section className={`panel-group ${collapsedPanels['ENVELOPE'] ? 'collapsed' : ''}`}>
+            <h2 className="panel-title" onClick={() => togglePanel('ENVELOPE')}>ENVELOPE</h2>
+            {!collapsedPanels['ENVELOPE'] && (
+              <>
+                <div className="control-row">
+                  <span className="control-label">Attack</span>
+                  <div className="slider-wrapper">
+                    <input type="range" min="0" max="1" step="0.01" value={Math.pow(sound.envAttack / 10, 1 / 3) || 0} onChange={e => update({ envAttack: Math.pow(parseFloat(e.target.value), 3) * 10 })} aria-label="Attack" />
+                  </div>
+                </div>
+                <div className="control-row">
+                  <span className="control-label">Decay</span>
+                  <div className="slider-wrapper">
+                    <input type="range" min="0" max="1" step="0.01" value={Math.pow(sound.envDecay / 10, 1 / 3) || 0} onChange={e => update({ envDecay: Math.pow(parseFloat(e.target.value), 3) * 10 })} aria-label="Decay" />
+                  </div>
+                </div>
+                <div className="control-row">
+                  <span className="control-label">Sustain</span>
+                  <div className="slider-wrapper">
+                    <input type="range" min="0" max="1" step="0.01" value={sound.envSustain || 0} onChange={e => update({ envSustain: parseFloat(e.target.value) })} aria-label="Sustain" />
+                  </div>
+                </div>
+                <div className="control-row">
+                  <span className="control-label">Release</span>
+                  <div className="slider-wrapper">
+                    <input type="range" min="0" max="1" step="0.01" value={Math.pow(sound.envRelease / 10, 1 / 3) || 0} onChange={e => update({ envRelease: Math.pow(parseFloat(e.target.value), 3) * 10 })} aria-label="Release" />
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
 
           <section className={`panel-group ${collapsedPanels['VOLUME'] ? 'collapsed' : ''}`}>
             <h2 className="panel-title" onClick={() => togglePanel('VOLUME')}>VOLUME</h2>

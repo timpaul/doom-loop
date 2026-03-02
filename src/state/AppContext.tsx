@@ -59,7 +59,21 @@ const getInitialState = (): AppState => {
                         ],
                         stepRatios: [1, null, null, null, null, null, null, null],
                         seqLengthScale: 'minute',
-                        seqLengthRate: 30
+                        seqLengthRate: 30,
+                        envAttack: 0.5,
+                        envDecay: 0.1,
+                        envSustain: 1.0,
+                        envRelease: 2.0
+                    };
+                }
+                // Migration for legacy sounds without ADRS config
+                if (sound.envAttack === undefined) {
+                    return {
+                        ...sound,
+                        envAttack: 0.5,
+                        envDecay: 0.1,
+                        envSustain: 1.0,
+                        envRelease: 2.0
                     };
                 }
                 return sound;

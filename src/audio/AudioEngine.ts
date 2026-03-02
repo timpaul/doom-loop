@@ -11,6 +11,7 @@ export class AudioEngine {
     // Generators
     private noise: Tone.Noise;
     private noiseFilter: Tone.Filter; // For custom noise colors
+    private noiseEnv: Tone.AmplitudeEnvelope;
     private polySynth: Tone.PolySynth;
 
     // Effects
@@ -29,6 +30,7 @@ export class AudioEngine {
     private currentSource: SoundType | null = null;
     private sequencePart: Tone.Part | null = null;
     private isInitialized = false;
+    private currentEnvelopeStr = "";
 
     constructor(outputDestination: Tone.ToneAudioNode = Tone.getDestination()) {
         // Create effects
@@ -58,8 +60,15 @@ export class AudioEngine {
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
+        this.noiseEnv = new Tone.AmplitudeEnvelope({
+            attack: 0.5,
+            decay: 0.1,
+            sustain: 1.0,
+            release: 2.0
+        });
         this.noise = new Tone.Noise("brown");
-        this.noise.chain(this.noiseFilter, this.channel);
+        // Route noise through filter, then envelope, then main channel
+        this.noise.chain(this.noiseFilter, this.noiseEnv, this.channel);
 
         // Setup Synth
         this.polySynth = new Tone.PolySynth(Tone.Synth, {
@@ -86,6 +95,7 @@ export class AudioEngine {
         this.stop();
         this.noise.dispose();
         this.noiseFilter.dispose();
+        this.noiseEnv.dispose();
         this.polySynth.dispose();
         this.filter.dispose();
         this.autoFilter.dispose();
@@ -117,7 +127,7 @@ export class AudioEngine {
         this.currentSource = sourceType;
 
         if (sourceType === 'noise') {
-            const color = value as NoiseColor;
+            const { color, envelope } = value as { color: NoiseColor, envelope: { attack: number, decay: number, sustain: number, release: number } };
             // Native Tone.js noise types
             if (color === 'white' || color === 'pink' || color === 'brown') {
                 this.noise.type = color;
@@ -133,10 +143,15 @@ export class AudioEngine {
                     this.noiseFilter.set({ type: 'bandpass', frequency: 500, Q: 2 });
                 }
             }
+            this.noiseEnv.set(envelope);
             this.noise.start();
+            this.noiseEnv.triggerAttack();
         } else if (sourceType === 'tone') {
-            // Expecting value to be: { events: Array<{ time: number, notes: string[], duration: number, detune: number }>, loopLength: number }
-            const { events, loopLength } = value as { events: Array<{ time: number, notes: string[], duration: number, detune: number }>, loopLength: number };
+            // Expecting value to be: { events: [...], loopLength: number, envelope: { ... } }
+            const { events, loopLength, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number, detune: number }>, loopLength: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+
+            // Apply envelope to synthesizer
+            this.setEnvelope(envelope);
 
             if (events.length > 0) {
                 this.sequencePart = new Tone.Part((time, event) => {
@@ -161,7 +176,13 @@ export class AudioEngine {
 
     public stop() {
         if (this.currentSource === 'noise') {
-            this.noise.stop();
+            this.noiseEnv.triggerRelease();
+            // We should ideally wait for the release to finish before stopping the noise oscillator
+            // but for simplicity we'll just stop it immediately or leave it running (it's gated by the envelope anyway)
+            const releaseTime = Tone.Time(this.noiseEnv.get().release).toSeconds();
+            setTimeout(() => {
+                if (this.currentSource !== 'noise') this.noise.stop();
+            }, releaseTime * 1000);
         } else if (this.currentSource === 'tone') {
             if (this.sequencePart) {
                 this.sequencePart.stop();
@@ -237,5 +258,14 @@ export class AudioEngine {
 
     public setDetune(cents: number) {
         this.polySynth.set({ detune: cents });
+    }
+
+    public setEnvelope(envelope: { attack: number, decay: number, sustain: number, release: number }) {
+        const envStr = JSON.stringify(envelope);
+        if (this.currentEnvelopeStr === envStr) return;
+
+        this.currentEnvelopeStr = envStr;
+        this.polySynth.set({ envelope });
+        this.noiseEnv.set(envelope);
     }
 }

@@ -21,6 +21,10 @@ export interface SoundState {
     activeNotes?: string[];
     octave?: number;
     detune?: number;
+    envAttack: number;
+    envDecay: number;
+    envSustain: number;
+    envRelease: number;
     volume: number;
     pan: number;
     filterFreq: number;
@@ -63,6 +67,10 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     stepRatios: [1, null, null, null, null, null, null, null],
     seqLengthScale: 'minute',
     seqLengthRate: 30, // 30 seconds default
+    envAttack: 0.5,
+    envDecay: 0.1,
+    envSustain: 1.0,
+    envRelease: 2.0,
     volume: 0.5,
     pan: 0,
     filterFreq: 1000,
