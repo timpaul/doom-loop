@@ -85,10 +85,47 @@ class AudioManager {
             return;
         }
 
-        const sourceConfigStr = `${sound.sourceType}-${sound.sourceType === 'noise' ? sound.noiseColor : [...sound.activeNotes].sort().join('') + sound.octave}`;
+        let sourceConfigStr = '';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let playArgs: any = null;
+
+        if (sound.sourceType === 'noise') {
+            sourceConfigStr = `noise-${sound.noiseColor}`;
+            playArgs = sound.noiseColor;
+        } else {
+            // Compute sequence events
+            // Rate is in seconds directly if scale is second, otherwise it's handled as such
+            const totalDuration = sound.seqLengthRate;
+
+            // Collect valid steps and their cumulative ratio
+            const validSteps = sound.stepConfigs.map((config, index) => ({ config, ratio: sound.stepRatios[index] })).filter(item => typeof item.ratio === 'number' && item.ratio > 0);
+
+            const totalRatio = validSteps.reduce((sum, item) => sum + (item.ratio as number), 0);
+
+            const events: Array<{ time: number, notes: string[], duration: number, detune: number }> = [];
+            let currentTime = 0;
+
+            if (totalRatio > 0 && validSteps.length > 0) {
+                for (const step of validSteps) {
+                    const stepDuration = (step.ratio as number) / totalRatio * totalDuration;
+                    const notes = step.config.activeNotes.map(n => `${n}${step.config.octave}`);
+                    events.push({
+                        time: currentTime,
+                        notes,
+                        duration: stepDuration,
+                        detune: step.config.detune
+                    });
+                    currentTime += stepDuration;
+                }
+            }
+
+            // Build cache key based on EVERYTHING that changes the sequence structurally
+            sourceConfigStr = `tone-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${JSON.stringify(sound.stepConfigs)}`;
+            playArgs = { events, loopLength: totalDuration || 1 }; // prevent 0 length loop
+        }
 
         if (this.previousSources.get(sound.id) !== sourceConfigStr) {
-            engine.play(sound.sourceType, sound.sourceType === 'noise' ? sound.noiseColor : { activeNotes: sound.activeNotes, octave: sound.octave });
+            engine.play(sound.sourceType, playArgs);
             this.previousSources.set(sound.id, sourceConfigStr);
         }
     }

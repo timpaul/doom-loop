@@ -27,7 +27,7 @@ export class AudioEngine {
     private distortion: Tone.Distortion;
 
     private currentSource: SoundType | null = null;
-    private currentToneValues: string[] = [];
+    private sequencePart: Tone.Part | null = null;
     private isInitialized = false;
 
     constructor(outputDestination: Tone.ToneAudioNode = Tone.getDestination()) {
@@ -93,6 +93,11 @@ export class AudioEngine {
         this.volLfo.dispose();
         this.panLfo.dispose();
 
+        if (this.sequencePart) {
+            this.sequencePart.dispose();
+            this.sequencePart = null;
+        }
+
         this.reverb.dispose();
         this.delay.dispose();
         this.chorus.dispose();
@@ -101,6 +106,7 @@ export class AudioEngine {
         this.channel.dispose();
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public async play(sourceType: SoundType, value: any) {
         if (!this.isInitialized) {
             await this.initialize();
@@ -129,16 +135,26 @@ export class AudioEngine {
             }
             this.noise.start();
         } else if (sourceType === 'tone') {
-            // value is { activeNotes: string[], octave: number }
-            const { activeNotes, octave } = value as { activeNotes: string[], octave: number };
+            // Expecting value to be: { events: Array<{ time: number, notes: string[], duration: number, detune: number }>, loopLength: number }
+            const { events, loopLength } = value as { events: Array<{ time: number, notes: string[], duration: number, detune: number }>, loopLength: number };
 
-            // Construct the exact Tone.js note targets (e.g. C3, Eb3)
-            const notes = activeNotes.map(n => `${n}${octave}`);
-            this.currentToneValues = notes;
+            if (events.length > 0) {
+                this.sequencePart = new Tone.Part((time, event) => {
+                    // Set specific detune for this step
+                    this.polySynth.set({ detune: event.detune });
 
-            // Trigger notes with a gentle attack
-            if (notes.length > 0) {
-                this.polySynth.triggerAttack(notes);
+                    if (event.notes.length > 0) {
+                        this.polySynth.triggerAttackRelease(event.notes, event.duration, time);
+                    }
+                }, events).start(0);
+
+                this.sequencePart.loop = true;
+                this.sequencePart.loopEnd = loopLength;
+
+                // Ensure transport is running for parts to play
+                if (Tone.Transport.state !== 'started') {
+                    Tone.Transport.start();
+                }
             }
         }
     }
@@ -146,9 +162,13 @@ export class AudioEngine {
     public stop() {
         if (this.currentSource === 'noise') {
             this.noise.stop();
-        } else if (this.currentSource === 'tone' && this.currentToneValues.length > 0) {
-            this.polySynth.triggerRelease(this.currentToneValues);
-            this.currentToneValues = [];
+        } else if (this.currentSource === 'tone') {
+            if (this.sequencePart) {
+                this.sequencePart.stop();
+                this.sequencePart.dispose();
+                this.sequencePart = null;
+            }
+            this.polySynth.releaseAll();
         }
         this.currentSource = null;
     }

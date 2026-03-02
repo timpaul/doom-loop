@@ -29,11 +29,52 @@ export type Action =
     | { type: 'DELETE_SCENE'; payload: string }
     | { type: 'SET_TOAST'; payload: string | null };
 
+// eslint-disable-next-line react-refresh/only-export-components
 const getInitialState = (): AppState => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parseJSON = (key: string, backup: any) => {
         try {
             const val = localStorage.getItem(key);
-            return val ? JSON.parse(val) : backup;
+            if (!val) return backup;
+            const parsed = JSON.parse(val);
+
+            // Migration logic for old sounds without sequencer config
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const migrateSound = (sound: any) => {
+                if (!sound.stepConfigs) {
+                    const defaultNotes = sound.activeNotes || ['C', 'Eb', 'G', 'Bb'];
+                    const defaultOctave = sound.octave ?? 3;
+                    const defaultDetune = sound.detune ?? 0;
+                    return {
+                        ...sound,
+                        stepConfigs: [
+                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                        ],
+                        stepRatios: [1, null, null, null, null, null, null, null],
+                        seqLengthScale: 'minute',
+                        seqLengthRate: 30
+                    };
+                }
+                return sound;
+            };
+
+            if (key === 'noisemaker_sounds') {
+                return Array.isArray(parsed) ? parsed.map(migrateSound) : backup;
+            } else if (key === 'noisemaker_scenes') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return Array.isArray(parsed) ? parsed.map((scene: any) => ({
+                    ...scene,
+                    sounds: Array.isArray(scene.sounds) ? scene.sounds.map(migrateSound) : []
+                })) : backup;
+            }
+            return parsed;
         } catch { return backup; }
     };
 
@@ -55,7 +96,7 @@ const getInitialState = (): AppState => {
 };
 
 const appReducer = (state: AppState, action: Action): AppState => {
-    let newState = { ...state };
+    const newState = { ...state };
     switch (action.type) {
         case 'TOGGLE_PLAY':
             newState.isPlaying = !state.isPlaying;
@@ -161,6 +202,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAppState = () => {
     const context = useContext(AppContext);
     if (context === undefined) {

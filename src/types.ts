@@ -2,13 +2,25 @@ import type { SoundType, NoiseColor } from './audio/AudioEngine';
 
 export type LFOScale = 'second' | 'minute' | 'hour';
 
+export interface StepConfig {
+    activeNotes: string[];
+    octave: number;
+    detune: number;
+}
+
 export interface SoundState {
     id: string;
     name: string;
     sourceType: SoundType;
     noiseColor: NoiseColor;
-    activeNotes: string[];
-    octave: number;
+    stepConfigs: StepConfig[];
+    stepRatios: (number | null)[];
+    seqLengthScale: LFOScale;
+    seqLengthRate: number;
+    // Legacy properties maintained for backwards compatibility loading
+    activeNotes?: string[];
+    octave?: number;
+    detune?: number;
     volume: number;
     pan: number;
     filterFreq: number;
@@ -27,7 +39,6 @@ export interface SoundState {
     delayAmount: number;
     chorusAmount: number;
     distortionAmount: number;
-    detune: number;
 }
 
 export interface SceneState {
@@ -39,8 +50,19 @@ export interface SceneState {
 export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     sourceType: 'noise',
     noiseColor: 'brown',
-    activeNotes: ['C', 'Eb', 'G', 'Bb'],
-    octave: 3,
+    stepConfigs: [
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
+    ],
+    stepRatios: [1, null, null, null, null, null, null, null],
+    seqLengthScale: 'minute',
+    seqLengthRate: 30, // 30 seconds default
     volume: 0.5,
     pan: 0,
     filterFreq: 1000,
@@ -58,6 +80,5 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     reverbAmount: 0,
     delayAmount: 0,
     chorusAmount: 0,
-    distortionAmount: 0,
-    detune: 0
+    distortionAmount: 0
 };

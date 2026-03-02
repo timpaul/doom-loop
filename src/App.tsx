@@ -29,7 +29,9 @@ function SoundPanel({ sound }: { sound: SoundState }) {
   const isExpanded = state.expandedId === sound.id;
 
   const [chordInput, setChordInput] = useState('');
+  const [selectedStep, setSelectedStep] = useState(0);
   const [collapsedPanels, setCollapsedPanels] = useState<Record<string, boolean>>({
+    'SEQUENCER': false,
     'VOLUME_LFO': true,
     'PAN_LFO': true,
     'FILTER_LFO': true
@@ -47,21 +49,33 @@ function SoundPanel({ sound }: { sound: SoundState }) {
 
   // Update input text when external notes sequence changes (bi-directional sync)
   useEffect(() => {
-    if (sound.sourceType === 'tone' && sound.activeNotes && sound.activeNotes.length > 0) {
-      const detected = Chord.detect(sound.activeNotes);
+    const currentConfig = sound.stepConfigs ? sound.stepConfigs[selectedStep] : null;
+    const notes = currentConfig?.activeNotes;
+
+    if (sound.sourceType === 'tone' && notes && notes.length > 0) {
+      const detected = Chord.detect(notes);
       if (detected.length > 0) {
         // Tonal returns multiple options, pick the primary one
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setChordInput(detected[0]);
       } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setChordInput('');
       }
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChordInput('');
     }
-  }, [sound.activeNotes, sound.sourceType]);
+  }, [sound.stepConfigs, selectedStep, sound.sourceType]);
 
   const handleChordCommit = () => {
-    if (!chordInput.trim()) return;
+    if (!chordInput.trim() || !sound.stepConfigs) return;
+
+    const updateStepNotes = (newNotes: string[]) => {
+      const newConfigs = [...sound.stepConfigs];
+      newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
+      update({ stepConfigs: newConfigs });
+    }
 
     // Parse the input via Tonal
     const c = Chord.get(chordInput);
@@ -74,10 +88,11 @@ function SoundPanel({ sound }: { sound: SoundState }) {
       });
       // De-duplicate in case of weird mappings
       const uniqueNotes = Array.from(new Set(mappedNotes));
-      update({ activeNotes: uniqueNotes });
+      updateStepNotes(uniqueNotes);
     } else {
       // Invalid chord text, revert to whatever the active notes currently yield
-      const detected = Chord.detect(sound.activeNotes || []);
+      const currentConfig = sound.stepConfigs[selectedStep];
+      const detected = Chord.detect(currentConfig.activeNotes || []);
       setChordInput(detected.length > 0 ? detected[0] : '');
     }
   };
@@ -160,76 +175,174 @@ function SoundPanel({ sound }: { sound: SoundState }) {
               )}
             </section>
           ) : (
-            <section className={`panel-group ${collapsedPanels['TONES'] ? 'collapsed' : ''}`}>
-              <h2 className="panel-title" onClick={() => togglePanel('TONES')}>TONES</h2>
-              {!collapsedPanels['TONES'] && (
-                <>
-                  <div className="keyboard-container" role="group" aria-label="Select notes">
-                    <div className="keyboard-row black-keys">
-                      {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
-                        <button
-                          key={note}
-                          className={`key-btn black-key ${sound.activeNotes?.includes(note) ? 'active' : ''}`}
-                          onClick={() => {
-                            const notes = sound.activeNotes || [];
-                            const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
-                            update({ activeNotes: newNotes });
-                          }}
-                          aria-pressed={sound.activeNotes?.includes(note)}
-                          aria-label={note}
-                        />
-                      ))}
+            <>
+              <section className={`panel-group ${collapsedPanels['SEQUENCER'] ? 'collapsed' : ''}`}>
+                <h2 className="panel-title" onClick={() => togglePanel('SEQUENCER')}>SEQUENCER</h2>
+                {!collapsedPanels['SEQUENCER'] && sound.stepConfigs && sound.stepRatios && (
+                  <>
+                    <div className="control-row">
+                      <span className="control-label">Steps</span>
+                      <div className="segmented-control" style={{ marginTop: 0 }}>
+                        {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
+                          <button
+                            key={step}
+                            className={`segment-btn ${selectedStep === step ? 'active' : ''}`}
+                            onClick={() => setSelectedStep(step)}
+                          >
+                            {step + 1}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="keyboard-row white-keys">
-                      {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(note => (
-                        <button
-                          key={note}
-                          className={`key-btn white-key ${sound.activeNotes?.includes(note) ? 'active' : ''}`}
-                          onClick={() => {
-                            const notes = sound.activeNotes || [];
-                            const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
-                            update({ activeNotes: newNotes });
-                          }}
-                          aria-pressed={sound.activeNotes?.includes(note)}
-                          aria-label={note}
-                        />
-                      ))}
+                    <div className="control-row sequencer-ratios-row">
+                      <span className="control-label">Ratios</span>
+                      <div className="ratios-container">
+                        {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
+                          <input
+                            key={step}
+                            type="text"
+                            className="ratio-input"
+                            value={sound.stepRatios[step] === null ? '' : sound.stepRatios[step]}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const newRatios = [...sound.stepRatios];
+                              if (val === '') {
+                                newRatios[step] = null;
+                              } else {
+                                const num = parseInt(val, 10);
+                                if (!isNaN(num) && num >= 0) {
+                                  newRatios[step] = num;
+                                }
+                              }
+                              update({ stepRatios: newRatios });
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                    <div className="control-row">
+                      <span className="control-label">Length</span>
+                      <div className="segmented-control" style={{ marginTop: 0 }}>
+                        {(['second', 'minute', 'hour'] as LFOScale[]).map(scale => (
+                          <button
+                            key={scale}
+                            className={`segment-btn ${sound.seqLengthScale === scale ? 'active' : ''}`}
+                            onClick={() => {
+                              let newRate = sound.seqLengthRate;
+                              if (scale === 'second') newRate = Math.min(Math.max(newRate, 0.01), 1);
+                              else if (scale === 'minute') newRate = Math.min(Math.max(newRate, 1), 60);
+                              else if (scale === 'hour') newRate = Math.min(Math.max(newRate, 60), 3600);
+                              update({ seqLengthScale: scale, seqLengthRate: newRate });
+                            }}
+                          >
+                            {scale === 'second' ? 'Short' : scale === 'minute' ? 'Med' : 'Long'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="control-row">
+                      <span className="control-label">Adjust</span>
+                      <div className="slider-wrapper">
+                        <input
+                          type="range"
+                          min={sound.seqLengthScale === 'hour' ? 60 : sound.seqLengthScale === 'minute' ? 1 : 0.01}
+                          max={sound.seqLengthScale === 'hour' ? 3600 : sound.seqLengthScale === 'minute' ? 60 : 1}
+                          step={sound.seqLengthScale === 'second' ? 0.01 : 1}
+                          value={sound.seqLengthRate}
+                          onChange={e => update({ seqLengthRate: parseFloat(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </section>
+              <section className={`panel-group ${collapsedPanels['TONES'] ? 'collapsed' : ''}`}>
+                <h2 className="panel-title" onClick={() => togglePanel('TONES')}>TONES</h2>
+                {!collapsedPanels['TONES'] && (
+                  <>
+                    <div className="keyboard-container" role="group" aria-label="Select notes">
+                      <div className="keyboard-row black-keys">
+                        {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
+                          <button
+                            key={note}
+                            className={`key-btn black-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
+                            onClick={() => {
+                              if (!sound.stepConfigs) return;
+                              const notes = sound.stepConfigs[selectedStep].activeNotes || [];
+                              const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
+                              const newConfigs = [...sound.stepConfigs];
+                              newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
+                              update({ stepConfigs: newConfigs });
+                            }}
+                            aria-pressed={sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note)}
+                            aria-label={note}
+                          />
+                        ))}
+                      </div>
+                      <div className="keyboard-row white-keys">
+                        {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(note => (
+                          <button
+                            key={note}
+                            className={`key-btn white-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
+                            onClick={() => {
+                              if (!sound.stepConfigs) return;
+                              const notes = sound.stepConfigs[selectedStep].activeNotes || [];
+                              const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
+                              const newConfigs = [...sound.stepConfigs];
+                              newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
+                              update({ stepConfigs: newConfigs });
+                            }}
+                            aria-pressed={sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note)}
+                            aria-label={note}
+                          />
+                        ))}
+                      </div>
+                    </div>
 
-                  <div className="control-row" style={{ marginTop: '21px' }}>
-                    <span className="control-label">Chord</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="text"
-                        className="chord-input"
-                        value={chordInput}
-                        onChange={(e) => setChordInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleChordCommit();
-                        }}
-                        onBlur={handleChordCommit}
-                        style={{ width: '100%', backgroundColor: 'var(--bg-color)' }}
-                        spellCheck={false}
-                        aria-label="Chord Notation"
-                      />
+                    <div className="control-row" style={{ marginTop: '21px' }}>
+                      <span className="control-label">Chord</span>
+                      <div className="slider-wrapper">
+                        <input
+                          type="text"
+                          className="chord-input"
+                          value={chordInput}
+                          onChange={(e) => setChordInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleChordCommit();
+                          }}
+                          onBlur={handleChordCommit}
+                          style={{ width: '100%', backgroundColor: 'var(--bg-color)' }}
+                          spellCheck={false}
+                          aria-label="Chord Notation"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="control-row">
-                    <span className="control-label">Octave</span>
-                    <div className="slider-wrapper">
-                      <input type="range" min="1" max="5" step="1" value={sound.octave ?? 3} onChange={e => update({ octave: parseInt(e.target.value, 10) })} aria-label="Octave" />
+                    <div className="control-row">
+                      <span className="control-label">Octave</span>
+                      <div className="slider-wrapper">
+                        <input type="range" min="1" max="5" step="1" value={sound.stepConfigs?.[selectedStep]?.octave ?? 3} onChange={e => {
+                          if (!sound.stepConfigs) return;
+                          const newConfigs = [...sound.stepConfigs];
+                          newConfigs[selectedStep] = { ...newConfigs[selectedStep], octave: parseInt(e.target.value, 10) };
+                          update({ stepConfigs: newConfigs });
+                        }} aria-label="Octave" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="control-row">
-                    <span className="control-label">Detune</span>
-                    <div className="slider-wrapper">
-                      <input type="range" min="-50" max="50" step="1" value={sound.detune ?? 0} onChange={e => update({ detune: parseInt(e.target.value, 10) })} aria-label="Detune" />
+                    <div className="control-row">
+                      <span className="control-label">Detune</span>
+                      <div className="slider-wrapper">
+                        <input type="range" min="-50" max="50" step="1" value={sound.stepConfigs?.[selectedStep]?.detune ?? 0} onChange={e => {
+                          if (!sound.stepConfigs) return;
+                          const newConfigs = [...sound.stepConfigs];
+                          newConfigs[selectedStep] = { ...newConfigs[selectedStep], detune: parseInt(e.target.value, 10) };
+                          update({ stepConfigs: newConfigs });
+                        }} aria-label="Detune" />
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
-            </section>
+                  </>
+                )}
+              </section>
+            </>
           )}
 
           <section className={`panel-group ${collapsedPanels['VOLUME'] ? 'collapsed' : ''}`}>

@@ -265,6 +265,46 @@ header {
     color: #000;
 }
 
+/* Sequencer Ratios */
+.sequencer-ratios-row {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    width: 100%;
+}
+
+.ratios-container {
+    display: flex;
+    width: 100%;
+    gap: 4px;
+    background-color: transparent;
+    padding: 0 4px;
+    box-sizing: border-box;
+}
+
+.ratio-input {
+    flex: 1 1 0%;
+    width: 0;
+    min-width: 0;
+    height: 32px;
+    background-color: #111111;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    color: var(--text-primary);
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.ratio-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background-color: #1e1e1e;
+}
+
 /* Colour Picker Blobs */
 .colour-picker-grid {
     display: flex;
