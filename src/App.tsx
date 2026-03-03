@@ -3,7 +3,7 @@ import { Chord, Note } from '@tonaljs/tonal'
 import './App.css'
 import { useAppState } from './state/AppContext'
 import { audioManager } from './audio/AudioManager'
-import type { SoundState, SceneState, LFOScale } from './types'
+import type { SoundState, TrackState, LFOScale } from './types'
 import type { NoiseColor } from './audio/AudioEngine'
 
 const PlayIcon = () => (
@@ -18,8 +18,10 @@ const TrashIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
 )
 
-const HamburgerIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+const ChevronRightIcon = ({ isExpanded }: { isExpanded?: boolean }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+    <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>
 )
 
 const myKeys = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
@@ -119,8 +121,8 @@ function SoundPanel({ sound }: { sound: SoundState }) {
   return (
     <div className={`noise-panel ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <div className="noise-header">
-        <button className="icon-btn hamburger-btn" onClick={onToggleExpand} aria-label="Toggle Panel">
-          <HamburgerIcon />
+        <button className="icon-btn expand-btn" onClick={onToggleExpand} aria-label="Toggle Panel">
+          <ChevronRightIcon isExpanded={isExpanded} />
         </button>
         <input
           type="text"
@@ -650,17 +652,17 @@ function App() {
     dispatch({ type: 'ADD_SOUND' });
   }
 
-  const loadScene = (scene: SceneState) => {
-    dispatch({ type: 'LOAD_SCENE', payload: scene });
+  const loadTrack = (track: TrackState) => {
+    dispatch({ type: 'LOAD_TRACK', payload: track });
   }
 
-  const removeSavedScene = (e: React.MouseEvent, id: string) => {
+  const removeSavedTrack = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    dispatch({ type: 'DELETE_SCENE', payload: id });
+    dispatch({ type: 'DELETE_TRACK', payload: id });
   }
 
-  const handleCreateNewScene = () => {
-    dispatch({ type: 'CREATE_SCENE' });
+  const handleCreateNewTrack = () => {
+    dispatch({ type: 'CREATE_TRACK' });
   }
 
   if (state.currentScreen === 'load') {
@@ -668,22 +670,22 @@ function App() {
       <div className="app-container load-screen">
         <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
         <main className="main-content">
-          <div className="scene-list">
-            {state.savedScenes.length === 0 ? (
-              <p className="empty-state">No saved scenes yet.</p>
+          <div className="track-list">
+            {state.savedTracks.length === 0 ? (
+              <p className="empty-state">No saved tracks yet.</p>
             ) : (
-              state.savedScenes.map(scene => (
-                <div key={scene.id} className="scene-list-item" onClick={() => loadScene(scene)}>
-                  <span className="scene-item-name">{scene.name}</span>
-                  <button className="icon-btn delete-btn" onClick={(e) => removeSavedScene(e, scene.id)}>
+              state.savedTracks.map(track => (
+                <div key={track.id} className="track-list-item" onClick={() => loadTrack(track)}>
+                  <span className="track-item-name">{track.name}</span>
+                  <button className="icon-btn delete-btn" onClick={(e) => removeSavedTrack(e, track.id)}>
                     <TrashIcon />
                   </button>
                 </div>
               ))
             )}
           </div>
-          <div className="create-scene-container">
-            <button className="create-scene-btn" onClick={handleCreateNewScene}>Create new scene</button>
+          <div className="create-track-container">
+            <button className="create-track-btn" onClick={handleCreateNewTrack}>Create new track</button>
           </div>
         </main>
       </div>
@@ -694,11 +696,11 @@ function App() {
     <div className="app-container">
       <div className="top-play-area">
         <button
-          className="scenes-nav-btn"
+          className="tracks-nav-btn"
           onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'load' })}
-          aria-label="Back to Scenes"
+          aria-label="Back to Tracks"
         >
-          <img src="/grid-icon.png" alt="Back to scenes" className="grid-icon-img" />
+          <img src="/grid-icon.png" alt="Back to tracks" className="grid-icon-img" />
         </button>
         <button
           className="play-button"
@@ -709,14 +711,14 @@ function App() {
         </button>
       </div>
 
-      <header className="scene-header">
+      <header className="track-header">
         <input
           type="text"
-          className="scene-name-input"
-          value={state.currentSceneName}
-          onChange={(e) => dispatch({ type: 'SET_SCENE_NAME', payload: e.target.value })}
-          aria-label="Scene Name"
-          placeholder="Name your scene..."
+          className="track-name-input"
+          value={state.currentTrackName}
+          onChange={(e) => dispatch({ type: 'SET_TRACK_NAME', payload: e.target.value })}
+          aria-label="Track Name"
+          placeholder="Name your track..."
         />
       </header>
 

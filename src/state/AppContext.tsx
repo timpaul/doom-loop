@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { DEFAULT_SOUND } from '../types';
-import type { SoundState, SceneState } from '../types';
+import type { SoundState, TrackState } from '../types';
 import { audioManager } from '../audio/AudioManager';
 
 export interface AppState {
     isPlaying: boolean;
     currentScreen: 'main' | 'load';
-    currentSceneId: string;
-    currentSceneName: string;
-    savedScenes: SceneState[];
+    currentTrackId: string;
+    currentTrackName: string;
+    savedTracks: TrackState[];
     toastMessage: string | null;
     sounds: SoundState[];
     expandedId: string;
@@ -23,10 +23,10 @@ export type Action =
     | { type: 'UPDATE_SOUND'; payload: { id: string; updates: Partial<SoundState> } }
     | { type: 'DELETE_SOUND'; payload: string }
     | { type: 'TOGGLE_EXPAND'; payload: string }
-    | { type: 'SET_SCENE_NAME'; payload: string }
-    | { type: 'LOAD_SCENE'; payload: SceneState }
-    | { type: 'CREATE_SCENE' }
-    | { type: 'DELETE_SCENE'; payload: string }
+    | { type: 'SET_TRACK_NAME'; payload: string }
+    | { type: 'LOAD_TRACK'; payload: TrackState }
+    | { type: 'CREATE_TRACK' }
+    | { type: 'DELETE_TRACK'; payload: string }
     | { type: 'SET_TOAST'; payload: string | null };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -81,27 +81,27 @@ const getInitialState = (): AppState => {
 
             if (key === 'noisemaker_sounds') {
                 return Array.isArray(parsed) ? parsed.map(migrateSound) : backup;
-            } else if (key === 'noisemaker_scenes') {
+            } else if (key === 'noisemaker_tracks' || key === 'noisemaker_scenes') {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                return Array.isArray(parsed) ? parsed.map((scene: any) => ({
-                    ...scene,
-                    sounds: Array.isArray(scene.sounds) ? scene.sounds.map(migrateSound) : []
+                return Array.isArray(parsed) ? parsed.map((track: any) => ({
+                    ...track,
+                    sounds: Array.isArray(track.sounds) ? track.sounds.map(migrateSound) : []
                 })) : backup;
             }
             return parsed;
         } catch { return backup; }
     };
 
-    const savedScenes = parseJSON('noisemaker_scenes', [
-        { id: 'scene-1', name: 'Scene 1', sounds: [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }] }
-    ]);
+    const savedTracks = parseJSON('noisemaker_tracks', parseJSON('noisemaker_scenes', [
+        { id: 'track-1', name: 'Track 1', sounds: [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }] }
+    ]));
 
     return {
         isPlaying: false,
         currentScreen: 'load',
-        currentSceneId: localStorage.getItem('noisemaker_currentSceneId') || 'scene-1',
-        currentSceneName: localStorage.getItem('noisemaker_currentSceneName') || 'Scene 1',
-        savedScenes,
+        currentTrackId: localStorage.getItem('noisemaker_currentTrackId') || localStorage.getItem('noisemaker_currentSceneId') || 'track-1',
+        currentTrackName: localStorage.getItem('noisemaker_currentTrackName') || localStorage.getItem('noisemaker_currentSceneName') || 'Track 1',
+        savedTracks,
         sounds: parseJSON('noisemaker_sounds', [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }]),
         toastMessage: null,
         expandedId: localStorage.getItem('noisemaker_expandedId') || '1',
@@ -134,34 +134,34 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'TOGGLE_EXPAND':
             newState.expandedId = state.expandedId === action.payload ? '' : action.payload;
             break;
-        case 'SET_SCENE_NAME':
-            newState.currentSceneName = action.payload;
+        case 'SET_TRACK_NAME':
+            newState.currentTrackName = action.payload;
             break;
-        case 'LOAD_SCENE':
-            // Only stop playback if loading a fundamentally different scene
-            if (state.currentSceneId !== action.payload.id) {
+        case 'LOAD_TRACK':
+            // Only stop playback if loading a fundamentally different track
+            if (state.currentTrackId !== action.payload.id) {
                 newState.isPlaying = false;
             }
-            newState.currentSceneId = action.payload.id;
-            newState.currentSceneName = action.payload.name;
+            newState.currentTrackId = action.payload.id;
+            newState.currentTrackName = action.payload.name;
             newState.sounds = action.payload.sounds;
             newState.currentScreen = 'main';
             newState.expandedId = action.payload.sounds.length > 0 ? action.payload.sounds[0].id : '';
             break;
-        case 'CREATE_SCENE': {
-            const newId = `scene-${Date.now()}`;
-            const newName = `Scene ${state.savedScenes.length + 1}`;
+        case 'CREATE_TRACK': {
+            const newId = `track-${Date.now()}`;
+            const newName = `Track ${state.savedTracks.length + 1}`;
             const initialSound = { id: '1', name: 'Sound 1', ...DEFAULT_SOUND };
-            newState.currentSceneId = newId;
-            newState.currentSceneName = newName;
+            newState.currentTrackId = newId;
+            newState.currentTrackName = newName;
             newState.sounds = [initialSound];
             newState.expandedId = '1';
             newState.currentScreen = 'main';
             newState.isPlaying = false;
             break;
         }
-        case 'DELETE_SCENE':
-            newState.savedScenes = state.savedScenes.filter(s => s.id !== action.payload);
+        case 'DELETE_TRACK':
+            newState.savedTracks = state.savedTracks.filter(s => s.id !== action.payload);
             break;
         case 'SET_TOAST':
             newState.toastMessage = action.payload;
@@ -169,15 +169,15 @@ const appReducer = (state: AppState, action: Action): AppState => {
     }
 
     // AUTO-SAVE LOGIC
-    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'SET_SCENE_NAME' || action.type === 'CREATE_SCENE' || action.type === 'LOAD_SCENE') {
-        const existingIdx = newState.savedScenes.findIndex(s => s.id === newState.currentSceneId);
-        const updatedScenes = [...newState.savedScenes];
+    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'SET_TRACK_NAME' || action.type === 'CREATE_TRACK' || action.type === 'LOAD_TRACK') {
+        const existingIdx = newState.savedTracks.findIndex(s => s.id === newState.currentTrackId);
+        const updatedTracks = [...newState.savedTracks];
         if (existingIdx >= 0) {
-            updatedScenes[existingIdx] = { id: newState.currentSceneId, name: newState.currentSceneName, sounds: newState.sounds };
+            updatedTracks[existingIdx] = { id: newState.currentTrackId, name: newState.currentTrackName, sounds: newState.sounds };
         } else {
-            updatedScenes.push({ id: newState.currentSceneId, name: newState.currentSceneName, sounds: newState.sounds });
+            updatedTracks.push({ id: newState.currentTrackId, name: newState.currentTrackName, sounds: newState.sounds });
         }
-        newState.savedScenes = updatedScenes;
+        newState.savedTracks = updatedTracks;
     }
     return newState;
 };
@@ -188,12 +188,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(appReducer, getInitialState());
 
     // LocalStorage Syncing
-    useEffect(() => { localStorage.setItem('noisemaker_currentSceneId', state.currentSceneId); }, [state.currentSceneId]);
-    useEffect(() => { localStorage.setItem('noisemaker_currentSceneName', state.currentSceneName); }, [state.currentSceneName]);
+    useEffect(() => { localStorage.setItem('noisemaker_currentTrackId', state.currentTrackId); }, [state.currentTrackId]);
+    useEffect(() => { localStorage.setItem('noisemaker_currentTrackName', state.currentTrackName); }, [state.currentTrackName]);
     useEffect(() => { localStorage.setItem('noisemaker_sounds', JSON.stringify(state.sounds)); }, [state.sounds]);
     useEffect(() => { localStorage.setItem('noisemaker_expandedId', state.expandedId); }, [state.expandedId]);
     useEffect(() => { localStorage.setItem('noisemaker_nextId', state.nextId.toString()); }, [state.nextId]);
-    useEffect(() => { localStorage.setItem('noisemaker_scenes', JSON.stringify(state.savedScenes)); }, [state.savedScenes]);
+    useEffect(() => { localStorage.setItem('noisemaker_tracks', JSON.stringify(state.savedTracks)); }, [state.savedTracks]);
 
     // Audio Manager Syncing
     useEffect(() => {

@@ -44,7 +44,7 @@ export interface SoundState {
     distortionAmount: number;
 }
 
-export interface SceneState {
+export interface TrackState {
     id: string;
     name: string;
     sounds: SoundState[];
