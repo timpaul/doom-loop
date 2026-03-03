@@ -148,15 +148,13 @@ export class AudioEngine {
             this.noiseEnv.triggerAttack();
         } else if (sourceType === 'tone') {
             // Expecting value to be: { events: [...], loopLength: number, envelope: { ... } }
-            const { events, loopLength, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number, detune: number }>, loopLength: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            const { events, loopLength, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
 
             // Apply envelope to synthesizer
             this.setEnvelope(envelope);
 
             if (events.length > 0) {
                 this.sequencePart = new Tone.Part((time, event) => {
-                    // Set specific detune for this step
-                    this.polySynth.set({ detune: event.detune });
 
                     if (event.notes.length > 0) {
                         this.polySynth.triggerAttackRelease(event.notes, event.duration, time);

@@ -5,7 +5,6 @@ export type LFOScale = 'second' | 'minute' | 'hour';
 export interface StepConfig {
     activeNotes: string[];
     octave: number;
-    detune: number;
 }
 
 export interface SoundState {
@@ -55,14 +54,14 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     sourceType: 'noise',
     noiseColor: 'brown',
     stepConfigs: [
-        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
-        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
-        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
-        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
-        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
-        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
-        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
-        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3, detune: 0 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
+        { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
     ],
     stepRatios: [1, null, null, null, null, null, null, null],
     seqLengthScale: 'minute',

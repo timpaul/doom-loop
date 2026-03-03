@@ -117,7 +117,7 @@ class AudioManager {
 
             const totalRatio = validSteps.reduce((sum, item) => sum + (item.ratio as number), 0);
 
-            const events: Array<{ time: number, notes: string[], duration: number, detune: number }> = [];
+            const events: Array<{ time: number, notes: string[], duration: number }> = [];
             let currentTime = 0;
 
             if (totalRatio > 0 && validSteps.length > 0) {
@@ -127,8 +127,7 @@ class AudioManager {
                     events.push({
                         time: currentTime,
                         notes,
-                        duration: stepDuration,
-                        detune: step.config.detune
+                        duration: stepDuration
                     });
                     currentTime += stepDuration;
                 }

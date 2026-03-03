@@ -35,7 +35,8 @@ function SoundPanel({ sound }: { sound: SoundState }) {
     'ENVELOPE': false,
     'VOLUME_LFO': true,
     'PAN_LFO': true,
-    'FILTER_LFO': true
+    'FILTER_LFO': true,
+    'PITCH': false
   });
 
   const togglePanel = (panelName: string) => {
@@ -181,20 +182,6 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 <h2 className="panel-title" onClick={() => togglePanel('SEQUENCER')}>SEQUENCER</h2>
                 {!collapsedPanels['SEQUENCER'] && sound.stepConfigs && sound.stepRatios && (
                   <>
-                    <div className="control-row">
-                      <span className="control-label">Step</span>
-                      <div className="segmented-control" style={{ marginTop: 0 }}>
-                        {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
-                          <button
-                            key={step}
-                            className={`segment-btn ${selectedStep === step ? 'active' : ''}`}
-                            onClick={() => setSelectedStep(step)}
-                          >
-                            {step + 1}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                     <div className="control-row sequencer-ratios-row">
                       <span className="control-label">Ratios</span>
                       <div className="ratios-container">
@@ -258,12 +245,55 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 )}
               </section>
               <section className={`panel-group ${collapsedPanels['TONES'] ? 'collapsed' : ''}`}>
-                <h2 className="panel-title" onClick={() => togglePanel('TONES')}>
-                  TONES {sound.stepConfigs ? `- STEP ${selectedStep + 1}` : ''}
-                </h2>
+                <h2 className="panel-title" onClick={() => togglePanel('TONES')}>TONES</h2>
                 {!collapsedPanels['TONES'] && (
                   <>
-                    <div className="keyboard-container" role="group" aria-label="Select notes">
+                    <div className="control-row">
+                      <span className="control-label">Step</span>
+                      <div className="segmented-control" style={{ marginTop: 0 }}>
+                        {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
+                          <button
+                            key={step}
+                            className={`segment-btn ${selectedStep === step ? 'active' : ''}`}
+                            onClick={() => setSelectedStep(step)}
+                          >
+                            {step + 1}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="control-row">
+                      <span className="control-label">Octave</span>
+                      <div className="slider-wrapper">
+                        <input type="range" min="1" max="5" step="1" value={sound.stepConfigs?.[selectedStep]?.octave ?? 3} onChange={e => {
+                          if (!sound.stepConfigs) return;
+                          const newConfigs = [...sound.stepConfigs];
+                          newConfigs[selectedStep] = { ...newConfigs[selectedStep], octave: parseInt(e.target.value, 10) };
+                          update({ stepConfigs: newConfigs });
+                        }} aria-label="Octave" />
+                      </div>
+                    </div>
+
+                    <div className="control-row">
+                      <span className="control-label">Chord</span>
+                      <div className="slider-wrapper">
+                        <input
+                          type="text"
+                          className="chord-input"
+                          value={chordInput}
+                          onChange={(e) => setChordInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleChordCommit();
+                          }}
+                          onBlur={handleChordCommit}
+                          style={{ width: '100%', backgroundColor: 'var(--bg-color)' }}
+                          spellCheck={false}
+                          aria-label="Chord Notation"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="keyboard-container" style={{ marginTop: '21px' }} role="group" aria-label="Select notes">
                       <div className="keyboard-row black-keys">
                         {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
                           <button
@@ -299,47 +329,6 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                             aria-label={note}
                           />
                         ))}
-                      </div>
-                    </div>
-
-                    <div className="control-row" style={{ marginTop: '21px' }}>
-                      <span className="control-label">Chord</span>
-                      <div className="slider-wrapper">
-                        <input
-                          type="text"
-                          className="chord-input"
-                          value={chordInput}
-                          onChange={(e) => setChordInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleChordCommit();
-                          }}
-                          onBlur={handleChordCommit}
-                          style={{ width: '100%', backgroundColor: 'var(--bg-color)' }}
-                          spellCheck={false}
-                          aria-label="Chord Notation"
-                        />
-                      </div>
-                    </div>
-                    <div className="control-row">
-                      <span className="control-label">Octave</span>
-                      <div className="slider-wrapper">
-                        <input type="range" min="1" max="5" step="1" value={sound.stepConfigs?.[selectedStep]?.octave ?? 3} onChange={e => {
-                          if (!sound.stepConfigs) return;
-                          const newConfigs = [...sound.stepConfigs];
-                          newConfigs[selectedStep] = { ...newConfigs[selectedStep], octave: parseInt(e.target.value, 10) };
-                          update({ stepConfigs: newConfigs });
-                        }} aria-label="Octave" />
-                      </div>
-                    </div>
-                    <div className="control-row">
-                      <span className="control-label">Detune</span>
-                      <div className="slider-wrapper">
-                        <input type="range" min="-50" max="50" step="1" value={sound.stepConfigs?.[selectedStep]?.detune ?? 0} onChange={e => {
-                          if (!sound.stepConfigs) return;
-                          const newConfigs = [...sound.stepConfigs];
-                          newConfigs[selectedStep] = { ...newConfigs[selectedStep], detune: parseInt(e.target.value, 10) };
-                          update({ stepConfigs: newConfigs });
-                        }} aria-label="Detune" />
                       </div>
                     </div>
                   </>
@@ -592,6 +581,18 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   </div>
                 </div>
               </>
+            )}
+          </section>
+
+          <section className={`panel-group ${collapsedPanels['PITCH'] ? 'collapsed' : ''}`}>
+            <h2 className="panel-title" onClick={() => togglePanel('PITCH')}>PITCH</h2>
+            {!collapsedPanels['PITCH'] && (
+              <div className="control-row">
+                <span className="control-label">Detune</span>
+                <div className="slider-wrapper">
+                  <input type="range" min="-50" max="50" step="1" value={sound.detune ?? 0} onChange={e => update({ detune: parseInt(e.target.value, 10) })} aria-label="Detune" />
+                </div>
+              </div>
             )}
           </section>
         </div>
