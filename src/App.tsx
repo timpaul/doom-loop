@@ -243,6 +243,23 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                         />
                       </div>
                     </div>
+                    <div className="control-row">
+                      <span className="control-label">Play</span>
+                      <div className="segmented-control" style={{ marginTop: 0 }}>
+                        <button
+                          className={`segment-btn ${sound.playMode !== 'random' ? 'active' : ''}`}
+                          onClick={() => update({ playMode: 'chord' })}
+                        >
+                          All notes
+                        </button>
+                        <button
+                          className={`segment-btn ${sound.playMode === 'random' ? 'active' : ''}`}
+                          onClick={() => update({ playMode: 'random' })}
+                        >
+                          Random note
+                        </button>
+                      </div>
+                    </div>
                   </>
                 )}
               </section>

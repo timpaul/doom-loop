@@ -147,8 +147,8 @@ export class AudioEngine {
             this.noise.start();
             this.noiseEnv.triggerAttack();
         } else if (sourceType === 'tone') {
-            // Expecting value to be: { events: [...], loopLength: number, envelope: { ... } }
-            const { events, loopLength, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            // Expecting value to be: { events: [...], loopLength: number, playMode: string, envelope: { ... } }
+            const { events, loopLength, playMode, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', envelope: { attack: number, decay: number, sustain: number, release: number } };
 
             // Apply envelope to synthesizer
             this.setEnvelope(envelope);
@@ -157,7 +157,12 @@ export class AudioEngine {
                 this.sequencePart = new Tone.Part((time, event) => {
 
                     if (event.notes.length > 0) {
-                        this.polySynth.triggerAttackRelease(event.notes, event.duration, time);
+                        if (playMode === 'random') {
+                            const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
+                            this.polySynth.triggerAttackRelease([randomNote], event.duration, time);
+                        } else {
+                            this.polySynth.triggerAttackRelease(event.notes, event.duration, time);
+                        }
                     }
                 }, events).start(0);
 

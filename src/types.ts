@@ -7,6 +7,8 @@ export interface StepConfig {
     octave: number;
 }
 
+export type PlayMode = 'chord' | 'random';
+
 export interface SoundState {
     id: string;
     name: string;
@@ -16,6 +18,7 @@ export interface SoundState {
     stepRatios: (number | null)[];
     seqLengthScale: LFOScale;
     seqLengthRate: number;
+    playMode: PlayMode;
     // Legacy properties maintained for backwards compatibility loading
     activeNotes?: string[];
     octave?: number;
@@ -26,6 +29,8 @@ export interface SoundState {
     envRelease: number;
     volume: number;
     pan: number;
+    filterMinFreq: number;
+    filterMaxFreq: number;
     filterFreq: number;
     filterQ: number;
     volLfoScale: LFOScale;
@@ -53,6 +58,7 @@ export interface TrackState {
 export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     sourceType: 'noise',
     noiseColor: 'brown',
+    playMode: 'chord',
     stepConfigs: [
         { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
         { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
@@ -72,6 +78,8 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     envRelease: 2.0,
     volume: 0.5,
     pan: 0,
+    filterMinFreq: 200,
+    filterMaxFreq: 20000,
     filterFreq: 1000,
     filterQ: 1,
     volLfoScale: 'minute',
