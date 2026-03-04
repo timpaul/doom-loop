@@ -4,6 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    allowedHosts: ['doom-loop.onrender.com']
+  },
   plugins: [
     react(),
     VitePWA({
