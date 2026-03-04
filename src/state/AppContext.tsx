@@ -25,6 +25,7 @@ export type Action =
     | { type: 'TOGGLE_EXPAND'; payload: string }
     | { type: 'SET_TRACK_NAME'; payload: string }
     | { type: 'LOAD_TRACK'; payload: TrackState }
+    | { type: 'LOAD_AND_PLAY_TRACK'; payload: TrackState }
     | { type: 'CREATE_TRACK' }
     | { type: 'DELETE_TRACK'; payload: string }
     | { type: 'IMPORT_TRACK'; payload: any }
@@ -149,6 +150,13 @@ const appReducer = (state: AppState, action: Action): AppState => {
             newState.currentScreen = 'main';
             newState.expandedId = action.payload.sounds.length > 0 ? action.payload.sounds[0].id : '';
             break;
+        case 'LOAD_AND_PLAY_TRACK':
+            newState.currentTrackId = action.payload.id;
+            newState.currentTrackName = action.payload.name;
+            newState.sounds = action.payload.sounds;
+            newState.isPlaying = true;
+            newState.expandedId = action.payload.sounds.length > 0 ? action.payload.sounds[0].id : '';
+            break;
         case 'CREATE_TRACK': {
             const newId = `track-${Date.now()}`;
             const newName = `Track ${state.savedTracks.length + 1}`;
@@ -230,7 +238,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
     }
 
     // AUTO-SAVE LOGIC
-    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'SET_TRACK_NAME' || action.type === 'CREATE_TRACK' || action.type === 'LOAD_TRACK') {
+    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'SET_TRACK_NAME' || action.type === 'CREATE_TRACK' || action.type === 'LOAD_TRACK' || action.type === 'LOAD_AND_PLAY_TRACK') {
         const existingIdx = newState.savedTracks.findIndex(s => s.id === newState.currentTrackId);
         const updatedTracks = [...newState.savedTracks];
         if (existingIdx >= 0) {

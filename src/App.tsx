@@ -645,9 +645,11 @@ function App() {
     if (!initialized.current) {
       await audioManager.initialize();
       initialized.current = true;
-      if (audioRef.current && !audioRef.current.srcObject) {
-        audioRef.current.srcObject = audioManager.getSharedStream();
-      }
+    }
+
+    // Always connect the stream if not connected, regardless of initialization timing
+    if (audioRef.current && !audioRef.current.srcObject) {
+      audioRef.current.srcObject = audioManager.getSharedStream();
     }
 
     if (state.isPlaying) {
@@ -659,6 +661,35 @@ function App() {
     }
     dispatch({ type: 'TOGGLE_PLAY' });
   }, [state.isPlaying, dispatch])
+
+  const handleListTogglePlay = async (e: React.MouseEvent, track: TrackState) => {
+    e.stopPropagation();
+    await audioManager.resumeContext(); // ensure iOS compliance
+
+    if (!initialized.current) {
+      await audioManager.initialize();
+      initialized.current = true;
+    }
+
+    if (audioRef.current && !audioRef.current.srcObject) {
+      audioRef.current.srcObject = audioManager.getSharedStream();
+    }
+
+    const isTrackPlaying = state.isPlaying && state.currentTrackId === track.id;
+
+    if (isTrackPlaying) {
+      if (audioRef.current) audioRef.current.pause();
+      dispatch({ type: 'TOGGLE_PLAY' });
+    } else {
+      if (state.isPlaying) {
+        audioManager.stopAll();
+      }
+      if (audioRef.current) {
+        audioRef.current.play().catch(err => console.log('Background audio play failed:', err));
+      }
+      dispatch({ type: 'LOAD_AND_PLAY_TRACK', payload: track });
+    }
+  };
 
   useEffect(() => {
     if ('mediaSession' in navigator) {
@@ -733,94 +764,107 @@ function App() {
     e.target.value = '';
   };
 
-  if (state.currentScreen === 'load') {
-    return (
-      <div className="app-container load-screen">
-        <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
-        <main className="main-content">
-          <div className="track-list">
-            {state.savedTracks.length === 0 ? (
-              <p className="empty-state">No saved tracks yet.</p>
-            ) : (
-              state.savedTracks.map(track => (
-                <div key={track.id} className="track-list-item" onClick={() => loadTrack(track)}>
-                  <span className="track-item-name">{track.name}</span>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <button className="icon-btn" onClick={(e) => handleExportTrack(e, track)} aria-label="Export Track">
-                      <ExportIcon />
-                    </button>
-                    <button className="icon-btn delete-btn" onClick={(e) => removeSavedTrack(e, track.id)} aria-label="Delete Track">
-                      <TrashIcon />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="create-track-container">
-            <button className="create-track-btn" onClick={handleCreateNewTrack}>Create new track</button>
-            <button className="import-track-link" onClick={handleImportClick}>Import track</button>
-            <input
-              type="file"
-              accept=".json"
-              style={{ display: 'none' }}
-              ref={fileInputRef}
-              onChange={handleFileChange}
-            />
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
-    <div className="app-container">
-      <div className="top-play-area">
-        <button
-          className="tracks-nav-btn"
-          onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'load' })}
-          aria-label="Back to Tracks"
-        >
-          <img src="/grid-icon.png" alt="Back to tracks" className="grid-icon-img" />
-        </button>
-        <button
-          className="play-button"
-          onClick={togglePlay}
-          aria-label={state.isPlaying ? "Pause" : "Play"}
-        >
-          {state.isPlaying ? <PauseIcon /> : <PlayIcon />}
-        </button>
-      </div>
-
-      <header className="track-header">
-        <input
-          type="text"
-          className="track-name-input"
-          value={state.currentTrackName}
-          onChange={(e) => dispatch({ type: 'SET_TRACK_NAME', payload: e.target.value })}
-          aria-label="Track Name"
-          placeholder="Name your track..."
-        />
-      </header>
-
-      <main className="main-content">
-        {state.sounds.map(sound => (
-          <SoundPanel
-            key={sound.id}
-            sound={sound}
-          />
-        ))}
-
-        <div className="add-noise-container">
-          <button className="add-noise-btn" onClick={addSound}>Add a sound</button>
+    <>
+      {state.currentScreen === 'load' ? (
+        <div className="app-container load-screen">
+          <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
+          <main className="main-content">
+            <div className="track-list">
+              {state.savedTracks.length === 0 ? (
+                <p className="empty-state">No saved tracks yet.</p>
+              ) : (
+                state.savedTracks.map(track => {
+                  const isTrackPlaying = state.isPlaying && state.currentTrackId === track.id;
+                  return (
+                    <div key={track.id} className="track-list-item" onClick={() => loadTrack(track)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <button
+                          className={`track-play-btn ${isTrackPlaying ? 'active' : ''}`}
+                          onClick={(e) => handleListTogglePlay(e, track)}
+                          aria-label={isTrackPlaying ? "Pause Track" : "Play Track"}
+                        >
+                          <div className="track-play-icon-circle">
+                            {isTrackPlaying ? <PauseIcon /> : <PlayIcon />}
+                          </div>
+                        </button>
+                        <span className="track-item-name">{track.name}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <button className="icon-btn" onClick={(e) => handleExportTrack(e, track)} aria-label="Export Track">
+                          <ExportIcon />
+                        </button>
+                        <button className="icon-btn delete-btn" onClick={(e) => removeSavedTrack(e, track.id)} aria-label="Delete Track">
+                          <TrashIcon />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <div className="create-track-container">
+              <button className="create-track-btn" onClick={handleCreateNewTrack}>Create new track</button>
+              <button className="import-track-link" onClick={handleImportClick}>Import track</button>
+              <input
+                type="file"
+                accept=".json"
+                style={{ display: 'none' }}
+                ref={fileInputRef}
+                onChange={handleFileChange}
+              />
+            </div>
+          </main>
         </div>
+      ) : (
+        <div className="app-container">
+          <div className="top-play-area">
+            <button
+              className="tracks-nav-btn"
+              onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'load' })}
+              aria-label="Back to Tracks"
+            >
+              <img src="/grid-icon.png" alt="Back to tracks" className="grid-icon-img" />
+            </button>
+            <button
+              className="play-button"
+              onClick={togglePlay}
+              aria-label={state.isPlaying ? "Pause" : "Play"}
+            >
+              {state.isPlaying ? <PauseIcon /> : <PlayIcon />}
+            </button>
+          </div>
 
-        <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" />
-      </main>
+          <header className="track-header">
+            <input
+              type="text"
+              className="track-name-input"
+              value={state.currentTrackName}
+              onChange={(e) => dispatch({ type: 'SET_TRACK_NAME', payload: e.target.value })}
+              aria-label="Track Name"
+              placeholder="Name your track..."
+            />
+          </header>
 
+          <main className="main-content">
+            {state.sounds.map(sound => (
+              <SoundPanel
+                key={sound.id}
+                sound={sound}
+              />
+            ))}
+
+            <div className="add-noise-container">
+              <button className="add-noise-btn" onClick={addSound}>Add a sound</button>
+            </div>
+
+            <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" />
+          </main>
+        </div>
+      )}
       <audio ref={audioRef} preload="none" playsInline />
-    </div>
-  )
+    </>
+  );
 }
 
 export default App
