@@ -18,6 +18,12 @@ const TrashIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
 )
 
+const ExportIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 4v16M16 16l-4 4-4-4" />
+  </svg>
+)
+
 const ChevronRightIcon = ({ isExpanded }: { isExpanded?: boolean }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
     <polyline points="9 18 15 12 9 6"></polyline>
@@ -689,6 +695,44 @@ function App() {
     dispatch({ type: 'CREATE_TRACK' });
   }
 
+  const handleExportTrack = (e: React.MouseEvent, track: TrackState) => {
+    e.stopPropagation();
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(track, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `${track.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`);
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        dispatch({ type: 'IMPORT_TRACK', payload: json });
+      } catch (err) {
+        console.error("Invalid JSON file", err);
+        dispatch({ type: 'SET_TOAST', payload: "Invalid track file." });
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  };
+
   if (state.currentScreen === 'load') {
     return (
       <div className="app-container load-screen">
@@ -701,15 +745,28 @@ function App() {
               state.savedTracks.map(track => (
                 <div key={track.id} className="track-list-item" onClick={() => loadTrack(track)}>
                   <span className="track-item-name">{track.name}</span>
-                  <button className="icon-btn delete-btn" onClick={(e) => removeSavedTrack(e, track.id)}>
-                    <TrashIcon />
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button className="icon-btn" onClick={(e) => handleExportTrack(e, track)} aria-label="Export Track">
+                      <ExportIcon />
+                    </button>
+                    <button className="icon-btn delete-btn" onClick={(e) => removeSavedTrack(e, track.id)} aria-label="Delete Track">
+                      <TrashIcon />
+                    </button>
+                  </div>
                 </div>
               ))
             )}
           </div>
           <div className="create-track-container">
             <button className="create-track-btn" onClick={handleCreateNewTrack}>Create new track</button>
+            <button className="import-track-link" onClick={handleImportClick}>Import track</button>
+            <input
+              type="file"
+              accept=".json"
+              style={{ display: 'none' }}
+              ref={fileInputRef}
+              onChange={handleFileChange}
+            />
           </div>
         </main>
       </div>

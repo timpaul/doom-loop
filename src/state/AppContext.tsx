@@ -27,6 +27,7 @@ export type Action =
     | { type: 'LOAD_TRACK'; payload: TrackState }
     | { type: 'CREATE_TRACK' }
     | { type: 'DELETE_TRACK'; payload: string }
+    | { type: 'IMPORT_TRACK'; payload: any }
     | { type: 'SET_TOAST'; payload: string | null };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -163,6 +164,66 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'DELETE_TRACK':
             newState.savedTracks = state.savedTracks.filter(s => s.id !== action.payload);
             break;
+        case 'IMPORT_TRACK': {
+            try {
+                // Ensure array of sounds and apply migrations
+                const importData = action.payload;
+                const migrateSound = (sound: any) => {
+                    if (!sound.stepConfigs) {
+                        const defaultNotes = sound.activeNotes || ['C', 'Eb', 'G', 'Bb'];
+                        const defaultOctave = sound.octave ?? 3;
+                        const defaultDetune = sound.detune ?? 0;
+                        return {
+                            ...sound,
+                            stepConfigs: [
+                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
+                            ],
+                            stepRatios: [1, null, null, null, null, null, null, null],
+                            seqLengthScale: 'minute',
+                            seqLengthRate: 30,
+                            envAttack: 0.5,
+                            envDecay: 0.1,
+                            envSustain: 1.0,
+                            envRelease: 2.0
+                        };
+                    }
+                    if (sound.envAttack === undefined) {
+                        return {
+                            ...sound,
+                            envAttack: 0.5,
+                            envDecay: 0.1,
+                            envSustain: 1.0,
+                            envRelease: 2.0
+                        };
+                    }
+                    return sound;
+                };
+
+                const importedSounds = Array.isArray(importData.sounds)
+                    ? importData.sounds.map(migrateSound)
+                    : [];
+
+                const newTrack: TrackState = {
+                    id: `track-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                    name: importData.name || `Imported Track ${state.savedTracks.length + 1}`,
+                    sounds: importedSounds
+                };
+
+                newState.savedTracks = [...state.savedTracks, newTrack];
+                newState.toastMessage = "Track imported successfully";
+            } catch (e) {
+                console.error("Failed to import track", e);
+                newState.toastMessage = "Failed to import track";
+            }
+            break;
+        }
         case 'SET_TOAST':
             newState.toastMessage = action.payload;
             break;

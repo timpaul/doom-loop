@@ -621,9 +621,12 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 
 .create-track-container {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
     margin-top: 3rem;
     padding-bottom: 2rem;
+    gap: 1.5rem;
 }
 
 .create-track-btn {
@@ -639,6 +642,18 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 .create-track-btn:hover {
     background-color: var(--accent-hover);
     transform: scale(1.02);
+}
+
+.import-track-link {
+    background: transparent;
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: 1.05rem;
+    transition: color 0.2s ease;
+}
+
+.import-track-link:hover {
+    color: var(--accent-hover);
 }
 
 .empty-state {
