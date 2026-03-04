@@ -131,9 +131,16 @@ function SoundPanel({ sound }: { sound: SoundState }) {
           onChange={(e) => update({ name: e.target.value })}
           aria-label="Sound Name"
         />
-        <button className="icon-btn delete-btn" onClick={onDelete} aria-label="Delete Sound">
-          <TrashIcon />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button className="icon-btn delete-btn" onClick={onDelete} aria-label="Delete Sound">
+            <TrashIcon />
+          </button>
+          <button
+            className={`mute-toggle-btn ${!sound.isMuted ? 'active' : ''}`}
+            onClick={() => update({ isMuted: !sound.isMuted })}
+            aria-label={sound.isMuted ? "Unmute Sound" : "Mute Sound"}
+          />
+        </div>
       </div>
 
       {isExpanded && (

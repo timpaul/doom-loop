@@ -173,6 +173,31 @@ header {
     color: var(--text-primary);
 }
 
+.mute-toggle-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background-color: #333333;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    padding: 0;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.mute-toggle-btn:hover {
+    background-color: #444444;
+}
+
+.mute-toggle-btn.active {
+    background-color: var(--accent-color);
+}
+
+.mute-toggle-btn.active:hover {
+    background-color: var(--accent-hover);
+}
+
 .track-header {
     display: flex;
     justify-content: center;

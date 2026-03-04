@@ -19,6 +19,7 @@ export interface SoundState {
     seqLengthScale: LFOScale;
     seqLengthRate: number;
     playMode: PlayMode;
+    isMuted?: boolean;
     // Legacy properties maintained for backwards compatibility loading
     activeNotes?: string[];
     octave?: number;
@@ -59,6 +60,7 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     sourceType: 'noise',
     noiseColor: 'brown',
     playMode: 'chord',
+    isMuted: false,
     stepConfigs: [
         { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
         { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },

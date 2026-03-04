@@ -66,7 +66,7 @@ class AudioManager {
     public syncSoundState(sound: SoundState, isPlaying: boolean) {
         const engine = this.getEngine(sound.id);
 
-        engine.setVolume(sound.volume);
+        engine.setVolume(sound.isMuted ? 0 : sound.volume);
         engine.setPan(sound.pan);
         engine.setFilter(sound.filterFreq, sound.filterQ);
         // Updated calls to use new LFO properties
