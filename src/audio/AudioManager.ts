@@ -116,12 +116,20 @@ class AudioManager {
             // Collect valid steps and their cumulative ratio
             const validSteps = sound.stepConfigs.map((config, index) => ({ config, ratio: sound.stepRatios[index] })).filter(item => typeof item.ratio === 'number' && item.ratio > 0);
 
+            const isContinuous = validSteps.length === 0;
             const totalRatio = validSteps.reduce((sum, item) => sum + (item.ratio as number), 0);
 
             const events: Array<{ time: number, notes: string[], duration: number }> = [];
             let currentTime = 0;
 
-            if (totalRatio > 0 && validSteps.length > 0) {
+            if (isContinuous) {
+                const notes = sound.stepConfigs[0].activeNotes.map(n => `${n}${sound.stepConfigs[0].octave}`);
+                events.push({
+                    time: 0,
+                    notes,
+                    duration: totalDuration || 1
+                });
+            } else if (totalRatio > 0 && validSteps.length > 0) {
                 for (const step of validSteps) {
                     const stepDuration = (step.ratio as number) / totalRatio * totalDuration;
                     const notes = step.config.activeNotes.map(n => `${n}${step.config.octave}`);
@@ -136,12 +144,13 @@ class AudioManager {
 
             // Build cache key based on EVERYTHING that changes the sequence structurally
             const noteLengthRatio = sound.noteLengthRatio ?? 1.0;
-            sourceConfigStr = `tone-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${JSON.stringify(sound.stepConfigs)}-${sound.playMode}-${noteLengthRatio}`;
+            sourceConfigStr = `tone-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${JSON.stringify(sound.stepConfigs)}-${sound.playMode}-${noteLengthRatio}-${isContinuous}`;
             playArgs = {
                 events,
                 loopLength: totalDuration || 1,
                 playMode: sound.playMode,
                 noteLengthRatio,
+                isContinuous,
                 envelope: {
                     attack: sound.envAttack,
                     decay: sound.envDecay,

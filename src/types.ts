@@ -73,7 +73,7 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
         { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
         { activeNotes: ['C', 'Eb', 'G', 'Bb'], octave: 3 },
     ],
-    stepRatios: [1, null, null, null, null, null, null, null],
+    stepRatios: [null, null, null, null, null, null, null, null],
     seqLengthScale: 'minute',
     seqLengthRate: 30, // 30 seconds default
     envAttack: 0.5,

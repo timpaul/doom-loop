@@ -150,32 +150,64 @@ export class AudioEngine {
             this.noise.start();
             this.noiseEnv.triggerAttack();
         } else if (sourceType === 'tone') {
-            // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, envelope: { ... } }
-            const { events, loopLength, playMode, noteLengthRatio = 1.0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
+            const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, envelope: { attack: number, decay: number, sustain: number, release: number } };
 
             // Apply envelope to synthesizer
             this.setEnvelope(envelope);
 
             if (events.length > 0) {
-                this.sequencePart = new Tone.Part((time, event) => {
+                if (isContinuous) {
+                    if (playMode === 'random' && events[0].notes.length > 0) {
+                        const randomNote = events[0].notes[Math.floor(Math.random() * events[0].notes.length)];
+                        this.polySynth.triggerAttack([randomNote], Tone.now());
+                    } else if (events[0].notes.length > 0) {
+                        this.polySynth.triggerAttack(events[0].notes, Tone.now());
+                    }
+                } else {
+                    this.sequencePart = new Tone.Part((time, event) => {
 
-                    if (event.notes.length > 0) {
-                        const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
-                        if (playMode === 'random') {
-                            const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
-                            this.polySynth.triggerAttackRelease([randomNote], playDuration, time);
-                        } else {
-                            this.polySynth.triggerAttackRelease(event.notes, playDuration, time);
+                        if (event.notes.length > 0) {
+                            const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
+                            if (playMode === 'random') {
+                                const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
+                                this.polySynth.triggerAttackRelease([randomNote], playDuration, time);
+                            } else {
+                                this.polySynth.triggerAttackRelease(event.notes, playDuration, time);
+                            }
+                        }
+                    }, events).start(0);
+
+                    this.sequencePart.loop = true;
+                    this.sequencePart.loopEnd = loopLength;
+
+                    // Ensure transport is running for parts to play
+                    if (Tone.Transport.state !== 'started') {
+                        Tone.Transport.start();
+                    } else {
+                        // The Transport is already running, meaning this sequence might have been added
+                        // in the middle of a long note and Tone.Part won't trigger until the loop restarts or the next event hits.
+                        // We manually trigger the currently overlapping event for the remainder of its duration so there's no silence!
+                        const currentTransportTime = Tone.Transport.seconds;
+                        const currentLoopTime = loopLength > 0 ? (currentTransportTime % loopLength) : 0;
+
+                        const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
+                        if (activeEvent && activeEvent.notes.length > 0) {
+                            const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
+                            const timeIntoEvent = currentLoopTime - activeEvent.time;
+
+                            // Only trigger retrospectively if the note is still supposed to be *active* early in its duration
+                            if (timeIntoEvent < playDuration) {
+                                const remainingPlayDuration = playDuration - timeIntoEvent;
+                                if (playMode === 'random') {
+                                    const randomNote = activeEvent.notes[Math.floor(Math.random() * activeEvent.notes.length)];
+                                    this.polySynth.triggerAttackRelease([randomNote], remainingPlayDuration, Tone.now());
+                                } else {
+                                    this.polySynth.triggerAttackRelease(activeEvent.notes, remainingPlayDuration, Tone.now());
+                                }
+                            }
                         }
                     }
-                }, events).start(0);
-
-                this.sequencePart.loop = true;
-                this.sequencePart.loopEnd = loopLength;
-
-                // Ensure transport is running for parts to play
-                if (Tone.Transport.state !== 'started') {
-                    Tone.Transport.start();
                 }
             }
         }
