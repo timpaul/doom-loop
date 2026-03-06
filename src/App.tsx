@@ -813,7 +813,7 @@ function App() {
     <>
       {state.currentScreen === 'load' ? (
         <div className="app-container load-screen">
-          <img src="/doom-logo.png" alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
+          <img src={`${import.meta.env.BASE_URL}doom-logo.png`} alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
           <main className="main-content">
             <div className="track-list">
               {state.savedTracks.length === 0 ? (
@@ -872,7 +872,7 @@ function App() {
               onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'load' })}
               aria-label="Back to Tracks"
             >
-              <img src="/grid-icon.png" alt="Back to tracks" className="grid-icon-img" />
+              <img src={`${import.meta.env.BASE_URL}grid-icon.png`} alt="Back to tracks" className="grid-icon-img" />
             </button>
             <button
               className="play-button"
