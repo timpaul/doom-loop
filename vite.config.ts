@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   base: "/",
   server: {
-    allowedHosts: ['doom-loop.onrender.com']
+    allowedHosts: ['doomloop.cc']
   },
   plugins: [
     react(),
