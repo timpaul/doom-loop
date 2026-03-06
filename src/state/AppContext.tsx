@@ -4,6 +4,12 @@ import { DEFAULT_SOUND } from '../types';
 import type { SoundState, TrackState } from '../types';
 import { audioManager } from '../audio/AudioManager';
 
+// Pre-load all default track JSONs synchronously using Vite's import.meta.glob
+const defaultTrackFiles = import.meta.glob('../audio/default-tracks/*.json', { eager: true });
+const DEFAULT_TRACKS: TrackState[] = Object.values(defaultTrackFiles)
+    .map((module: any) => module.default || module)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
 export interface AppState {
     isPlaying: boolean;
     currentScreen: 'main' | 'load';
@@ -95,19 +101,53 @@ const getInitialState = (): AppState => {
         } catch { return backup; }
     };
 
-    const savedTracks = parseJSON('noisemaker_tracks', parseJSON('noisemaker_scenes', [
-        { id: 'track-1', name: 'Track 1', sounds: [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }] }
-    ]));
+    // Check if we've already loaded the defaults on this device
+    const hasLoadedDefaults = localStorage.getItem('noisemaker_hasLoadedDefaults');
+
+    let initialTracks: TrackState[];
+    let currentTrackId: string;
+    let currentTrackName: string;
+    let sounds: SoundState[];
+    let expandedId: string;
+
+    if (!hasLoadedDefaults && DEFAULT_TRACKS.length > 0) {
+        // First time visit: Load default tracks
+        initialTracks = [...DEFAULT_TRACKS];
+
+        // Select the first track by default
+        const firstTrack = initialTracks[0];
+        currentTrackId = firstTrack.id;
+        currentTrackName = firstTrack.name;
+        sounds = [...firstTrack.sounds];
+
+        // Expand the first sound
+        expandedId = sounds.length > 0 ? sounds[0].id : '';
+
+        // Mark defaults as loaded so we don't overwrite user edits later
+        localStorage.setItem('noisemaker_hasLoadedDefaults', 'true');
+        // Persist the default tracks immediately so they show up consistently
+        localStorage.setItem('noisemaker_tracks', JSON.stringify(initialTracks));
+    } else {
+        // Normal initialization from localStorage or backup
+        initialTracks = parseJSON('noisemaker_tracks', parseJSON('noisemaker_scenes', [
+            { id: 'track-1', name: 'Track 1', sounds: [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }] }
+        ]));
+
+        currentTrackId = localStorage.getItem('noisemaker_currentTrackId') || localStorage.getItem('noisemaker_currentSceneId') || 'track-1';
+        currentTrackName = localStorage.getItem('noisemaker_currentTrackName') || localStorage.getItem('noisemaker_currentSceneName') || 'Track 1';
+        sounds = parseJSON('noisemaker_sounds', [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }]);
+        expandedId = localStorage.getItem('noisemaker_expandedId') || '1';
+    }
 
     return {
         isPlaying: false,
         currentScreen: 'load',
-        currentTrackId: localStorage.getItem('noisemaker_currentTrackId') || localStorage.getItem('noisemaker_currentSceneId') || 'track-1',
-        currentTrackName: localStorage.getItem('noisemaker_currentTrackName') || localStorage.getItem('noisemaker_currentSceneName') || 'Track 1',
-        savedTracks,
-        sounds: parseJSON('noisemaker_sounds', [{ id: '1', name: 'Sound 1', ...DEFAULT_SOUND }]),
+        currentTrackId,
+        currentTrackName,
+        savedTracks: initialTracks,
+        sounds,
         toastMessage: null,
-        expandedId: localStorage.getItem('noisemaker_expandedId') || '1',
+        expandedId,
         nextId: parseJSON('noisemaker_nextId', 2)
     };
 };
