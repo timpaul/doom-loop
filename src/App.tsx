@@ -15,12 +15,29 @@ const PauseIcon = () => (
 )
 
 const TrashIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" />
+    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+    <line x1="10" y1="11" x2="10" y2="17" />
+    <line x1="14" y1="11" x2="14" y2="17" />
+  </svg>
+)
+
+const DuplicateIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    <line x1="12" y1="15" x2="18" y2="15" />
+    <line x1="15" y1="12" x2="15" y2="18" />
+  </svg>
 )
 
 const ExportIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 4v16M16 16l-4 4-4-4" />
+    <path d="M12 4v12" />
+    <path d="M16 8l-4-4-4 4" />
+    <path d="M4 16v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
   </svg>
 )
 
@@ -740,6 +757,11 @@ function App() {
     dispatch({ type: 'LOAD_TRACK', payload: track });
   }
 
+  const handleDuplicateTrack = (e: React.MouseEvent, trackId: string) => {
+    e.stopPropagation();
+    dispatch({ type: 'DUPLICATE_TRACK', payload: trackId });
+  };
+
   const removeSavedTrack = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     dispatch({ type: 'DELETE_TRACK', payload: id });
@@ -813,11 +835,14 @@ function App() {
                         </button>
                         <span className="track-item-name">{track.name}</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <button className="icon-btn" onClick={(e) => handleExportTrack(e, track)} aria-label="Export Track">
+                      <div className="track-list-item-actions">
+                        <button className="icon-btn" data-tooltip="Export" onClick={(e) => handleExportTrack(e, track)} aria-label="Export Track">
                           <ExportIcon />
                         </button>
-                        <button className="icon-btn delete-btn" onClick={(e) => removeSavedTrack(e, track.id)} aria-label="Delete Track">
+                        <button className="icon-btn" data-tooltip="Duplicate" onClick={(e) => handleDuplicateTrack(e, track.id)} aria-label="Duplicate Track">
+                          <DuplicateIcon />
+                        </button>
+                        <button className="icon-btn delete-btn" data-tooltip="Delete" onClick={(e) => removeSavedTrack(e, track.id)} aria-label="Delete Track">
                           <TrashIcon />
                         </button>
                       </div>

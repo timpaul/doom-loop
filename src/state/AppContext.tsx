@@ -28,6 +28,7 @@ export type Action =
     | { type: 'LOAD_AND_PLAY_TRACK'; payload: TrackState }
     | { type: 'CREATE_TRACK' }
     | { type: 'DELETE_TRACK'; payload: string }
+    | { type: 'DUPLICATE_TRACK'; payload: string }
     | { type: 'IMPORT_TRACK'; payload: any }
     | { type: 'SET_TOAST'; payload: string | null };
 
@@ -172,6 +173,47 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'DELETE_TRACK':
             newState.savedTracks = state.savedTracks.filter(s => s.id !== action.payload);
             break;
+        case 'DUPLICATE_TRACK': {
+            const trackToDuplicate = state.savedTracks.find(t => t.id === action.payload);
+            if (!trackToDuplicate) break;
+
+            const existingNames = new Set(state.savedTracks.map(t => t.name));
+
+            // Extract base name and counter if it exists (e.g. "Track 1 (2)" -> base="Track 1", counter=2)
+            let baseName = trackToDuplicate.name;
+            let counter = 1;
+
+            const match = trackToDuplicate.name.match(/^(.*?)(?:\s\((\d+)\))?$/);
+            if (match) {
+                baseName = match[1].trim();
+                // We start incrementing from whatever number it had, or 1
+                if (match[2]) {
+                    counter = parseInt(match[2], 10);
+                }
+            }
+
+            // Keep incrementing until we find a unique name
+            let newName = '';
+            do {
+                newName = `${baseName} (${counter})`;
+                counter++;
+            } while (existingNames.has(newName));
+
+            const duplicatedTrack: TrackState = {
+                id: `track-${Date.now()}`,
+                name: newName,
+                sounds: trackToDuplicate.sounds.map((s, index) => ({
+                    ...s,
+                    id: `${Date.now()}-${index}`
+                }))
+            };
+
+            // Insert after the original track
+            const index = state.savedTracks.findIndex(t => t.id === action.payload);
+            newState.savedTracks = [...state.savedTracks];
+            newState.savedTracks.splice(index + 1, 0, duplicatedTrack);
+            break;
+        }
         case 'IMPORT_TRACK': {
             try {
                 // Ensure array of sounds and apply migrations
@@ -238,7 +280,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
     }
 
     // AUTO-SAVE LOGIC
-    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'SET_TRACK_NAME' || action.type === 'CREATE_TRACK' || action.type === 'LOAD_TRACK' || action.type === 'LOAD_AND_PLAY_TRACK') {
+    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'SET_TRACK_NAME' || action.type === 'CREATE_TRACK' || action.type === 'LOAD_TRACK' || action.type === 'LOAD_AND_PLAY_TRACK' || action.type === 'DUPLICATE_TRACK') {
         const existingIdx = newState.savedTracks.findIndex(s => s.id === newState.currentTrackId);
         const updatedTracks = [...newState.savedTracks];
         if (existingIdx >= 0) {
