@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         name: 'Doom Loop',
         short_name: 'Doom Loop',
-        description: 'A simple, calm noise generator for tinnitus relief and focus.',
+        description: 'A music tool optimised for generative drone and ambient.',
         theme_color: '#121212',
         background_color: '#121212',
         display: 'standalone',
