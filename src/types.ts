@@ -28,6 +28,7 @@ export interface SoundState {
     envDecay: number;
     envSustain: number;
     envRelease: number;
+    noteLengthRatio?: number;
     volume: number;
     pan: number;
     filterMinFreq: number;
@@ -78,6 +79,7 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     envDecay: 0.1,
     envSustain: 1.0,
     envRelease: 2.0,
+    noteLengthRatio: 1.0,
     volume: 0.5,
     pan: 0,
     filterMinFreq: 200,

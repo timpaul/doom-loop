@@ -134,11 +134,13 @@ class AudioManager {
             }
 
             // Build cache key based on EVERYTHING that changes the sequence structurally
-            sourceConfigStr = `tone-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${JSON.stringify(sound.stepConfigs)}-${sound.playMode}`;
+            const noteLengthRatio = sound.noteLengthRatio ?? 1.0;
+            sourceConfigStr = `tone-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${JSON.stringify(sound.stepConfigs)}-${sound.playMode}-${noteLengthRatio}`;
             playArgs = {
                 events,
                 loopLength: totalDuration || 1,
                 playMode: sound.playMode,
+                noteLengthRatio,
                 envelope: {
                     attack: sound.envAttack,
                     decay: sound.envDecay,

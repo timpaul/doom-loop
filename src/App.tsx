@@ -397,6 +397,22 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                     <input type="range" min="0" max="1" step="0.01" value={Math.pow(sound.envRelease / 10, 1 / 3) || 0} onChange={e => update({ envRelease: Math.pow(parseFloat(e.target.value), 3) * 10 })} aria-label="Release" />
                   </div>
                 </div>
+                {sound.sourceType === 'tone' && (
+                  <div className="control-row" style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                    <span className="control-label">Length</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="1"
+                        step="0.05"
+                        value={sound.noteLengthRatio ?? 1.0}
+                        onChange={e => update({ noteLengthRatio: parseFloat(e.target.value) })}
+                        aria-label="Note Length Ratio"
+                      />
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </section>
