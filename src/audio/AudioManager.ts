@@ -78,6 +78,7 @@ class AudioManager {
         engine.setDelay(sound.delayAmount);
         engine.setChorus(sound.chorusAmount);
         engine.setDistortion(sound.distortionAmount ?? 0);
+        engine.setChebyshev(sound.chebyshevAmount ?? 0);
         engine.setDetune(sound.detune ?? 0);
         engine.setEnvelope({
             attack: sound.envAttack,

@@ -26,6 +26,7 @@ export class AudioEngine {
     private delay: Tone.FeedbackDelay;
     private chorus: Tone.Chorus;
     private distortion: Tone.Distortion;
+    private chebyshev: Tone.Chebyshev;
 
     private currentSource: SoundType | null = null;
     private sequencePart: Tone.Part | null = null;
@@ -47,6 +48,7 @@ export class AudioEngine {
         this.delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.5, wet: 0 });
         this.chorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0 });
         this.distortion = new Tone.Distortion(0);
+        this.chebyshev = new Tone.Chebyshev({ order: 50, wet: 0 });
 
         // Channel alternatives for Volume and Pan
         this.channel = new Tone.Channel({ volume: 0, pan: 0 }); // Keeping just for routing volume currently, could be simplified to Gain
@@ -56,7 +58,7 @@ export class AudioEngine {
         this.panLfo.connect(this.panner.pan);
 
         // Chain effects - note the panner is LAST before output
-        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.distortion, this.delay, this.reverb, this.panner, outputDestination);
+        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.chebyshev, this.distortion, this.delay, this.reverb, this.panner, outputDestination);
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
@@ -112,6 +114,7 @@ export class AudioEngine {
         this.delay.dispose();
         this.chorus.dispose();
         this.distortion.dispose();
+        this.chebyshev.dispose();
         this.panner.dispose();
         this.channel.dispose();
     }
@@ -249,6 +252,10 @@ export class AudioEngine {
 
     public setChorus(amount: number) {
         this.chorus.wet.rampTo(amount, 0.1);
+    }
+
+    public setChebyshev(amount: number) {
+        this.chebyshev.wet.rampTo(amount, 0.1);
     }
 
     public setDistortion(amount: number) {

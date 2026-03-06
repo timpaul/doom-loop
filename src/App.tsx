@@ -628,6 +628,12 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                     <input type="range" min="0" max="1" step="0.01" value={sound.chorusAmount} onChange={e => update({ chorusAmount: parseFloat(e.target.value) })} aria-label="Chorus" />
                   </div>
                 </div>
+                <div className="control-row">
+                  <span className="control-label">Chebyshev</span>
+                  <div className="slider-wrapper">
+                    <input type="range" min="0" max="1" step="0.01" value={sound.chebyshevAmount ?? 0} onChange={e => update({ chebyshevAmount: parseFloat(e.target.value) })} aria-label="Chebyshev" />
+                  </div>
+                </div>
               </>
             )}
           </section>

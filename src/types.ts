@@ -49,6 +49,7 @@ export interface SoundState {
     delayAmount: number;
     chorusAmount: number;
     distortionAmount: number;
+    chebyshevAmount: number;
 }
 
 export interface TrackState {
@@ -99,5 +100,6 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     reverbAmount: 0,
     delayAmount: 0,
     chorusAmount: 0,
-    distortionAmount: 0
+    distortionAmount: 0,
+    chebyshevAmount: 0
 };
