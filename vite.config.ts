@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/doom-loop/",
+  base: "/",
   server: {
     allowedHosts: ['doom-loop.onrender.com']
   },
