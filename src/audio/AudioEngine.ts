@@ -130,7 +130,8 @@ export class AudioEngine {
         this.currentSource = sourceType;
 
         if (sourceType === 'noise') {
-            const { color, envelope } = value as { color: NoiseColor, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            const { color, events, loopLength, noteLengthRatio = 1.0, isContinuous = false, envelope } = value as { color: NoiseColor, events?: Array<{ time: number, notes: string[], duration: number }>, loopLength?: number, noteLengthRatio?: number, isContinuous?: boolean, envelope: { attack: number, decay: number, sustain: number, release: number } };
+
             // Native Tone.js noise types
             if (color === 'white' || color === 'pink' || color === 'brown') {
                 this.noise.type = color;
@@ -148,7 +149,40 @@ export class AudioEngine {
             }
             this.noiseEnv.set(envelope);
             this.noise.start();
-            this.noiseEnv.triggerAttack();
+
+            if (events && events.length > 0 && loopLength !== undefined) {
+                if (isContinuous) {
+                    this.noiseEnv.triggerAttack();
+                } else {
+                    this.sequencePart = new Tone.Part((time, event) => {
+                        const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
+                        this.noiseEnv.triggerAttackRelease(playDuration, time);
+                    }, events).start(0);
+
+                    this.sequencePart.loop = true;
+                    this.sequencePart.loopEnd = loopLength;
+
+                    if (Tone.Transport.state !== 'started') {
+                        Tone.Transport.start();
+                    } else {
+                        // Catch up timing
+                        const currentTransportTime = Tone.Transport.seconds;
+                        const currentLoopTime = loopLength > 0 ? (currentTransportTime % loopLength) : 0;
+                        const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
+
+                        if (activeEvent) {
+                            const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
+                            const timeIntoEvent = currentLoopTime - activeEvent.time;
+                            if (timeIntoEvent < playDuration) {
+                                const remainingPlayDuration = playDuration - timeIntoEvent;
+                                this.noiseEnv.triggerAttackRelease(remainingPlayDuration, Tone.now());
+                            }
+                        }
+                    }
+                }
+            } else {
+                this.noiseEnv.triggerAttack();
+            }
         } else if (sourceType === 'tone') {
             // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
             const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, envelope: { attack: number, decay: number, sustain: number, release: number } };
@@ -214,6 +248,12 @@ export class AudioEngine {
     }
 
     public stop() {
+        if (this.sequencePart) {
+            this.sequencePart.stop();
+            this.sequencePart.dispose();
+            this.sequencePart = null;
+        }
+
         if (this.currentSource === 'noise') {
             this.noiseEnv.triggerRelease();
             // We should ideally wait for the release to finish before stopping the noise oscillator
@@ -223,11 +263,6 @@ export class AudioEngine {
                 if (this.currentSource !== 'noise') this.noise.stop();
             }, releaseTime * 1000);
         } else if (this.currentSource === 'tone') {
-            if (this.sequencePart) {
-                this.sequencePart.stop();
-                this.sequencePart.dispose();
-                this.sequencePart = null;
-            }
             this.polySynth.releaseAll();
         }
         this.currentSource = null;

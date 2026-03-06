@@ -97,10 +97,45 @@ class AudioManager {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let playArgs: any = null;
 
+        // Compute sequence events for both tone and noise
+        const totalDuration = sound.seqLengthRate;
+        const validSteps = sound.stepConfigs.map((config, index) => ({ config, ratio: sound.stepRatios[index] })).filter(item => typeof item.ratio === 'number' && item.ratio > 0);
+        const isContinuous = validSteps.length === 0;
+        const totalRatio = validSteps.reduce((sum, item) => sum + (item.ratio as number), 0);
+
+        const events: Array<{ time: number, notes: string[], duration: number }> = [];
+        let currentTime = 0;
+
+        if (isContinuous) {
+            const notes = sound.stepConfigs[0].activeNotes.map(n => `${n}${sound.stepConfigs[0].octave}`);
+            events.push({
+                time: 0,
+                notes,
+                duration: totalDuration || 1
+            });
+        } else if (totalRatio > 0 && validSteps.length > 0) {
+            for (const step of validSteps) {
+                const stepDuration = (step.ratio as number) / totalRatio * totalDuration;
+                const notes = step.config.activeNotes.map(n => `${n}${step.config.octave}`);
+                events.push({
+                    time: currentTime,
+                    notes,
+                    duration: stepDuration
+                });
+                currentTime += stepDuration;
+            }
+        }
+
+        const noteLengthRatio = sound.noteLengthRatio ?? 1.0;
+
         if (sound.sourceType === 'noise') {
-            sourceConfigStr = `noise-${sound.noiseColor}`;
+            sourceConfigStr = `noise-${sound.noiseColor}-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${noteLengthRatio}-${isContinuous}`;
             playArgs = {
                 color: sound.noiseColor,
+                events,
+                loopLength: totalDuration || 1,
+                noteLengthRatio,
+                isContinuous,
                 envelope: {
                     attack: sound.envAttack,
                     decay: sound.envDecay,
@@ -109,41 +144,7 @@ class AudioManager {
                 }
             };
         } else {
-            // Compute sequence events
-            // Rate is in seconds directly if scale is second, otherwise it's handled as such
-            const totalDuration = sound.seqLengthRate;
-
-            // Collect valid steps and their cumulative ratio
-            const validSteps = sound.stepConfigs.map((config, index) => ({ config, ratio: sound.stepRatios[index] })).filter(item => typeof item.ratio === 'number' && item.ratio > 0);
-
-            const isContinuous = validSteps.length === 0;
-            const totalRatio = validSteps.reduce((sum, item) => sum + (item.ratio as number), 0);
-
-            const events: Array<{ time: number, notes: string[], duration: number }> = [];
-            let currentTime = 0;
-
-            if (isContinuous) {
-                const notes = sound.stepConfigs[0].activeNotes.map(n => `${n}${sound.stepConfigs[0].octave}`);
-                events.push({
-                    time: 0,
-                    notes,
-                    duration: totalDuration || 1
-                });
-            } else if (totalRatio > 0 && validSteps.length > 0) {
-                for (const step of validSteps) {
-                    const stepDuration = (step.ratio as number) / totalRatio * totalDuration;
-                    const notes = step.config.activeNotes.map(n => `${n}${step.config.octave}`);
-                    events.push({
-                        time: currentTime,
-                        notes,
-                        duration: stepDuration
-                    });
-                    currentTime += stepDuration;
-                }
-            }
-
             // Build cache key based on EVERYTHING that changes the sequence structurally
-            const noteLengthRatio = sound.noteLengthRatio ?? 1.0;
             sourceConfigStr = `tone-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${JSON.stringify(sound.stepConfigs)}-${sound.playMode}-${noteLengthRatio}-${isContinuous}`;
             playArgs = {
                 events,

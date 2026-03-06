@@ -172,7 +172,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
             )}
           </section>
 
-          {sound.sourceType === 'noise' ? (
+          {sound.sourceType === 'noise' && (
             <section className={`panel-group ${collapsedPanels['NOISE'] ? 'collapsed' : ''}`}>
               <h2 className="panel-title" onClick={() => togglePanel('NOISE')}>NOISE</h2>
               {!collapsedPanels['NOISE'] && (
@@ -191,182 +191,185 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 </div>
               )}
             </section>
-          ) : (
-            <>
-              <section className={`panel-group ${collapsedPanels['SEQUENCER'] ? 'collapsed' : ''}`}>
-                <h2 className="panel-title" onClick={() => togglePanel('SEQUENCER')}>SEQUENCER</h2>
-                {!collapsedPanels['SEQUENCER'] && sound.stepConfigs && sound.stepRatios && (
-                  <>
-                    <div className="control-row sequencer-ratios-row">
-                      <span className="control-label">Ratios</span>
-                      <div className="ratios-container">
-                        {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
-                          <input
-                            key={step}
-                            type="text"
-                            className="ratio-input"
-                            value={sound.stepRatios[step] === null ? '' : sound.stepRatios[step]}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const newRatios = [...sound.stepRatios];
-                              if (val === '') {
-                                newRatios[step] = null;
-                              } else {
-                                const num = parseInt(val, 10);
-                                if (!isNaN(num) && num >= 0) {
-                                  newRatios[step] = num;
-                                }
-                              }
-                              update({ stepRatios: newRatios });
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="control-row">
-                      <span className="control-label">Length</span>
-                      <div className="segmented-control" style={{ marginTop: 0 }}>
-                        {(['second', 'minute', 'hour'] as LFOScale[]).map(scale => (
-                          <button
-                            key={scale}
-                            className={`segment-btn ${sound.seqLengthScale === scale ? 'active' : ''}`}
-                            onClick={() => {
-                              let newRate = sound.seqLengthRate;
-                              if (scale === 'second') newRate = Math.min(Math.max(newRate, 0.01), 1);
-                              else if (scale === 'minute') newRate = Math.min(Math.max(newRate, 1), 60);
-                              else if (scale === 'hour') newRate = Math.min(Math.max(newRate, 60), 3600);
-                              update({ seqLengthScale: scale, seqLengthRate: newRate });
-                            }}
-                          >
-                            {scale === 'second' ? 'Short' : scale === 'minute' ? 'Med' : 'Long'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="control-row">
-                      <span className="control-label">Adjust</span>
-                      <div className="slider-wrapper">
-                        <input
-                          type="range"
-                          min={sound.seqLengthScale === 'hour' ? 60 : sound.seqLengthScale === 'minute' ? 1 : 0.01}
-                          max={sound.seqLengthScale === 'hour' ? 3600 : sound.seqLengthScale === 'minute' ? 60 : 1}
-                          step={sound.seqLengthScale === 'second' ? 0.01 : 1}
-                          value={sound.seqLengthRate}
-                          onChange={e => update({ seqLengthRate: parseFloat(e.target.value) })}
-                        />
-                      </div>
-                    </div>
-                    <div className="control-row">
-                      <span className="control-label">Play</span>
-                      <div className="segmented-control" style={{ marginTop: 0 }}>
-                        <button
-                          className={`segment-btn ${sound.playMode !== 'random' ? 'active' : ''}`}
-                          onClick={() => update({ playMode: 'chord' })}
-                        >
-                          All notes
-                        </button>
-                        <button
-                          className={`segment-btn ${sound.playMode === 'random' ? 'active' : ''}`}
-                          onClick={() => update({ playMode: 'random' })}
-                        >
-                          Random note
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </section>
-              <section className={`panel-group ${collapsedPanels['TONES'] ? 'collapsed' : ''}`}>
-                <h2 className="panel-title" onClick={() => togglePanel('TONES')}>TONES</h2>
-                {!collapsedPanels['TONES'] && (
-                  <>
-                    <div className="control-row">
-                      <span className="control-label">Step</span>
-                      <div className="segmented-control" style={{ marginTop: 0 }}>
-                        {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
-                          <button
-                            key={step}
-                            className={`segment-btn ${selectedStep === step ? 'active' : ''}`}
-                            onClick={() => setSelectedStep(step)}
-                          >
-                            {step + 1}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="control-row">
-                      <span className="control-label">Octave</span>
-                      <div className="slider-wrapper">
-                        <input type="range" min="1" max="5" step="1" value={sound.stepConfigs?.[selectedStep]?.octave ?? 3} onChange={e => {
-                          if (!sound.stepConfigs) return;
-                          const newConfigs = [...sound.stepConfigs];
-                          newConfigs[selectedStep] = { ...newConfigs[selectedStep], octave: parseInt(e.target.value, 10) };
-                          update({ stepConfigs: newConfigs });
-                        }} aria-label="Octave" />
-                      </div>
-                    </div>
+          )}
 
-                    <div className="control-row">
-                      <span className="control-label">Chord</span>
-                      <div className="slider-wrapper">
-                        <input
-                          type="text"
-                          className="chord-input"
-                          value={chordInput}
-                          onChange={(e) => setChordInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleChordCommit();
+          <section className={`panel-group ${collapsedPanels['SEQUENCER'] ? 'collapsed' : ''}`}>
+            <h2 className="panel-title" onClick={() => togglePanel('SEQUENCER')}>SEQUENCER</h2>
+            {!collapsedPanels['SEQUENCER'] && sound.stepConfigs && sound.stepRatios && (
+              <>
+                <div className="control-row sequencer-ratios-row">
+                  <span className="control-label">Ratios</span>
+                  <div className="ratios-container">
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
+                      <input
+                        key={step}
+                        type="text"
+                        className="ratio-input"
+                        value={sound.stepRatios[step] === null ? '' : sound.stepRatios[step]}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const newRatios = [...sound.stepRatios];
+                          if (val === '') {
+                            newRatios[step] = null;
+                          } else {
+                            const num = parseInt(val, 10);
+                            if (!isNaN(num) && num >= 0) {
+                              newRatios[step] = num;
+                            }
+                          }
+                          update({ stepRatios: newRatios });
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="control-row">
+                  <span className="control-label">Length</span>
+                  <div className="segmented-control" style={{ marginTop: 0 }}>
+                    {(['second', 'minute', 'hour'] as LFOScale[]).map(scale => (
+                      <button
+                        key={scale}
+                        className={`segment-btn ${sound.seqLengthScale === scale ? 'active' : ''}`}
+                        onClick={() => {
+                          let newRate = sound.seqLengthRate;
+                          if (scale === 'second') newRate = Math.min(Math.max(newRate, 0.01), 1);
+                          else if (scale === 'minute') newRate = Math.min(Math.max(newRate, 1), 60);
+                          else if (scale === 'hour') newRate = Math.min(Math.max(newRate, 60), 3600);
+                          update({ seqLengthScale: scale, seqLengthRate: newRate });
+                        }}
+                      >
+                        {scale === 'second' ? 'Short' : scale === 'minute' ? 'Med' : 'Long'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="control-row">
+                  <span className="control-label">Adjust</span>
+                  <div className="slider-wrapper">
+                    <input
+                      type="range"
+                      min={sound.seqLengthScale === 'hour' ? 60 : sound.seqLengthScale === 'minute' ? 1 : 0.01}
+                      max={sound.seqLengthScale === 'hour' ? 3600 : sound.seqLengthScale === 'minute' ? 60 : 1}
+                      step={sound.seqLengthScale === 'second' ? 0.01 : 1}
+                      value={sound.seqLengthRate}
+                      onChange={e => update({ seqLengthRate: parseFloat(e.target.value) })}
+                    />
+                  </div>
+                </div>
+                {sound.sourceType === 'tone' && (
+                  <div className="control-row">
+                    <span className="control-label">Play</span>
+                    <div className="segmented-control" style={{ marginTop: 0 }}>
+                      <button
+                        className={`segment-btn ${sound.playMode !== 'random' ? 'active' : ''}`}
+                        onClick={() => update({ playMode: 'chord' })}
+                      >
+                        All notes
+                      </button>
+                      <button
+                        className={`segment-btn ${sound.playMode === 'random' ? 'active' : ''}`}
+                        onClick={() => update({ playMode: 'random' })}
+                      >
+                        Random note
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+
+          {sound.sourceType === 'tone' && (
+            <section className={`panel-group ${collapsedPanels['TONES'] ? 'collapsed' : ''}`}>
+              <h2 className="panel-title" onClick={() => togglePanel('TONES')}>TONES</h2>
+              {!collapsedPanels['TONES'] && (
+                <>
+                  <div className="control-row">
+                    <span className="control-label">Step</span>
+                    <div className="segmented-control" style={{ marginTop: 0 }}>
+                      {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
+                        <button
+                          key={step}
+                          className={`segment-btn ${selectedStep === step ? 'active' : ''}`}
+                          onClick={() => setSelectedStep(step)}
+                        >
+                          {step + 1}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="control-row">
+                    <span className="control-label">Octave</span>
+                    <div className="slider-wrapper">
+                      <input type="range" min="1" max="5" step="1" value={sound.stepConfigs?.[selectedStep]?.octave ?? 3} onChange={e => {
+                        if (!sound.stepConfigs) return;
+                        const newConfigs = [...sound.stepConfigs];
+                        newConfigs[selectedStep] = { ...newConfigs[selectedStep], octave: parseInt(e.target.value, 10) };
+                        update({ stepConfigs: newConfigs });
+                      }} aria-label="Octave" />
+                    </div>
+                  </div>
+
+                  <div className="control-row">
+                    <span className="control-label">Chord</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="text"
+                        className="chord-input"
+                        value={chordInput}
+                        onChange={(e) => setChordInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleChordCommit();
+                        }}
+                        onBlur={handleChordCommit}
+                        style={{ width: '100%', backgroundColor: 'var(--bg-color)' }}
+                        spellCheck={false}
+                        aria-label="Chord Notation"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="keyboard-container" style={{ marginTop: '21px' }} role="group" aria-label="Select notes">
+                    <div className="keyboard-row black-keys">
+                      {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
+                        <button
+                          key={note}
+                          className={`key-btn black-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
+                          onClick={() => {
+                            if (!sound.stepConfigs) return;
+                            const notes = sound.stepConfigs[selectedStep].activeNotes || [];
+                            const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
+                            const newConfigs = [...sound.stepConfigs];
+                            newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
+                            update({ stepConfigs: newConfigs });
                           }}
-                          onBlur={handleChordCommit}
-                          style={{ width: '100%', backgroundColor: 'var(--bg-color)' }}
-                          spellCheck={false}
-                          aria-label="Chord Notation"
+                          aria-pressed={sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note)}
+                          aria-label={note}
                         />
-                      </div>
+                      ))}
                     </div>
-
-                    <div className="keyboard-container" style={{ marginTop: '21px' }} role="group" aria-label="Select notes">
-                      <div className="keyboard-row black-keys">
-                        {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
-                          <button
-                            key={note}
-                            className={`key-btn black-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
-                            onClick={() => {
-                              if (!sound.stepConfigs) return;
-                              const notes = sound.stepConfigs[selectedStep].activeNotes || [];
-                              const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
-                              const newConfigs = [...sound.stepConfigs];
-                              newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
-                              update({ stepConfigs: newConfigs });
-                            }}
-                            aria-pressed={sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note)}
-                            aria-label={note}
-                          />
-                        ))}
-                      </div>
-                      <div className="keyboard-row white-keys">
-                        {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(note => (
-                          <button
-                            key={note}
-                            className={`key-btn white-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
-                            onClick={() => {
-                              if (!sound.stepConfigs) return;
-                              const notes = sound.stepConfigs[selectedStep].activeNotes || [];
-                              const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
-                              const newConfigs = [...sound.stepConfigs];
-                              newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
-                              update({ stepConfigs: newConfigs });
-                            }}
-                            aria-pressed={sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note)}
-                            aria-label={note}
-                          />
-                        ))}
-                      </div>
+                    <div className="keyboard-row white-keys">
+                      {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(note => (
+                        <button
+                          key={note}
+                          className={`key-btn white-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
+                          onClick={() => {
+                            if (!sound.stepConfigs) return;
+                            const notes = sound.stepConfigs[selectedStep].activeNotes || [];
+                            const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
+                            const newConfigs = [...sound.stepConfigs];
+                            newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
+                            update({ stepConfigs: newConfigs });
+                          }}
+                          aria-pressed={sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note)}
+                          aria-label={note}
+                        />
+                      ))}
                     </div>
-                  </>
-                )}
-              </section>
-            </>
+                  </div>
+                </>
+              )}
+            </section>
           )}
 
           <section className={`panel-group ${collapsedPanels['ENVELOPE'] ? 'collapsed' : ''}`}>
@@ -397,22 +400,20 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                     <input type="range" min="0" max="1" step="0.01" value={Math.pow(sound.envRelease / 10, 1 / 3) || 0} onChange={e => update({ envRelease: Math.pow(parseFloat(e.target.value), 3) * 10 })} aria-label="Release" />
                   </div>
                 </div>
-                {sound.sourceType === 'tone' && (
-                  <div className="control-row" style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
-                    <span className="control-label">Length</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="1"
-                        step="0.05"
-                        value={sound.noteLengthRatio ?? 1.0}
-                        onChange={e => update({ noteLengthRatio: parseFloat(e.target.value) })}
-                        aria-label="Note Length Ratio"
-                      />
-                    </div>
+                <div className="control-row" style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                  <span className="control-label">Length</span>
+                  <div className="slider-wrapper">
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1"
+                      step="0.05"
+                      value={sound.noteLengthRatio ?? 1.0}
+                      onChange={e => update({ noteLengthRatio: parseFloat(e.target.value) })}
+                      aria-label="Note Length Ratio"
+                    />
                   </div>
-                )}
+                </div>
               </>
             )}
           </section>
