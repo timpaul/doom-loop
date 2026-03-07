@@ -1333,10 +1333,6 @@ function App() {
               </>
             )}
           </main>
-
-          <footer className="app-footer">
-            &copy; 2026 <a href="https://www.timpaul.co.uk" target="_blank" rel="noopener noreferrer">Tim Paul</a> &middot; <button className="text-btn" onClick={() => setIsAboutModalOpen(true)}>What is this?</button>
-          </footer>
         </div>
       ) : state.currentScreen === 'mixDetail' ? (
         <MixDetailScreen togglePlay={togglePlay} />
@@ -1386,13 +1382,17 @@ function App() {
           </main>
         </div>
       )}
+
+      <footer className="app-footer">
+        &copy; 2026 <a href="https://www.timpaul.co.uk" target="_blank" rel="noopener noreferrer">Tim Paul</a> &middot; <button className="text-btn" onClick={() => setIsAboutModalOpen(true)}>What <em>is</em> this?</button>
+      </footer>
+
       <audio ref={audioRef} preload="none" playsInline />
       {isAboutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-track-list" style={{ maxWidth: '800px', backgroundColor: 'var(--panel-bg)', borderRadius: '16px', padding: '32px' }}>
             <div className="modal-header" style={{ marginBottom: '16px' }}>
               <div style={{ width: '40px' }} />
-              <h2 className="modal-title">About Doom Loop</h2>
               <button className="modal-close-btn" onClick={() => setIsAboutModalOpen(false)} aria-label="Close modal">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1401,8 +1401,18 @@ function App() {
               </button>
             </div>
 
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <img src={`${import.meta.env.BASE_URL}doom-logo.png`} alt="Doom Loop Logo" style={{ width: '50%', height: 'auto', opacity: 0.8 }} />
+            </div>
+
             <div className="markdown-content">
               <ReactMarkdown>{aboutMarkdown}</ReactMarkdown>
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: '48px' }}>
+              <button className="create-track-btn" onClick={() => setIsAboutModalOpen(false)}>
+                Back to Doom Loop
+              </button>
             </div>
           </div>
         </div>

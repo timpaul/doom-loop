@@ -832,6 +832,10 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
     overflow-y: auto;
 }
 
+body:has(.modal-overlay) {
+    overflow: hidden;
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
