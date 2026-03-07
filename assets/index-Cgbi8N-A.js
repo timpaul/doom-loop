@@ -276,13 +276,13 @@ Error generating stack: `+i.message+`
 
 Doom Loop is a browser-based audio environment for creating, sequencing, and mixing generative music and soundscapes.
 
-It's a cross between a synth, and sequencer and a music player, and it's designed specifically for creating and then listening back to ambient, drone and experimental electronic music and soundscapes. It's built on top on the Tone.js JavaScript library by me, Tim Paul (with a LOT of help from Google Antigravity). 
+It's a cross between a synth, and sequencer and a music player, and it's designed specifically for making ambient, drone and experimental electronic music. It's built on top on the Tone.js JavaScript library by me, Tim Paul (with a LOT of help from Google Antigravity). 
 
 A few notes on how it works...
 
 ## Tracks 
 
-Tracks are where you create your individual soundscapes. They're comprised of different sounds sources layered on top of each other, with optional effects and automation applied to them. There's also a bit of sequencing available too. 
+Tracks are where you create your individual musical and sonic ideas. They're comprised of different sounds sources layered on top of each other, with optional effects and automation applied to them. There's also a bit of sequencing available too. 
 
 Tracks have no fixed length - they're designed to continue indefinitely whilst you tweak their parameters, or just let them run on their own. Many parameters have automation LFOs with cycles that you can set to anything between 1 millisecond and 1 hour - perfect for very slowly evolving sounds.
 
