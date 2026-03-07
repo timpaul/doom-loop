@@ -354,7 +354,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
                         <button
                           key={note}
-                          className={`key - btn black - key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
+                          className={`key-btn black-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
                           onClick={() => {
                             if (!sound.stepConfigs) return;
                             const notes = sound.stepConfigs[selectedStep].activeNotes || [];
@@ -372,7 +372,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(note => (
                         <button
                           key={note}
-                          className={`key - btn white - key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
+                          className={`key-btn white-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
                           onClick={() => {
                             if (!sound.stepConfigs) return;
                             const notes = sound.stepConfigs[selectedStep].activeNotes || [];
