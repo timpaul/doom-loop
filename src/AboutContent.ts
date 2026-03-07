@@ -13,6 +13,24 @@ Tracks are where you create your individual musical and sonic ideas. They're com
 
 Tracks have no fixed length - they're designed to continue indefinitely whilst you tweak their parameters, or just let them run on their own. Many parameters have automation LFOs with cycles that you can set to anything between 1 millisecond and 1 hour - perfect for very slowly evolving sounds.
 
+## Sounds
+
+Each sound in a track can be either a noise or tone signal.
+
+Tones can be formed from notes and chords - if you know chord notaton you can just type what you want into the tones panel, but there'salso a little single-octave keyboard you can use.
+
+There are various effects you can apply to sounds, and you can modulate things like volume, panning and filter cutoff with LFOs.
+
+Each sounds also comes with it's own 8 step sequencer.
+
+## Sequencer
+
+The sequencer is... unconventional. Instead of directly specifying note or chord lengths, you instead define the overall loop length and the _relative_ lengths of each step, expressed as integer ratios. 
+
+So for example, ratios of 1, 1, 1, 2 would define a 4 step sequence where the last step plays for twice as long as the other 3. If no ratios are provided step one is used to create a continuous sound, with no looping.
+
+There's also an ASDR envelope with an extra 'Length' parameter, which is used to control the length of the sounds in each step as a percentage of the step length.
+
 
 ## Mixes
 
