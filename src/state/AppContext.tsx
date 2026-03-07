@@ -48,6 +48,7 @@ export type Action =
     | { type: 'DELETE_MIX'; payload: string }
     | { type: 'DUPLICATE_MIX'; payload: string }
     | { type: 'LOAD_MIX'; payload: string }
+    | { type: 'LOAD_AND_PLAY_MIX'; payload: string }
     | { type: 'UPDATE_MIX_SETTINGS'; payload: Partial<MixState> }
     | { type: 'ADD_TRACK_TO_MIX'; payload: string }
     | { type: 'REMOVE_MIX_ITEM'; payload: string }
@@ -397,6 +398,10 @@ const appReducer = (state: AppState, action: Action): AppState => {
             }
             newState.currentMixId = action.payload;
             newState.currentScreen = 'mixDetail';
+            break;
+        case 'LOAD_AND_PLAY_MIX':
+            newState.currentMixId = action.payload;
+            newState.isPlaying = true;
             break;
         case 'UPDATE_MIX_SETTINGS':
             if (state.currentMixId) {

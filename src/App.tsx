@@ -1073,10 +1073,7 @@ function App() {
 
       // If we are not currently viewing this mix, or it's not the active mix, load it and toggle play
       if (state.currentMixId !== mix.id) {
-        dispatch({ type: 'LOAD_MIX', payload: mix.id });
-        if (!state.isPlaying) {
-          dispatch({ type: 'TOGGLE_PLAY' });
-        }
+        dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
       } else {
         dispatch({ type: 'TOGGLE_PLAY' });
       }
@@ -1199,9 +1196,21 @@ function App() {
                   ) : (
                     state.savedMixes.map(mix => {
                       const isMixPlaying = state.isPlaying && state.currentMixId === mix.id;
+
+                      const totalLengthMin = mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0);
+                      const totalLengthSec = totalLengthMin * 60;
+                      let mixTimeString = '';
+                      if (totalLengthSec >= 3600) {
+                        mixTimeString = formatLength(totalLengthMin);
+                      } else {
+                        const m = Math.floor(totalLengthSec / 60);
+                        const s = Math.floor(totalLengthSec % 60).toString().padStart(2, '0');
+                        mixTimeString = `${m}:${s}`;
+                      }
+
                       return (
                         <div key={mix.id} className="track-list-item" onClick={() => loadMix(mix.id)}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
                             <button
                               className={`track-play-btn ${isMixPlaying ? 'active' : ''}`}
                               onClick={(e) => handleMixListTogglePlay(e, mix)}
@@ -1211,15 +1220,20 @@ function App() {
                                 {isMixPlaying ? <PauseIcon /> : <PlayIcon />}
                               </div>
                             </button>
-                            <span className="track-item-name">{mix.name}</span>
+                            <span className="track-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mix.name}</span>
                           </div>
-                          <div className="track-list-item-actions">
-                            <button className="icon-btn" data-tooltip="Duplicate" onClick={(e) => handleDuplicateMix(e, mix.id)} aria-label="Duplicate Mix">
-                              <DuplicateIcon />
-                            </button>
-                            <button className="icon-btn delete-btn" data-tooltip="Delete" onClick={(e) => removeSavedMix(e, mix.id)} aria-label="Delete Mix">
-                              <TrashIcon />
-                            </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div className="track-list-item-actions">
+                              <button className="icon-btn" data-tooltip="Duplicate" onClick={(e) => handleDuplicateMix(e, mix.id)} aria-label="Duplicate Mix">
+                                <DuplicateIcon />
+                              </button>
+                              <button className="icon-btn delete-btn" data-tooltip="Delete" onClick={(e) => removeSavedMix(e, mix.id)} aria-label="Delete Mix">
+                                <TrashIcon />
+                              </button>
+                            </div>
+                            <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', paddingRight: '10px' }}>
+                              {mixTimeString}
+                            </span>
                           </div>
                         </div>
                       );
