@@ -1,5 +1,5 @@
 import { audioManager } from './AudioManager';
-import type { MixState, TrackState } from '../types';
+import type { MixState, TrackState, MixItem } from '../types';
 
 export interface MixScheduleItem {
     mixItemId: string;
@@ -17,6 +17,7 @@ export class MixPlayer {
     private mix: MixState | null = null;
     private tracks: Map<string, TrackState> = new Map();
     private schedule: MixScheduleItem[] = [];
+    private shuffledItems: MixItem[] = [];
 
     private isPlaying = false;
     private lastTickTime = 0;
@@ -44,8 +45,11 @@ export class MixPlayer {
     public loadMix(mix: MixState, tracks: TrackState[]) {
         this.stop();
         this.mix = mix;
-        this._currentTime = 0;
-        this.tracks.clear();
+        if (mix.shuffle) {
+            this.shuffledItems = [...mix.items].sort(() => Math.random() - 0.5);
+        } else {
+            this.shuffledItems = [...mix.items];
+        }
         this._currentTime = 0;
         this.tracks.clear();
         for (const t of tracks) {
@@ -72,10 +76,34 @@ export class MixPlayer {
         }
         const oldTimeInItem = targetFollowItem ? this._currentTime - targetFollowItem.startTime : 0;
 
+        const shuffleTurnedOn = mix.shuffle && !this.mix.shuffle;
+        const shuffleTurnedOff = !mix.shuffle && this.mix.shuffle;
+
         this.mix = mix;
         this.tracks.clear();
         for (const t of tracks) {
             this.tracks.set(t.id, t);
+        }
+
+        if (shuffleTurnedOff) {
+            this.shuffledItems = [...this.mix.items];
+        } else if (shuffleTurnedOn) {
+            this.shuffledItems = [...this.mix.items].sort(() => Math.random() - 0.5);
+        } else if (this.mix.shuffle) {
+            // Keep existing shuffled order, minus removed, plus added randomly
+            const newIds = new Set(this.mix.items.map(i => i.id));
+            let newShuffled = this.shuffledItems.filter(i => newIds.has(i.id));
+
+            const currentIds = new Set(this.shuffledItems.map(i => i.id));
+            const addedItems = this.mix.items.filter(i => !currentIds.has(i.id));
+
+            for (const item of addedItems) {
+                const insertIdx = Math.floor(Math.random() * (newShuffled.length + 1));
+                newShuffled.splice(insertIdx, 0, item);
+            }
+            this.shuffledItems = newShuffled;
+        } else {
+            this.shuffledItems = [...this.mix.items];
         }
 
         this.calculateSchedule();
@@ -115,19 +143,16 @@ export class MixPlayer {
             return;
         }
 
-        const N = this.mix.items.length;
+        const N = this.shuffledItems.length;
         const totalLengthSec = this.mix.lengthMinutes * 60;
         const crossfadeSec = this.mix.crossFadeMinutes * 60;
 
         let itemLengthSec = totalLengthSec;
         if (N > 1) {
-            // N items mean N-1 crossfades
-            // Total length = N * itemLength - (N - 1) * crossfade
-            // itemLength = (Total length + (N - 1) * crossfade) / N
             itemLengthSec = (totalLengthSec + (N - 1) * crossfadeSec) / N;
         }
 
-        this.schedule = this.mix.items.map((item, index) => {
+        this.schedule = this.shuffledItems.map((item, index) => {
             const startTime = index * (itemLengthSec - crossfadeSec);
             const endTime = startTime + itemLengthSec;
 

@@ -776,14 +776,14 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
               </div>
               <div className="control-row">
                 <span className="control-label">Shuffle</span>
-                <div className="segmented-control" style={{ marginTop: '0' }}>
+                <div className="segmented-control" style={{ marginTop: '0', width: '50%' }}>
                   <button className={`segment-btn ${!mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: false })}>Off</button>
                   <button className={`segment-btn ${mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: true })}>On</button>
                 </div>
               </div>
               <div className="control-row">
                 <span className="control-label">Repeat</span>
-                <div className="segmented-control" style={{ marginTop: '0' }}>
+                <div className="segmented-control" style={{ marginTop: '0', width: '50%' }}>
                   <button className={`segment-btn ${!mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: false })}>Off</button>
                   <button className={`segment-btn ${mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: true })}>On</button>
                 </div>
@@ -1094,18 +1094,16 @@ function App() {
       {state.currentScreen === 'load' ? (
         <div className="app-container load-screen">
           <img src={`${import.meta.env.BASE_URL}doom-logo.png`} alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
-          <div className="list-mode-toggle" style={{ display: 'flex', gap: '8px', margin: '0 auto 20px auto', background: 'var(--panel-bg)', padding: '4px', borderRadius: '16px', maxWidth: '400px', width: '90%' }}>
+          <div className="segmented-control">
             <button
-              className={`mode-toggle-btn ${state.listMode === 'tracks' ? 'active' : ''}`}
+              className={`segment-btn ${state.listMode === 'tracks' ? 'active' : ''}`}
               onClick={() => dispatch({ type: 'SET_LIST_MODE', payload: 'tracks' })}
-              style={{ flex: 1, padding: '8px 16px', borderRadius: '12px', border: 'none', background: state.listMode === 'tracks' ? 'var(--accent-color)' : 'transparent', color: state.listMode === 'tracks' ? '#000' : 'var(--text-color)', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}
             >
               Tracks
             </button>
             <button
-              className={`mode-toggle-btn ${state.listMode === 'mixes' ? 'active' : ''}`}
+              className={`segment-btn ${state.listMode === 'mixes' ? 'active' : ''}`}
               onClick={() => dispatch({ type: 'SET_LIST_MODE', payload: 'mixes' })}
-              style={{ flex: 1, padding: '8px 16px', borderRadius: '12px', border: 'none', background: state.listMode === 'mixes' ? 'var(--accent-color)' : 'transparent', color: state.listMode === 'mixes' ? '#000' : 'var(--text-color)', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}
             >
               Mixes
             </button>
