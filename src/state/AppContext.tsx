@@ -49,6 +49,7 @@ export type Action =
     | { type: 'DUPLICATE_MIX'; payload: string }
     | { type: 'LOAD_MIX'; payload: string }
     | { type: 'LOAD_AND_PLAY_MIX'; payload: string }
+    | { type: 'IMPORT_MIX'; payload: { mix: Omit<MixState, 'items'> & { items: any[] }, tracks: TrackState[] } }
     | { type: 'UPDATE_MIX_SETTINGS'; payload: Partial<MixState> }
     | { type: 'ADD_TRACK_TO_MIX'; payload: string }
     | { type: 'REMOVE_MIX_ITEM'; payload: string }
@@ -239,6 +240,10 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'DELETE_TRACK':
             newState.savedTracks = state.savedTracks.filter(s => s.id !== action.payload);
+            newState.savedMixes = state.savedMixes.map(mix => ({
+                ...mix,
+                items: mix.items.filter(item => item.trackId !== action.payload)
+            }));
             break;
         case 'DUPLICATE_TRACK': {
             const trackToDuplicate = state.savedTracks.find(t => t.id === action.payload);
@@ -338,6 +343,81 @@ const appReducer = (state: AppState, action: Action): AppState => {
             } catch (e) {
                 console.error("Failed to import track", e);
                 newState.toastMessage = "Failed to import track";
+            }
+            break;
+        }
+        case 'IMPORT_MIX': {
+            try {
+                const { mix, tracks } = action.payload;
+
+                // Helper to safely parse sounds with backward compat
+                const migrateSound = (sound: any) => {
+                    if (!sound.stepConfigs) {
+                        const defaultNotes = sound.activeNotes || ['C', 'Eb', 'G', 'Bb'];
+                        const defaultOctave = sound.octave ?? 3;
+                        const defaultDetune = sound.detune ?? 0;
+                        return {
+                            ...sound,
+                            stepConfigs: Array(8).fill({ activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune }),
+                            stepRatios: [1, ...Array(7).fill(null)],
+                            seqLengthScale: 'minute',
+                            seqLengthRate: 30,
+                            envAttack: 0.5,
+                            envDecay: 0.1,
+                            envSustain: 1.0,
+                            envRelease: 2.0
+                        };
+                    }
+                    if (sound.envAttack === undefined) {
+                        return {
+                            ...sound,
+                            envAttack: 0.5,
+                            envDecay: 0.1,
+                            envSustain: 1.0,
+                            envRelease: 2.0
+                        };
+                    }
+                    return sound;
+                };
+
+                const localTrackIds = new Set(state.savedTracks.map(t => t.id));
+                const newTracksToSave: TrackState[] = [];
+
+                // Compare bundled tracks against local
+                if (Array.isArray(tracks)) {
+                    for (const track of tracks) {
+                        if (!localTrackIds.has(track.id)) {
+                            // Run migration to be safe
+                            const importedSounds = Array.isArray(track.sounds) ? track.sounds.map(migrateSound) : [];
+                            newTracksToSave.push({
+                                ...track,
+                                sounds: importedSounds
+                            });
+                        }
+                    }
+                }
+
+                // Create the newly imported mix with generic ID to allow duplicate imports
+                const newMixId = `mix-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                const newMixName = mix.name || `Imported Mix ${state.savedMixes.length + 1}`;
+
+                // Keep the exact same mix item IDs so tracks hook up properly
+                const newItems = Array.isArray(mix.items) ? mix.items : [];
+
+                const newMix: MixState = {
+                    ...DEFAULT_MIX,
+                    ...mix,
+                    id: newMixId,
+                    name: newMixName,
+                    items: newItems
+                };
+
+                newState.savedTracks = [...state.savedTracks, ...newTracksToSave];
+                newState.savedMixes = [...state.savedMixes, newMix];
+                newState.toastMessage = "Mix imported successfully";
+            } catch (e) {
+                console.error("Failed to import mix", e);
+                newState.toastMessage = "Failed to import mix";
             }
             break;
         }

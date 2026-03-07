@@ -765,7 +765,8 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
           style={{ textAlign: 'center' }}
         />
         <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', opacity: 0.8, letterSpacing: '0.5px' }}>
-          {mix.items.length} track{mix.items.length !== 1 ? 's' : ''} &middot; {formatLengthFullWords(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}
+          {mix.items.length} track{mix.items.length !== 1 ? 's' : ''}
+          {mix.items.length > 0 && ` \u00B7 ${formatLengthFullWords(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}`}
         </div>
       </header>
 
@@ -1099,6 +1100,28 @@ function App() {
     downloadAnchorNode.remove();
   };
 
+  const handleExportMix = (e: React.MouseEvent, mix: MixState) => {
+    e.stopPropagation();
+
+    // Find all the tracks referenced in this mix
+    const trackIdsInMix = new Set(mix.items.map(item => item.trackId));
+    const bundledTracks = state.savedTracks.filter(track => trackIdsInMix.has(track.id));
+
+    const exportPayload = {
+      type: 'doom-loop-mix',
+      mix: mix,
+      tracks: bundledTracks
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPayload, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `${mix.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`);
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
@@ -1115,10 +1138,15 @@ function App() {
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        dispatch({ type: 'IMPORT_TRACK', payload: json });
+        if (json.type === 'doom-loop-mix' && json.mix) {
+          dispatch({ type: 'IMPORT_MIX', payload: { mix: json.mix, tracks: json.tracks || [] } });
+        } else {
+          // Assume it's a track
+          dispatch({ type: 'IMPORT_TRACK', payload: json });
+        }
       } catch (err) {
         console.error("Invalid JSON file", err);
-        dispatch({ type: 'SET_TOAST', payload: "Invalid track file." });
+        dispatch({ type: 'SET_TOAST', payload: "Invalid file." });
       }
     };
     reader.readAsText(file);
@@ -1232,6 +1260,9 @@ function App() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                             <div className="track-list-item-actions">
+                              <button className="icon-btn" data-tooltip="Export" onClick={(e) => handleExportMix(e, mix)} aria-label="Export Mix">
+                                <ExportIcon />
+                              </button>
                               <button className="icon-btn" data-tooltip="Duplicate" onClick={(e) => handleDuplicateMix(e, mix.id)} aria-label="Duplicate Mix">
                                 <DuplicateIcon />
                               </button>
@@ -1239,9 +1270,11 @@ function App() {
                                 <TrashIcon />
                               </button>
                             </div>
-                            <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', paddingRight: '10px' }}>
-                              {mixTimeString}
-                            </span>
+                            {mix.items.length > 0 && (
+                              <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', paddingRight: '10px' }}>
+                                {mixTimeString}
+                              </span>
+                            )}
                           </div>
                         </div>
                       );
@@ -1250,6 +1283,14 @@ function App() {
                 </div>
                 <div className="create-track-container">
                   <button className="create-track-btn" onClick={handleCreateNewMix}>Create new mix</button>
+                  <button className="import-track-link" onClick={handleImportClick}>Import mix</button>
+                  <input
+                    type="file"
+                    accept=".json"
+                    style={{ display: 'none' }}
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                  />
                 </div>
               </>
             )}
