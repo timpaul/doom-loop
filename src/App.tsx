@@ -751,15 +751,15 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
       </header>
 
       <main className="main-content">
-        <div className={`noise-panel ${isSettingsExpanded ? 'expanded' : 'collapsed'}`} style={{ marginBottom: '16px' }}>
-          <div className="noise-header" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', height: '56px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '2px', opacity: 0.7, paddingLeft: '8px' }}>MIX SETTINGS</span>
-            <button className="icon-btn expand-btn" style={{ marginLeft: 'auto' }}>
+        <section className={`panel-group ${!isSettingsExpanded ? 'collapsed' : ''}`} style={{ marginBottom: '24px' }}>
+          <h2 className="panel-title" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
+            MIX SETTINGS
+            <div className="icon-btn" style={{ width: '20px', height: '20px', marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ChevronRightIcon isExpanded={isSettingsExpanded} />
-            </button>
-          </div>
+            </div>
+          </h2>
           {isSettingsExpanded && (
-            <div className="noise-controls" style={{ padding: '0 16px 16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
               <div className="control-row" style={{ marginTop: '0' }}>
                 <span className="control-label">Length</span>
                 <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -776,14 +776,14 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
               </div>
               <div className="control-row">
                 <span className="control-label">Shuffle</span>
-                <div className="segmented-control">
+                <div className="segmented-control" style={{ marginTop: '0' }}>
                   <button className={`segment-btn ${!mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: false })}>Off</button>
                   <button className={`segment-btn ${mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: true })}>On</button>
                 </div>
               </div>
               <div className="control-row">
                 <span className="control-label">Repeat</span>
-                <div className="segmented-control">
+                <div className="segmented-control" style={{ marginTop: '0' }}>
                   <button className={`segment-btn ${!mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: false })}>Off</button>
                   <button className={`segment-btn ${mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: true })}>On</button>
                 </div>
@@ -811,7 +811,7 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
               </div>
             </div>
           )}
-        </div>
+        </section>
 
         <div className="track-list" style={{ marginTop: '0' }}>
           {mix.items.map((item, index) => {
