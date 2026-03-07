@@ -689,6 +689,14 @@ function formatLengthFullWords(minutes: number) {
   return mins > 0 ? `${hrs} hour${hrs !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''}` : `${hrs} hour${hrs !== 1 ? 's' : ''}`;
 }
 
+function formatSeconds(seconds: number) {
+  const rounded = Math.round(seconds);
+  if (rounded < 60) return `${rounded}s`;
+  const m = Math.floor(rounded / 60);
+  const s = rounded % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
 function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
   const { state, dispatch } = useAppState();
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
@@ -782,7 +790,7 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
                     value={Math.log10(mix.lengthMinutes)}
                     onChange={e => updateSettings({ lengthMinutes: Math.pow(10, parseFloat(e.target.value)) })}
                   />
-                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{formatLength(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}</span>
+                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{formatLength(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}</span>
                 </div>
               </div>
               <div className="control-row">
@@ -803,21 +811,21 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
                 <span className="control-label">Fade in</span>
                 <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <input type="range" min="0" max="600" step="5" value={Math.round(mix.fadeInMinutes * 60)} onChange={e => updateSettings({ fadeInMinutes: parseInt(e.target.value) / 60 })} />
-                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{Math.round(mix.fadeInMinutes * 60)}s</span>
+                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{formatSeconds(mix.fadeInMinutes * 60)}</span>
                 </div>
               </div>
               <div className="control-row">
                 <span className="control-label">Fade out</span>
                 <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <input type="range" min="0" max="600" step="5" value={Math.round(mix.fadeOutMinutes * 60)} onChange={e => updateSettings({ fadeOutMinutes: parseInt(e.target.value) / 60 })} />
-                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{Math.round(mix.fadeOutMinutes * 60)}s</span>
+                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{formatSeconds(mix.fadeOutMinutes * 60)}</span>
                 </div>
               </div>
               <div className="control-row">
                 <span className="control-label">X fade</span>
                 <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <input type="range" min="0" max="600" step="5" value={Math.round(mix.crossFadeMinutes * 60)} onChange={e => updateSettings({ crossFadeMinutes: parseInt(e.target.value) / 60 })} />
-                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{Math.round(mix.crossFadeMinutes * 60)}s</span>
+                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{formatSeconds(mix.crossFadeMinutes * 60)}</span>
                 </div>
               </div>
             </div>
