@@ -281,13 +281,13 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                         className={`segment-btn ${sound.playMode !== 'random' ? 'active' : ''}`}
                         onClick={() => update({ playMode: 'chord' })}
                       >
-                        All notes
+                        All<span className="hide-on-mobile"> notes</span>
                       </button>
                       <button
                         className={`segment-btn ${sound.playMode === 'random' ? 'active' : ''}`}
                         onClick={() => update({ playMode: 'random' })}
                       >
-                        Random note
+                        Random<span className="hide-on-mobile"> note</span>
                       </button>
                     </div>
                   </div>
@@ -303,7 +303,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 <>
                   <div className="control-row">
                     <span className="control-label">Step</span>
-                    <div className="segmented-control" style={{ marginTop: 0 }}>
+                    <div className="segmented-control step-sequencer-control" style={{ marginTop: 0 }}>
                       {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
                         <button
                           key={step}
