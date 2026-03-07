@@ -3,7 +3,8 @@ import { Chord, Note } from '@tonaljs/tonal'
 import './App.css'
 import { useAppState } from './state/AppContext'
 import { audioManager } from './audio/AudioManager'
-import type { SoundState, TrackState, LFOScale } from './types'
+import { mixPlayer } from './audio/MixPlayer'
+import type { SoundState, TrackState, LFOScale, MixState } from './types'
 import type { NoiseColor } from './audio/AudioEngine'
 
 const PlayIcon = () => (
@@ -673,6 +674,229 @@ function SoundPanel({ sound }: { sound: SoundState }) {
   )
 }
 
+function formatLength(minutes: number) {
+  if (minutes < 60) return `${Math.round(minutes)}m`;
+  const hrs = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+}
+
+function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
+  const { state, dispatch } = useAppState();
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+  const [isAddTrackOpen, setIsAddTrackOpen] = useState(false);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const mix = state.savedMixes.find(m => m.id === state.currentMixId);
+  if (!mix) return null;
+
+  const updateSettings = (updates: Partial<MixState>) => {
+    dispatch({ type: 'UPDATE_MIX_SETTINGS', payload: updates });
+  };
+
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+
+  const onDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIdx(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onDragOver = (e: React.DragEvent, _index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const onDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIdx !== null && draggedIdx !== index) {
+      dispatch({ type: 'REORDER_MIX_ITEMS', payload: { sourceIndex: draggedIdx, destIndex: index } });
+    }
+    setDraggedIdx(null);
+  };
+
+  return (
+    <div className="app-container">
+      <div className="top-play-area">
+        <button
+          className="tracks-nav-btn"
+          onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'load' })}
+          aria-label="Back to Tracks"
+        >
+          <img src={`${import.meta.env.BASE_URL}grid-icon.png`} alt="Back to mixes" className="grid-icon-img" />
+        </button>
+        <button
+          className="play-button"
+          onClick={togglePlay}
+          aria-label={state.isPlaying ? "Pause" : "Play"}
+        >
+          {state.isPlaying ? <PauseIcon /> : <PlayIcon />}
+        </button>
+      </div>
+
+      <header className="track-header" style={{ marginBottom: '24px' }}>
+        <input
+          type="text"
+          className="track-name-input"
+          value={mix.name}
+          onChange={(e) => updateSettings({ name: e.target.value })}
+          aria-label="Mix Name"
+          placeholder="Name your mix..."
+          style={{ textAlign: 'center' }}
+        />
+      </header>
+
+      <main className="main-content">
+        <div className={`noise-panel ${isSettingsExpanded ? 'expanded' : 'collapsed'}`} style={{ marginBottom: '16px' }}>
+          <div className="noise-header" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', height: '56px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '2px', opacity: 0.7, paddingLeft: '8px' }}>MIX SETTINGS</span>
+            <button className="icon-btn expand-btn" style={{ marginLeft: 'auto' }}>
+              <ChevronRightIcon isExpanded={isSettingsExpanded} />
+            </button>
+          </div>
+          {isSettingsExpanded && (
+            <div className="noise-controls" style={{ padding: '0 16px 16px' }}>
+              <div className="control-row" style={{ marginTop: '0' }}>
+                <span className="control-label">Length</span>
+                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input
+                    type="range"
+                    min={Math.log10(5)}
+                    max={Math.log10(480)}
+                    step="0.01"
+                    value={Math.log10(mix.lengthMinutes)}
+                    onChange={e => updateSettings({ lengthMinutes: Math.pow(10, parseFloat(e.target.value)) })}
+                  />
+                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{formatLength(mix.lengthMinutes)}</span>
+                </div>
+              </div>
+              <div className="control-row">
+                <span className="control-label">Shuffle</span>
+                <div className="segmented-control">
+                  <button className={`segment-btn ${!mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: false })}>Off</button>
+                  <button className={`segment-btn ${mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: true })}>On</button>
+                </div>
+              </div>
+              <div className="control-row">
+                <span className="control-label">Repeat</span>
+                <div className="segmented-control">
+                  <button className={`segment-btn ${!mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: false })}>Off</button>
+                  <button className={`segment-btn ${mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: true })}>On</button>
+                </div>
+              </div>
+              <div className="control-row">
+                <span className="control-label">Fade in</span>
+                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input type="range" min="0" max="600" step="5" value={Math.round(mix.fadeInMinutes * 60)} onChange={e => updateSettings({ fadeInMinutes: parseInt(e.target.value) / 60 })} />
+                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{Math.round(mix.fadeInMinutes * 60)}s</span>
+                </div>
+              </div>
+              <div className="control-row">
+                <span className="control-label">Fade out</span>
+                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input type="range" min="0" max="600" step="5" value={Math.round(mix.fadeOutMinutes * 60)} onChange={e => updateSettings({ fadeOutMinutes: parseInt(e.target.value) / 60 })} />
+                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{Math.round(mix.fadeOutMinutes * 60)}s</span>
+                </div>
+              </div>
+              <div className="control-row">
+                <span className="control-label">X fade</span>
+                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input type="range" min="0" max="600" step="5" value={Math.round(mix.crossFadeMinutes * 60)} onChange={e => updateSettings({ crossFadeMinutes: parseInt(e.target.value) / 60 })} />
+                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{Math.round(mix.crossFadeMinutes * 60)}s</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="track-list" style={{ marginTop: '0' }}>
+          {mix.items.map((item, index) => {
+            const track = state.savedTracks.find(t => t.id === item.trackId);
+            if (!track) return null;
+            const isTrackPlaying = state.isPlaying && mixPlayer.isTrackPlaying(item.id);
+            return (
+              <div
+                key={item.id}
+                className="track-list-item"
+                draggable
+                onDragStart={(e) => onDragStart(e, index)}
+                onDragOver={(e) => onDragOver(e, index)}
+                onDrop={(e) => onDrop(e, index)}
+                style={{ opacity: draggedIdx === index ? 0.5 : 1, cursor: 'grab' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <button
+                    className={`track-play-btn ${isTrackPlaying ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isTrackPlaying) {
+                        togglePlay();
+                      } else {
+                        if (mixPlayer.currentMixId !== mix.id) {
+                          mixPlayer.loadMix(mix, state.savedTracks);
+                        }
+                        mixPlayer.seekToItem(item.id);
+                        if (!state.isPlaying) {
+                          togglePlay();
+                        }
+                      }
+                      setTick(t => t + 1);
+                    }}
+                  >
+                    <div className="track-play-icon-circle">
+                      {isTrackPlaying ? <PauseIcon /> : <PlayIcon />}
+                    </div>
+                  </button>
+                  <span className="track-item-name">{track.name}</span>
+                </div>
+                <div className="track-list-item-actions">
+                  <button className="icon-btn" data-tooltip="Duplicate" onClick={() => dispatch({ type: 'ADD_TRACK_TO_MIX', payload: item.trackId })} aria-label="Duplicate Track">
+                    <DuplicateIcon />
+                  </button>
+                  <button className="icon-btn delete-btn" data-tooltip="Remove" onClick={() => dispatch({ type: 'REMOVE_MIX_ITEM', payload: item.id })} aria-label="Remove Track">
+                    <TrashIcon />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="create-track-container" style={{ marginTop: '20px' }}>
+          <button className="create-track-btn" onClick={() => setIsAddTrackOpen(!isAddTrackOpen)}>Add tracks</button>
+          {isAddTrackOpen && (
+            <div style={{ background: 'var(--panel-bg)', padding: '16px', borderRadius: '16px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>Add Tracks to Mix</h3>
+                <button onClick={() => setIsAddTrackOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-color)', cursor: 'pointer', padding: '8px' }}>✕</button>
+              </div>
+              {state.savedTracks.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    dispatch({ type: 'ADD_TRACK_TO_MIX', payload: t.id });
+                    setIsAddTrackOpen(false);
+                  }}
+                  style={{ textAlign: 'left', padding: '12px', background: 'var(--bg-color)', border: 'none', borderRadius: '8px', color: 'var(--text-color)', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--panel-bg)'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </main>
+    </div>
+  );
+}
+
 function App() {
   const { state, dispatch } = useAppState();
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -771,6 +995,62 @@ function App() {
     dispatch({ type: 'CREATE_TRACK' });
   }
 
+  const handleCreateNewMix = () => {
+    dispatch({ type: 'CREATE_MIX' });
+  }
+
+  const loadMix = (mixId: string) => {
+    dispatch({ type: 'LOAD_MIX', payload: mixId });
+  }
+
+  const handleDuplicateMix = (e: React.MouseEvent, mixId: string) => {
+    e.stopPropagation();
+    dispatch({ type: 'DUPLICATE_MIX', payload: mixId });
+  };
+
+  const removeSavedMix = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    dispatch({ type: 'DELETE_MIX', payload: id });
+  }
+
+  const handleMixListTogglePlay = async (e: React.MouseEvent, mix: MixState) => {
+    e.stopPropagation();
+    await audioManager.resumeContext();
+
+    if (!initialized.current) {
+      await audioManager.initialize();
+      initialized.current = true;
+    }
+
+    if (audioRef.current && !audioRef.current.srcObject) {
+      audioRef.current.srcObject = audioManager.getSharedStream();
+    }
+
+    const isMixPlaying = state.isPlaying && state.currentMixId === mix.id;
+
+    if (isMixPlaying) {
+      if (audioRef.current) audioRef.current.pause();
+      dispatch({ type: 'TOGGLE_PLAY' });
+    } else {
+      if (state.isPlaying) {
+        audioManager.stopAll();
+      }
+      if (audioRef.current) {
+        audioRef.current.play().catch(err => console.log('Background audio play failed:', err));
+      }
+
+      // If we are not currently viewing this mix, or it's not the active mix, load it and toggle play
+      if (state.currentMixId !== mix.id) {
+        dispatch({ type: 'LOAD_MIX', payload: mix.id });
+        if (!state.isPlaying) {
+          dispatch({ type: 'TOGGLE_PLAY' });
+        }
+      } else {
+        dispatch({ type: 'TOGGLE_PLAY' });
+      }
+    }
+  };
+
   const handleExportTrack = (e: React.MouseEvent, track: TrackState) => {
     e.stopPropagation();
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(track, null, 2));
@@ -814,56 +1094,117 @@ function App() {
       {state.currentScreen === 'load' ? (
         <div className="app-container load-screen">
           <img src={`${import.meta.env.BASE_URL}doom-logo.png`} alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
+          <div className="list-mode-toggle" style={{ display: 'flex', gap: '8px', margin: '0 auto 20px auto', background: 'var(--panel-bg)', padding: '4px', borderRadius: '16px', maxWidth: '400px', width: '90%' }}>
+            <button
+              className={`mode-toggle-btn ${state.listMode === 'tracks' ? 'active' : ''}`}
+              onClick={() => dispatch({ type: 'SET_LIST_MODE', payload: 'tracks' })}
+              style={{ flex: 1, padding: '8px 16px', borderRadius: '12px', border: 'none', background: state.listMode === 'tracks' ? 'var(--accent-color)' : 'transparent', color: state.listMode === 'tracks' ? '#000' : 'var(--text-color)', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}
+            >
+              Tracks
+            </button>
+            <button
+              className={`mode-toggle-btn ${state.listMode === 'mixes' ? 'active' : ''}`}
+              onClick={() => dispatch({ type: 'SET_LIST_MODE', payload: 'mixes' })}
+              style={{ flex: 1, padding: '8px 16px', borderRadius: '12px', border: 'none', background: state.listMode === 'mixes' ? 'var(--accent-color)' : 'transparent', color: state.listMode === 'mixes' ? '#000' : 'var(--text-color)', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}
+            >
+              Mixes
+            </button>
+          </div>
           <main className="main-content">
-            <div className="track-list">
-              {state.savedTracks.length === 0 ? (
-                <p className="empty-state">No saved tracks yet.</p>
-              ) : (
-                state.savedTracks.map(track => {
-                  const isTrackPlaying = state.isPlaying && state.currentTrackId === track.id;
-                  return (
-                    <div key={track.id} className="track-list-item" onClick={() => loadTrack(track)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <button
-                          className={`track-play-btn ${isTrackPlaying ? 'active' : ''}`}
-                          onClick={(e) => handleListTogglePlay(e, track)}
-                          aria-label={isTrackPlaying ? "Pause Track" : "Play Track"}
-                        >
-                          <div className="track-play-icon-circle">
-                            {isTrackPlaying ? <PauseIcon /> : <PlayIcon />}
+            {state.listMode === 'tracks' ? (
+              <>
+                <div className="track-list">
+                  {state.savedTracks.length === 0 ? (
+                    <p className="empty-state">No saved tracks yet.</p>
+                  ) : (
+                    state.savedTracks.map(track => {
+                      const isTrackPlaying = state.isPlaying && state.currentTrackId === track.id;
+                      return (
+                        <div key={track.id} className="track-list-item" onClick={() => loadTrack(track)}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <button
+                              className={`track-play-btn ${isTrackPlaying ? 'active' : ''}`}
+                              onClick={(e) => handleListTogglePlay(e, track)}
+                              aria-label={isTrackPlaying ? "Pause Track" : "Play Track"}
+                            >
+                              <div className="track-play-icon-circle">
+                                {isTrackPlaying ? <PauseIcon /> : <PlayIcon />}
+                              </div>
+                            </button>
+                            <span className="track-item-name">{track.name}</span>
                           </div>
-                        </button>
-                        <span className="track-item-name">{track.name}</span>
-                      </div>
-                      <div className="track-list-item-actions">
-                        <button className="icon-btn" data-tooltip="Export" onClick={(e) => handleExportTrack(e, track)} aria-label="Export Track">
-                          <ExportIcon />
-                        </button>
-                        <button className="icon-btn" data-tooltip="Duplicate" onClick={(e) => handleDuplicateTrack(e, track.id)} aria-label="Duplicate Track">
-                          <DuplicateIcon />
-                        </button>
-                        <button className="icon-btn delete-btn" data-tooltip="Delete" onClick={(e) => removeSavedTrack(e, track.id)} aria-label="Delete Track">
-                          <TrashIcon />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-            <div className="create-track-container">
-              <button className="create-track-btn" onClick={handleCreateNewTrack}>Create new track</button>
-              <button className="import-track-link" onClick={handleImportClick}>Import track</button>
-              <input
-                type="file"
-                accept=".json"
-                style={{ display: 'none' }}
-                ref={fileInputRef}
-                onChange={handleFileChange}
-              />
-            </div>
+                          <div className="track-list-item-actions">
+                            <button className="icon-btn" data-tooltip="Export" onClick={(e) => handleExportTrack(e, track)} aria-label="Export Track">
+                              <ExportIcon />
+                            </button>
+                            <button className="icon-btn" data-tooltip="Duplicate" onClick={(e) => handleDuplicateTrack(e, track.id)} aria-label="Duplicate Track">
+                              <DuplicateIcon />
+                            </button>
+                            <button className="icon-btn delete-btn" data-tooltip="Delete" onClick={(e) => removeSavedTrack(e, track.id)} aria-label="Delete Track">
+                              <TrashIcon />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="create-track-container">
+                  <button className="create-track-btn" onClick={handleCreateNewTrack}>Create new track</button>
+                  <button className="import-track-link" onClick={handleImportClick}>Import track</button>
+                  <input
+                    type="file"
+                    accept=".json"
+                    style={{ display: 'none' }}
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="track-list">
+                  {state.savedMixes.length === 0 ? (
+                    <p className="empty-state">No saved mixes yet.</p>
+                  ) : (
+                    state.savedMixes.map(mix => {
+                      const isMixPlaying = state.isPlaying && state.currentMixId === mix.id;
+                      return (
+                        <div key={mix.id} className="track-list-item" onClick={() => loadMix(mix.id)}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <button
+                              className={`track-play-btn ${isMixPlaying ? 'active' : ''}`}
+                              onClick={(e) => handleMixListTogglePlay(e, mix)}
+                              aria-label={isMixPlaying ? "Pause Mix" : "Play Mix"}
+                            >
+                              <div className="track-play-icon-circle">
+                                {isMixPlaying ? <PauseIcon /> : <PlayIcon />}
+                              </div>
+                            </button>
+                            <span className="track-item-name">{mix.name}</span>
+                          </div>
+                          <div className="track-list-item-actions">
+                            <button className="icon-btn" data-tooltip="Duplicate" onClick={(e) => handleDuplicateMix(e, mix.id)} aria-label="Duplicate Mix">
+                              <DuplicateIcon />
+                            </button>
+                            <button className="icon-btn delete-btn" data-tooltip="Delete" onClick={(e) => removeSavedMix(e, mix.id)} aria-label="Delete Mix">
+                              <TrashIcon />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="create-track-container">
+                  <button className="create-track-btn" onClick={handleCreateNewMix}>Create new mix</button>
+                </div>
+              </>
+            )}
           </main>
         </div>
+      ) : state.currentScreen === 'mixDetail' ? (
+        <MixDetailScreen togglePlay={togglePlay} />
       ) : (
         <div className="app-container">
           <div className="top-play-area">

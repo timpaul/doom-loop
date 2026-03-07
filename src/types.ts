@@ -58,6 +58,33 @@ export interface TrackState {
     sounds: SoundState[];
 }
 
+export interface MixItem {
+    id: string;
+    trackId: string;
+}
+
+export interface MixState {
+    id: string;
+    name: string;
+    items: MixItem[];
+    lengthMinutes: number;
+    shuffle: boolean;
+    repeat: boolean;
+    fadeInMinutes: number;
+    fadeOutMinutes: number;
+    crossFadeMinutes: number;
+}
+
+export const DEFAULT_MIX: Omit<MixState, 'id' | 'name' | 'items'> = {
+    lengthMinutes: 5,
+    shuffle: false,
+    repeat: false,
+    fadeInMinutes: 0,
+    fadeOutMinutes: 0,
+    crossFadeMinutes: 0
+};
+
+
 export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     sourceType: 'noise',
     noiseColor: 'brown',

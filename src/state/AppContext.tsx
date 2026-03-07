@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { DEFAULT_SOUND } from '../types';
 import type { SoundState, TrackState } from '../types';
 import { audioManager } from '../audio/AudioManager';
+import { mixPlayer } from '../audio/MixPlayer';
 
 // Pre-load all default track JSONs synchronously using Vite's import.meta.glob
 const defaultTrackFiles = import.meta.glob('../audio/default-tracks/*.json', { eager: true });
@@ -10,12 +11,18 @@ const DEFAULT_TRACKS: TrackState[] = Object.values(defaultTrackFiles)
     .map((module: any) => module.default || module)
     .sort((a, b) => a.name.localeCompare(b.name));
 
+import { DEFAULT_MIX } from '../types';
+import type { MixState, MixItem } from '../types';
+
 export interface AppState {
     isPlaying: boolean;
-    currentScreen: 'main' | 'load';
+    currentScreen: 'main' | 'load' | 'mixDetail';
+    listMode: 'tracks' | 'mixes';
     currentTrackId: string;
     currentTrackName: string;
     savedTracks: TrackState[];
+    savedMixes: MixState[];
+    currentMixId: string | null;
     toastMessage: string | null;
     sounds: SoundState[];
     expandedId: string;
@@ -24,7 +31,8 @@ export interface AppState {
 
 export type Action =
     | { type: 'TOGGLE_PLAY' }
-    | { type: 'SET_SCREEN'; payload: 'main' | 'load' }
+    | { type: 'SET_SCREEN'; payload: 'main' | 'load' | 'mixDetail' }
+    | { type: 'SET_LIST_MODE'; payload: 'tracks' | 'mixes' }
     | { type: 'ADD_SOUND' }
     | { type: 'UPDATE_SOUND'; payload: { id: string; updates: Partial<SoundState> } }
     | { type: 'DELETE_SOUND'; payload: string }
@@ -36,6 +44,14 @@ export type Action =
     | { type: 'DELETE_TRACK'; payload: string }
     | { type: 'DUPLICATE_TRACK'; payload: string }
     | { type: 'IMPORT_TRACK'; payload: any }
+    | { type: 'CREATE_MIX' }
+    | { type: 'DELETE_MIX'; payload: string }
+    | { type: 'DUPLICATE_MIX'; payload: string }
+    | { type: 'LOAD_MIX'; payload: string }
+    | { type: 'UPDATE_MIX_SETTINGS'; payload: Partial<MixState> }
+    | { type: 'ADD_TRACK_TO_MIX'; payload: string }
+    | { type: 'REMOVE_MIX_ITEM'; payload: string }
+    | { type: 'REORDER_MIX_ITEMS'; payload: { sourceIndex: number, destIndex: number } }
     | { type: 'SET_TOAST'; payload: string | null };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -139,12 +155,19 @@ const getInitialState = (): AppState => {
         expandedId = localStorage.getItem('noisemaker_expandedId') || '1';
     }
 
+    const savedMixes = parseJSON('noisemaker_mixes', []);
+    const currentMixId = localStorage.getItem('noisemaker_currentMixId') || null;
+    const listMode = (localStorage.getItem('noisemaker_listMode') as 'tracks' | 'mixes') || 'tracks';
+
     return {
         isPlaying: false,
         currentScreen: 'load',
+        listMode,
         currentTrackId,
         currentTrackName,
         savedTracks: initialTracks,
+        savedMixes,
+        currentMixId,
         sounds,
         toastMessage: null,
         expandedId,
@@ -160,6 +183,9 @@ const appReducer = (state: AppState, action: Action): AppState => {
             break;
         case 'SET_SCREEN':
             newState.currentScreen = action.payload;
+            break;
+        case 'SET_LIST_MODE':
+            newState.listMode = action.payload;
             break;
         case 'ADD_SOUND': {
             const newId = state.nextId.toString();
@@ -314,6 +340,103 @@ const appReducer = (state: AppState, action: Action): AppState => {
             }
             break;
         }
+        case 'CREATE_MIX': {
+            const newId = `mix-${Date.now()}`;
+            const newMix: MixState = {
+                id: newId,
+                name: `Mix ${state.savedMixes.length + 1}`,
+                items: [],
+                ...DEFAULT_MIX
+            };
+            newState.savedMixes = [...state.savedMixes, newMix];
+            newState.currentMixId = newId;
+            newState.currentScreen = 'mixDetail';
+            newState.isPlaying = false;
+            break;
+        }
+        case 'DELETE_MIX':
+            newState.savedMixes = state.savedMixes.filter(m => m.id !== action.payload);
+            if (newState.currentMixId === action.payload) {
+                newState.currentMixId = null;
+                newState.currentScreen = 'load';
+            }
+            break;
+        case 'DUPLICATE_MIX': {
+            const mixToDuplicate = state.savedMixes.find(m => m.id === action.payload);
+            if (!mixToDuplicate) break;
+
+            const existingNames = new Set(state.savedMixes.map(m => m.name));
+            let baseName = mixToDuplicate.name;
+            let counter = 1;
+            const match = mixToDuplicate.name.match(/^(.*?)(?:\s\((\d+)\))?$/);
+            if (match) {
+                baseName = match[1].trim();
+                if (match[2]) counter = parseInt(match[2], 10);
+            }
+            let newName = '';
+            do {
+                newName = `${baseName} (${counter})`;
+                counter++;
+            } while (existingNames.has(newName));
+
+            const duplicatedMix: MixState = {
+                ...mixToDuplicate,
+                id: `mix-${Date.now()}`,
+                name: newName,
+                items: mixToDuplicate.items.map(item => ({ ...item, id: `${Date.now()}-${Math.random().toString(36).substring(7)}` }))
+            };
+
+            const index = state.savedMixes.findIndex(m => m.id === action.payload);
+            newState.savedMixes = [...state.savedMixes];
+            newState.savedMixes.splice(index + 1, 0, duplicatedMix);
+            break;
+        }
+        case 'LOAD_MIX':
+            if (state.currentMixId !== action.payload) {
+                newState.isPlaying = false;
+            }
+            newState.currentMixId = action.payload;
+            newState.currentScreen = 'mixDetail';
+            break;
+        case 'UPDATE_MIX_SETTINGS':
+            if (state.currentMixId) {
+                newState.savedMixes = state.savedMixes.map(m =>
+                    m.id === state.currentMixId ? { ...m, ...action.payload } : m
+                );
+            }
+            break;
+        case 'ADD_TRACK_TO_MIX':
+            if (state.currentMixId) {
+                const newMixItem: MixItem = {
+                    id: `item-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+                    trackId: action.payload
+                };
+                newState.savedMixes = state.savedMixes.map(m =>
+                    m.id === state.currentMixId ? { ...m, items: [...m.items, newMixItem] } : m
+                );
+            }
+            break;
+        case 'REMOVE_MIX_ITEM':
+            if (state.currentMixId) {
+                newState.savedMixes = state.savedMixes.map(m =>
+                    m.id === state.currentMixId ? { ...m, items: m.items.filter(item => item.id !== action.payload) } : m
+                );
+            }
+            break;
+        case 'REORDER_MIX_ITEMS':
+            if (state.currentMixId) {
+                const { sourceIndex, destIndex } = action.payload;
+                newState.savedMixes = state.savedMixes.map(m => {
+                    if (m.id === state.currentMixId) {
+                        const newItems = [...m.items];
+                        const [removed] = newItems.splice(sourceIndex, 1);
+                        newItems.splice(destIndex, 0, removed);
+                        return { ...m, items: newItems };
+                    }
+                    return m;
+                });
+            }
+            break;
         case 'SET_TOAST':
             newState.toastMessage = action.payload;
             break;
@@ -339,26 +462,47 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(appReducer, getInitialState());
 
     // LocalStorage Syncing
+    useEffect(() => { localStorage.setItem('noisemaker_listMode', state.listMode); }, [state.listMode]);
     useEffect(() => { localStorage.setItem('noisemaker_currentTrackId', state.currentTrackId); }, [state.currentTrackId]);
     useEffect(() => { localStorage.setItem('noisemaker_currentTrackName', state.currentTrackName); }, [state.currentTrackName]);
     useEffect(() => { localStorage.setItem('noisemaker_sounds', JSON.stringify(state.sounds)); }, [state.sounds]);
     useEffect(() => { localStorage.setItem('noisemaker_expandedId', state.expandedId); }, [state.expandedId]);
     useEffect(() => { localStorage.setItem('noisemaker_nextId', state.nextId.toString()); }, [state.nextId]);
     useEffect(() => { localStorage.setItem('noisemaker_tracks', JSON.stringify(state.savedTracks)); }, [state.savedTracks]);
+    useEffect(() => { localStorage.setItem('noisemaker_mixes', JSON.stringify(state.savedMixes)); }, [state.savedMixes]);
+    useEffect(() => {
+        if (state.currentMixId) {
+            localStorage.setItem('noisemaker_currentMixId', state.currentMixId);
+        } else {
+            localStorage.removeItem('noisemaker_currentMixId');
+        }
+    }, [state.currentMixId]);
 
     // Audio Manager Syncing
     useEffect(() => {
         if (state.isPlaying) {
-            audioManager.initialize().then(() => {
-                state.sounds.forEach(sound => {
-                    audioManager.syncSoundState(sound, true);
-                });
-                audioManager.cleanupEngines(state.sounds.map(s => s.id));
+            audioManager.resumeContext().then(() => audioManager.initialize()).then(() => {
+                if (state.currentScreen === 'mixDetail' || (state.currentScreen === 'load' && state.listMode === 'mixes' && state.currentMixId)) {
+                    const mix = state.savedMixes.find(m => m.id === state.currentMixId);
+                    if (mix) {
+                        if (mixPlayer.currentMixId !== mix.id) {
+                            mixPlayer.loadMix(mix, state.savedTracks);
+                        }
+                        mixPlayer.play();
+                    }
+                } else {
+                    mixPlayer.stop();
+                    state.sounds.forEach(sound => {
+                        audioManager.syncSoundState(sound, true);
+                    });
+                    audioManager.cleanupEngines(state.sounds.map(s => s.id));
+                }
             });
         } else {
             audioManager.stopAll();
+            mixPlayer.pause();
         }
-    }, [state.isPlaying, state.sounds]);
+    }, [state.isPlaying, state.sounds, state.currentScreen, state.listMode, state.currentMixId, state.savedMixes, state.savedTracks]);
 
     return (
         <AppContext.Provider value={{ state, dispatch }}>

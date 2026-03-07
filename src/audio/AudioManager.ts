@@ -8,6 +8,7 @@ class AudioManager {
     public masterChannel: Tone.Channel;
     private engines: Map<string, AudioEngine> = new Map();
     private previousSources: Map<string, string> = new Map();
+    private trackGains: Map<string, Tone.Gain> = new Map();
 
     private sharedDestination: MediaStreamAudioDestinationNode | null = null;
     private destinationConnected = false;
@@ -51,11 +52,21 @@ class AudioManager {
         return this.sharedDestination ? this.sharedDestination.stream : null;
     }
 
-    public getEngine(id: string): AudioEngine {
-        let engine = this.engines.get(id);
+    public getTrackChannel(mixItemId: string): Tone.Gain {
+        if (!this.trackGains.has(mixItemId)) {
+            const gainNode = new Tone.Gain(0).connect(this.masterChannel);
+            this.trackGains.set(mixItemId, gainNode);
+        }
+        return this.trackGains.get(mixItemId)!;
+    }
+
+    public getEngine(id: string, mixItemId?: string): AudioEngine {
+        const engineId = mixItemId ? `${mixItemId}-${id}` : id;
+        let engine = this.engines.get(engineId);
         if (!engine) {
-            engine = new AudioEngine(this.masterChannel);
-            this.engines.set(id, engine);
+            const dest = mixItemId ? this.getTrackChannel(mixItemId) : this.masterChannel;
+            engine = new AudioEngine(dest);
+            this.engines.set(engineId, engine);
             if (this.isInitialized) {
                 engine.initialize();
             }
@@ -63,8 +74,9 @@ class AudioManager {
         return engine;
     }
 
-    public syncSoundState(sound: SoundState, isPlaying: boolean) {
-        const engine = this.getEngine(sound.id);
+    public syncSoundState(sound: SoundState, isPlaying: boolean, mixItemId?: string) {
+        const engineId = mixItemId ? `${mixItemId}-${sound.id}` : sound.id;
+        const engine = this.getEngine(sound.id, mixItemId);
 
         engine.setVolume(sound.isMuted ? 0 : sound.volume);
         engine.setPan(sound.pan);
@@ -89,7 +101,7 @@ class AudioManager {
 
         if (!isPlaying) {
             engine.stop();
-            this.previousSources.delete(sound.id);
+            this.previousSources.delete(engineId);
             return;
         }
 
@@ -161,9 +173,9 @@ class AudioManager {
             };
         }
 
-        if (this.previousSources.get(sound.id) !== sourceConfigStr) {
+        if (this.previousSources.get(engineId) !== sourceConfigStr) {
             engine.play(sound.sourceType, playArgs);
-            this.previousSources.set(sound.id, sourceConfigStr);
+            this.previousSources.set(engineId, sourceConfigStr);
         }
     }
 
@@ -195,6 +207,20 @@ class AudioManager {
     public clearAll() {
         this.engines.forEach(engine => engine.dispose());
         this.engines.clear();
+        this.trackGains.forEach(gainNode => gainNode.dispose());
+        this.trackGains.clear();
+    }
+
+    public setTrackVolume(mixItemId: string, volume: number) {
+        const gainNode = this.getTrackChannel(mixItemId);
+        gainNode.gain.cancelScheduledValues(Tone.now());
+        gainNode.gain.value = volume;
+        gainNode.gain.setValueAtTime(volume, Tone.now());
+    }
+
+    public fadeTrack(mixItemId: string, targetVolume: number, transitionTime: number) {
+        const gainNode = this.getTrackChannel(mixItemId);
+        gainNode.gain.rampTo(targetVolume, Math.max(0.01, transitionTime));
     }
 
     public setMasterVolume(volume: number) {
