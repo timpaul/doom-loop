@@ -25,6 +25,8 @@ The sequencer is... unconventional. Instead of directly specifying note or chord
 
 So for example, ratios of 1, 1, 1, 2 would define a 4 step sequence where the last step plays for twice as long as the other 3. If no ratios are provided step 1 is used to create a continuous sound with no looping.
 
+By default, all the selected notes in a step are played at the same time, but you can also set the sequencer to play just one of them at random - good for generating random and nonrepeating melodies based on chords.
+
 There's also an ASDR envelope with an extra 'Length' parameter, which is used to control the length of the sounds in each step as a percentage of the step length.
 
 
@@ -39,9 +41,9 @@ If you delete a track from a mix it will NOT remove the track from your library.
 
 ## Importing and exporting tracks and mixes
 
-Doomloop stores all your track and mix data on your device, which means there's no need for accounts and cloud storage. But it does make it harder to work on tracks and mixes across multiple devices.
+Doom Loop stores all your track and mix data on your device, which means there's no need for accounts and cloud storage. But it does make it harder to work on tracks and mixes across multiple devices.
 
-To help with this, you can export tracks and mixes as JSON files from one device, and then import them into another device. And of course, you can also then share tracks and mixes with other people! When you import a mix, Doomloop will also add any tracks from it that you don't already have.
+To help with this, you can export tracks and mixes as JSON files from one device, and then import them into another device. And of course, you can also then share tracks and mixes with other people! When you import a mix, Doom Loop will also add any tracks from it that you don't already have.
 
 ## Contributing
 
