@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Chord, Note } from '@tonaljs/tonal'
 import './App.css'
 import { useAppState } from './state/AppContext'
@@ -6,6 +7,7 @@ import { audioManager } from './audio/AudioManager'
 import { mixPlayer } from './audio/MixPlayer'
 import type { SoundState, TrackState, LFOScale, MixState } from './types'
 import type { NoiseColor } from './audio/AudioEngine'
+import { aboutMarkdown } from './AboutContent'
 
 const PlayIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
@@ -198,7 +200,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   {noiseColors.map(c => (
                     <button
                       key={c}
-                      className={`color-btn ${sound.noiseColor === c ? 'active' : ''}`}
+                      className={`color - btn ${sound.noiseColor === c ? 'active' : ''}`}
                       onClick={() => update({ noiseColor: c })}
                       aria-pressed={sound.noiseColor === c}
                       aria-label={c}
@@ -352,7 +354,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
                         <button
                           key={note}
-                          className={`key-btn black-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
+                          className={`key - btn black - key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
                           onClick={() => {
                             if (!sound.stepConfigs) return;
                             const notes = sound.stepConfigs[selectedStep].activeNotes || [];
@@ -370,7 +372,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(note => (
                         <button
                           key={note}
-                          className={`key-btn white-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
+                          className={`key - btn white - key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
                           onClick={() => {
                             if (!sound.stepConfigs) return;
                             const notes = sound.stepConfigs[selectedStep].activeNotes || [];
@@ -446,7 +448,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   </div>
                 </div>
 
-                <div className={`sub-panel ${collapsedPanels['VOLUME_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                <div className={`sub - panel ${collapsedPanels['VOLUME_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                   <h3 className="panel-title" onClick={() => togglePanel('VOLUME_LFO')} >LFO</h3>
                   {!collapsedPanels['VOLUME_LFO'] && (
                     <>
@@ -507,7 +509,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   </div>
                 </div>
 
-                <div className={`sub-panel ${collapsedPanels['PAN_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                <div className={`sub - panel ${collapsedPanels['PAN_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                   <h3 className="panel-title" onClick={() => togglePanel('PAN_LFO')} >LFO</h3>
                   {!collapsedPanels['PAN_LFO'] && (
                     <>
@@ -568,7 +570,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   </div>
                 </div>
 
-                <div className={`sub-panel ${collapsedPanels['FILTER_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                <div className={`sub - panel ${collapsedPanels['FILTER_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                   <h3 className="panel-title" onClick={() => togglePanel('FILTER_LFO')} >LFO</h3>
                   {!collapsedPanels['FILTER_LFO'] && (
                     <>
@@ -675,10 +677,10 @@ function SoundPanel({ sound }: { sound: SoundState }) {
 }
 
 function formatLength(minutes: number) {
-  if (minutes < 60) return `${Math.round(minutes)}m`;
+  if (minutes < 60) return `${Math.round(minutes)} m`;
   const hrs = Math.floor(minutes / 60);
   const mins = Math.round(minutes % 60);
-  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+  return mins > 0 ? `${hrs}h ${mins} m` : `${hrs} h`;
 }
 
 function formatLengthFullWords(minutes: number) {
@@ -691,16 +693,17 @@ function formatLengthFullWords(minutes: number) {
 
 function formatSeconds(seconds: number) {
   const rounded = Math.round(seconds);
-  if (rounded < 60) return `${rounded}s`;
+  if (rounded < 60) return `${rounded} s`;
   const m = Math.floor(rounded / 60);
   const s = rounded % 60;
-  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  return s > 0 ? `${m}m ${s} s` : `${m} m`;
 }
 
 function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
   const { state, dispatch } = useAppState();
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
   const [isAddTrackOpen, setIsAddTrackOpen] = useState(false);
+  const [selectedTracksToAdd, setSelectedTracksToAdd] = useState<string[]>([]);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -908,38 +911,73 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
         </div>
 
         <div className="create-track-container" style={{ marginTop: '20px' }}>
-          <button className="create-track-btn" onClick={() => setIsAddTrackOpen(!isAddTrackOpen)}>Add tracks</button>
-          {isAddTrackOpen && (
-            <div style={{ background: 'var(--panel-bg)', padding: '16px', borderRadius: '16px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <h3 style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>Add Tracks to Mix</h3>
-                <button onClick={() => setIsAddTrackOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-color)', cursor: 'pointer', padding: '8px' }}>✕</button>
-              </div>
-              {state.savedTracks.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    dispatch({ type: 'ADD_TRACK_TO_MIX', payload: t.id });
-                    setIsAddTrackOpen(false);
-                  }}
-                  style={{ textAlign: 'left', padding: '12px', background: 'var(--bg-color)', border: 'none', borderRadius: '8px', color: 'var(--text-color)', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--panel-bg)'}
-                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
-                >
-                  {t.name}
-                </button>
-              ))}
-            </div>
-          )}
+          <button className="create-track-btn" onClick={() => {
+            setSelectedTracksToAdd([]);
+            setIsAddTrackOpen(true);
+          }}>Add tracks</button>
         </div>
 
       </main>
+
+      {isAddTrackOpen && (
+        <div className="modal-overlay">
+          <div className="modal-track-list">
+            <div className="modal-header">
+              <div style={{ width: '40px' }} /> {/* Spacer to align title */}
+              <h2 className="modal-title">Select tracks</h2>
+              <button className="modal-close-btn" onClick={() => setIsAddTrackOpen(false)} aria-label="Close modal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            {state.savedTracks.map(t => {
+              const isSelected = selectedTracksToAdd.includes(t.id);
+              return (
+                <div
+                  key={t.id}
+                  className={`modal - track - item ${isSelected ? 'selected' : ''}`}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedTracksToAdd(prev => prev.filter(id => id !== t.id));
+                    } else {
+                      setSelectedTracksToAdd(prev => [...prev, t.id]);
+                    }
+                  }}
+                >
+                  <div className="custom-checkbox" />
+                  <span style={{ fontSize: '1.1rem' }}>{t.name}</span>
+                </div>
+              );
+            })}
+
+            <div className="modal-actions">
+              <button
+                className="create-track-btn"
+                onClick={() => {
+                  selectedTracksToAdd.forEach(id => {
+                    dispatch({ type: 'ADD_TRACK_TO_MIX', payload: id });
+                  });
+                  setIsAddTrackOpen(false);
+                  setSelectedTracksToAdd([]);
+                }}
+                disabled={selectedTracksToAdd.length === 0}
+                style={{ opacity: selectedTracksToAdd.length === 0 ? 0.5 : 1 }}
+              >
+                Add tracks to mix
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function App() {
   const { state, dispatch } = useAppState();
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null)
   const initialized = useRef(false)
 
@@ -1295,6 +1333,10 @@ function App() {
               </>
             )}
           </main>
+
+          <footer className="app-footer">
+            &copy; 2026 <a href="https://www.timpaul.co.uk" target="_blank" rel="noopener noreferrer">Tim Paul</a> &middot; <button className="text-btn" onClick={() => setIsAboutModalOpen(true)}>What is this?</button>
+          </footer>
         </div>
       ) : state.currentScreen === 'mixDetail' ? (
         <MixDetailScreen togglePlay={togglePlay} />
@@ -1345,8 +1387,28 @@ function App() {
         </div>
       )}
       <audio ref={audioRef} preload="none" playsInline />
+      {isAboutModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-track-list" style={{ maxWidth: '800px', backgroundColor: 'var(--panel-bg)', borderRadius: '16px', padding: '32px' }}>
+            <div className="modal-header" style={{ marginBottom: '16px' }}>
+              <div style={{ width: '40px' }} />
+              <h2 className="modal-title">About Doom Loop</h2>
+              <button className="modal-close-btn" onClick={() => setIsAboutModalOpen(false)} aria-label="Close modal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <div className="markdown-content">
+              <ReactMarkdown>{aboutMarkdown}</ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      )}
     </>
-  );
+  )
 }
 
 export default App
