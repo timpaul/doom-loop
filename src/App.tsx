@@ -937,7 +937,7 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
               return (
                 <div
                   key={t.id}
-                  className={`modal - track - item ${isSelected ? 'selected' : ''}`}
+                  className={`modal-track-item ${isSelected ? 'selected' : ''}`}
                   onClick={() => {
                     if (isSelected) {
                       setSelectedTracksToAdd(prev => prev.filter(id => id !== t.id));
