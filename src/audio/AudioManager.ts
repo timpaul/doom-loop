@@ -220,7 +220,12 @@ class AudioManager {
 
     public fadeTrack(mixItemId: string, targetVolume: number, transitionTime: number) {
         const gainNode = this.getTrackChannel(mixItemId);
-        gainNode.gain.rampTo(targetVolume, Math.max(0.01, transitionTime));
+        const now = Tone.now();
+        const currentVol = gainNode.gain.value;
+
+        gainNode.gain.cancelScheduledValues(now);
+        gainNode.gain.setValueAtTime(currentVol, now);
+        gainNode.gain.linearRampToValueAtTime(targetVolume, now + Math.max(0.01, transitionTime));
     }
 
     public setMasterVolume(volume: number) {

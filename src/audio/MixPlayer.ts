@@ -1,5 +1,6 @@
 import { audioManager } from './AudioManager';
 import type { MixState, TrackState, MixItem } from '../types';
+import * as Tone from 'tone';
 
 export interface MixScheduleItem {
     mixItemId: string;
@@ -9,6 +10,15 @@ export interface MixScheduleItem {
     fadeInDuration: number; // in seconds
     fadeOutDuration: number; // in seconds
     fadeState: 'idle' | 'starting' | 'fadingIn' | 'playing' | 'fadingOut' | 'done';
+}
+
+function shuffleArray<T>(array: T[]): T[] {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
 }
 
 export class MixPlayer {
@@ -22,7 +32,7 @@ export class MixPlayer {
     private isPlaying = false;
     private lastTickTime = 0;
     private _currentTime = 0; // in seconds
-    private timerId: number | null = null;
+    private timerId: any = null;
     private ignoredOverlapItems = new Set<string>();
 
     private constructor() { }
@@ -46,7 +56,7 @@ export class MixPlayer {
         this.stop();
         this.mix = mix;
         if (mix.shuffle) {
-            this.shuffledItems = [...mix.items].sort(() => Math.random() - 0.5);
+            this.shuffledItems = shuffleArray(mix.items);
         } else {
             this.shuffledItems = [...mix.items];
         }
@@ -88,7 +98,7 @@ export class MixPlayer {
         if (shuffleTurnedOff) {
             this.shuffledItems = [...this.mix.items];
         } else if (shuffleTurnedOn) {
-            this.shuffledItems = [...this.mix.items].sort(() => Math.random() - 0.5);
+            this.shuffledItems = shuffleArray(this.mix.items);
         } else if (this.mix.shuffle) {
             // Keep existing shuffled order, minus removed, plus added randomly
             const newIds = new Set(this.mix.items.map(i => i.id));
@@ -177,14 +187,14 @@ export class MixPlayer {
     public play() {
         if (this.isPlaying || !this.mix) return;
         this.isPlaying = true;
-        this.lastTickTime = performance.now();
+        this.lastTickTime = Tone.now();
         this.tick();
     }
 
     public pause() {
         this.isPlaying = false;
         if (this.timerId !== null) {
-            cancelAnimationFrame(this.timerId);
+            clearTimeout(this.timerId);
             this.timerId = null;
         }
 
@@ -240,8 +250,8 @@ export class MixPlayer {
     private tick = () => {
         if (!this.isPlaying || !this.mix) return;
 
-        const now = performance.now();
-        const deltaSec = (now - this.lastTickTime) / 1000;
+        const now = Tone.now();
+        const deltaSec = now - this.lastTickTime;
         this.lastTickTime = now;
 
         this._currentTime += deltaSec;
@@ -252,7 +262,16 @@ export class MixPlayer {
             if (this.mix.repeat) {
                 this._currentTime = 0;
                 this.ignoredOverlapItems.clear();
-                this.schedule.forEach(item => item.fadeState = 'idle');
+                this.schedule.forEach(item => {
+                    if (item.fadeState !== 'idle' && item.fadeState !== 'done') {
+                        this.stopTrackSync(item);
+                    }
+                    item.fadeState = 'idle';
+                });
+                if (this.mix.shuffle) {
+                    this.shuffledItems = shuffleArray(this.mix.items);
+                    this.calculateSchedule();
+                }
             } else {
                 this.stop();
                 return;
@@ -316,7 +335,7 @@ export class MixPlayer {
             }
         }
 
-        this.timerId = requestAnimationFrame(this.tick);
+        this.timerId = setTimeout(this.tick, 100);
     }
 
     private startTrackSync(item: MixScheduleItem) {
