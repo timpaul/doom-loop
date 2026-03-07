@@ -681,6 +681,14 @@ function formatLength(minutes: number) {
   return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
 }
 
+function formatLengthFullWords(minutes: number) {
+  const roundedMinutes = Math.round(minutes);
+  if (roundedMinutes < 60) return `${roundedMinutes} minute${roundedMinutes !== 1 ? 's' : ''}`;
+  const hrs = Math.floor(roundedMinutes / 60);
+  const mins = roundedMinutes % 60;
+  return mins > 0 ? `${hrs} hour${hrs !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''}` : `${hrs} hour${hrs !== 1 ? 's' : ''}`;
+}
+
 function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
   const { state, dispatch } = useAppState();
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
@@ -738,7 +746,7 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
         </button>
       </div>
 
-      <header className="track-header" style={{ marginBottom: '24px' }}>
+      <header className="track-header" style={{ marginBottom: '24px', flexDirection: 'column', gap: '8px' }}>
         <input
           type="text"
           className="track-name-input"
@@ -748,6 +756,9 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
           placeholder="Name your mix..."
           style={{ textAlign: 'center' }}
         />
+        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', opacity: 0.8, letterSpacing: '0.5px' }}>
+          {mix.items.length} track{mix.items.length !== 1 ? 's' : ''} &middot; {formatLengthFullWords(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}
+        </div>
       </header>
 
       <main className="main-content">
@@ -771,7 +782,7 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
                     value={Math.log10(mix.lengthMinutes)}
                     onChange={e => updateSettings({ lengthMinutes: Math.pow(10, parseFloat(e.target.value)) })}
                   />
-                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{formatLength(mix.lengthMinutes)}</span>
+                  <span style={{ minWidth: '50px', fontSize: '0.9rem', opacity: 0.8 }}>{formatLength(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}</span>
                 </div>
               </div>
               <div className="control-row">
@@ -818,6 +829,22 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
             const track = state.savedTracks.find(t => t.id === item.trackId);
             if (!track) return null;
             const isTrackPlaying = state.isPlaying && mixPlayer.isTrackPlaying(item.id);
+
+            const N = mix.items.length;
+            const totalLengthSec = mix.lengthMinutes * 60;
+            const crossfadeSec = mix.crossFadeMinutes * 60;
+            let itemLengthSec = totalLengthSec;
+            if (N > 1) {
+              itemLengthSec = (totalLengthSec + (N - 1) * crossfadeSec) / N;
+            }
+            let itemTimeString = '';
+            if (itemLengthSec >= 3600) {
+              itemTimeString = formatLength(itemLengthSec / 60);
+            } else {
+              const m = Math.floor(itemLengthSec / 60);
+              const s = Math.floor(itemLengthSec % 60).toString().padStart(2, '0');
+              itemTimeString = `${m}:${s}`;
+            }
             return (
               <div
                 key={item.id}
@@ -828,7 +855,7 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
                 onDrop={(e) => onDrop(e, index)}
                 style={{ opacity: draggedIdx === index ? 0.5 : 1, cursor: 'grab' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
                   <button
                     className={`track-play-btn ${isTrackPlaying ? 'active' : ''}`}
                     onClick={(e) => {
@@ -851,15 +878,20 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
                       {isTrackPlaying ? <PauseIcon /> : <PlayIcon />}
                     </div>
                   </button>
-                  <span className="track-item-name">{track.name}</span>
+                  <span className="track-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</span>
                 </div>
-                <div className="track-list-item-actions">
-                  <button className="icon-btn" data-tooltip="Duplicate" onClick={() => dispatch({ type: 'ADD_TRACK_TO_MIX', payload: item.trackId })} aria-label="Duplicate Track">
-                    <DuplicateIcon />
-                  </button>
-                  <button className="icon-btn delete-btn" data-tooltip="Remove" onClick={() => dispatch({ type: 'REMOVE_MIX_ITEM', payload: item.id })} aria-label="Remove Track">
-                    <TrashIcon />
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div className="track-list-item-actions">
+                    <button className="icon-btn" data-tooltip="Duplicate" onClick={() => dispatch({ type: 'ADD_TRACK_TO_MIX', payload: item.trackId })} aria-label="Duplicate Track">
+                      <DuplicateIcon />
+                    </button>
+                    <button className="icon-btn delete-btn" data-tooltip="Remove" onClick={() => dispatch({ type: 'REMOVE_MIX_ITEM', payload: item.id })} aria-label="Remove Track">
+                      <TrashIcon />
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', paddingRight: '10px' }}>
+                    {itemTimeString}
+                  </span>
                 </div>
               </div>
             )
