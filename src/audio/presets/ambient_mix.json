@@ -1,0 +1,745 @@
+{
+  "type": "doom-loop-mix",
+  "mix": {
+    "id": "mix-1772873870807",
+    "name": "Ambient Mix",
+    "items": [
+      {
+        "id": "item-1772873877123-z9q9rn",
+        "trackId": "track-1772391949300"
+      },
+      {
+        "id": "item-1772873881127-p9o4t",
+        "trackId": "track-1772873835065-400"
+      }
+    ],
+    "lengthMinutes": 19.45225724971408,
+    "shuffle": true,
+    "repeat": true,
+    "fadeInMinutes": 0,
+    "fadeOutMinutes": 0,
+    "crossFadeMinutes": 0.5
+  },
+  "tracks": [
+    {
+      "id": "track-1772391949300",
+      "name": "Liminal Waltz",
+      "sounds": [
+        {
+          "id": "1",
+          "name": "Chords",
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "Eb",
+                "G",
+                "C"
+              ],
+              "octave": 4,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C#",
+                "G#",
+                "F"
+              ],
+              "octave": 4,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            }
+          ],
+          "stepRatios": [
+            1,
+            1,
+            1,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 6,
+          "volume": 0.76,
+          "pan": 0,
+          "filterFreq": 1000,
+          "filterQ": 1,
+          "volLfoScale": "second",
+          "volLfoRate": 0.28,
+          "volLfoDepth": 0.89,
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterRate": 15,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 23.92624367002663,
+          "autoFilterOctaves": 2.1,
+          "reverbAmount": 0.55,
+          "delayAmount": 0.3,
+          "chorusAmount": 0.52,
+          "distortionAmount": 0.07,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2
+        },
+        {
+          "id": "2",
+          "name": "Hiss",
+          "sourceType": "noise",
+          "noiseColor": "brown",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            }
+          ],
+          "stepRatios": [
+            1,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 30,
+          "volume": 0.5,
+          "pan": 0,
+          "filterFreq": 1000,
+          "filterQ": 1,
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterRate": 45,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 192.30917289101575,
+          "autoFilterOctaves": 1,
+          "reverbAmount": 0,
+          "delayAmount": 0,
+          "chorusAmount": 0,
+          "distortionAmount": 0,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2,
+          "isMuted": false
+        },
+        {
+          "id": "3",
+          "name": "Hi pitch",
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "G"
+              ],
+              "octave": 5,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "F"
+              ],
+              "octave": 5,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "Eb"
+              ],
+              "octave": 5,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            }
+          ],
+          "stepRatios": [
+            1,
+            2,
+            1,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 9,
+          "volume": 0.1,
+          "pan": -0.48,
+          "filterFreq": 1000,
+          "filterQ": 1,
+          "volLfoScale": "second",
+          "volLfoRate": 0.25,
+          "volLfoDepth": 0.5,
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterRate": 18,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 10.5676738232133,
+          "autoFilterOctaves": 6.7,
+          "reverbAmount": 1,
+          "delayAmount": 0,
+          "chorusAmount": 0,
+          "distortionAmount": 0.02,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2
+        }
+      ]
+    },
+    {
+      "id": "track-1772873835065-400",
+      "name": "Barkhan Song",
+      "sounds": [
+        {
+          "id": "1",
+          "name": "Sound 1",
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "random",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 4
+            }
+          ],
+          "stepRatios": [
+            1,
+            2,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seqLengthScale": "second",
+          "seqLengthRate": 0.52,
+          "envAttack": 0.04913000000000001,
+          "envDecay": 4.56533,
+          "envSustain": 0.48,
+          "envRelease": 0.59319,
+          "volume": 0.7,
+          "pan": 0,
+          "filterMinFreq": 200,
+          "filterMaxFreq": 20000,
+          "filterFreq": 1000,
+          "filterQ": 1,
+          "volLfoScale": "second",
+          "volLfoRate": 0.19,
+          "volLfoDepth": 0.72,
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterRate": 45,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 8000,
+          "autoFilterOctaves": 1,
+          "reverbAmount": 0.25,
+          "delayAmount": 0.56,
+          "chorusAmount": 0,
+          "distortionAmount": 0.02
+        },
+        {
+          "id": "8",
+          "name": "Sound 8",
+          "sourceType": "noise",
+          "noiseColor": "brown",
+          "playMode": "chord",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            }
+          ],
+          "stepRatios": [
+            1,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 30,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2,
+          "volume": 0.5,
+          "pan": 0,
+          "filterMinFreq": 200,
+          "filterMaxFreq": 20000,
+          "filterFreq": 1000,
+          "filterQ": 1,
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterRate": 45,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 618.0164001384157,
+          "autoFilterOctaves": 1,
+          "reverbAmount": 0,
+          "delayAmount": 0,
+          "chorusAmount": 0,
+          "distortionAmount": 0,
+          "isMuted": false
+        },
+        {
+          "id": "9",
+          "name": "Sound 9",
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "chord",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3
+            }
+          ],
+          "stepRatios": [
+            1,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 30,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2,
+          "volume": 0.1,
+          "pan": 0,
+          "filterMinFreq": 200,
+          "filterMaxFreq": 20000,
+          "filterFreq": 1000,
+          "filterQ": 1,
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterRate": 45,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 61.16800593933999,
+          "autoFilterOctaves": 1,
+          "reverbAmount": 0.52,
+          "delayAmount": 0,
+          "chorusAmount": 0.16,
+          "distortionAmount": 0.34,
+          "isMuted": false
+        }
+      ]
+    }
+  ]
+}

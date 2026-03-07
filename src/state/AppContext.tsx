@@ -5,10 +5,26 @@ import type { SoundState, TrackState } from '../types';
 import { audioManager } from '../audio/AudioManager';
 import { mixPlayer } from '../audio/MixPlayer';
 
-// Pre-load all default track JSONs synchronously using Vite's import.meta.glob
-const defaultTrackFiles = import.meta.glob('../audio/default-tracks/*.json', { eager: true });
-const DEFAULT_TRACKS: TrackState[] = Object.values(defaultTrackFiles)
-    .map((module: any) => module.default || module)
+// Pre-load all preset JSONs synchronously using Vite's import.meta.glob
+const presetFiles = import.meta.glob('../audio/presets/*.json', { eager: true });
+
+const DEFAULT_MIXES: MixState[] = [];
+const presetTracksList: TrackState[] = [];
+
+Object.values(presetFiles).forEach((module: any) => {
+    const data = module.default || module;
+    if (data.type === 'doom-loop-mix' && data.mix && data.tracks) {
+        DEFAULT_MIXES.push(data.mix);
+        presetTracksList.push(...data.tracks);
+    } else if (data.sounds) {
+        presetTracksList.push(data);
+    }
+});
+
+// Deduplicate tracks by ID
+const trackMap = new Map<string, TrackState>();
+presetTracksList.forEach(t => trackMap.set(t.id, t));
+const DEFAULT_TRACKS: TrackState[] = Array.from(trackMap.values())
     .sort((a, b) => a.name.localeCompare(b.name));
 
 import { DEFAULT_MIX } from '../types';
@@ -128,23 +144,29 @@ const getInitialState = (): AppState => {
     let sounds: SoundState[];
     let expandedId: string;
 
-    if (!hasLoadedDefaults && DEFAULT_TRACKS.length > 0) {
-        // First time visit: Load default tracks
+    if (!hasLoadedDefaults && (DEFAULT_TRACKS.length > 0 || DEFAULT_MIXES.length > 0)) {
+        // First time visit: Load default tracks and mixes
         initialTracks = [...DEFAULT_TRACKS];
 
         // Select the first track by default
         const firstTrack = initialTracks[0];
-        currentTrackId = firstTrack.id;
-        currentTrackName = firstTrack.name;
-        sounds = [...firstTrack.sounds];
-
-        // Expand the first sound
-        expandedId = sounds.length > 0 ? sounds[0].id : '';
+        if (firstTrack) {
+            currentTrackId = firstTrack.id;
+            currentTrackName = firstTrack.name;
+            sounds = [...firstTrack.sounds];
+            expandedId = sounds.length > 0 ? sounds[0].id : '';
+        } else {
+            currentTrackId = 'track-1';
+            currentTrackName = 'Track 1';
+            sounds = [];
+            expandedId = '';
+        }
 
         // Mark defaults as loaded so we don't overwrite user edits later
         localStorage.setItem('noisemaker_hasLoadedDefaults', 'true');
-        // Persist the default tracks immediately so they show up consistently
+        // Persist the default tracks and mixes immediately so they show up consistently
         localStorage.setItem('noisemaker_tracks', JSON.stringify(initialTracks));
+        localStorage.setItem('noisemaker_mixes', JSON.stringify(DEFAULT_MIXES));
     } else {
         // Normal initialization from localStorage or backup
         initialTracks = parseJSON('noisemaker_tracks', parseJSON('noisemaker_scenes', [
