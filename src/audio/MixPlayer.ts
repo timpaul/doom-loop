@@ -54,6 +54,61 @@ export class MixPlayer {
         this.calculateSchedule();
     }
 
+    public updateMix(mix: MixState, tracks: TrackState[]) {
+        if (!this.mix || this.mix.id !== mix.id) {
+            this.loadMix(mix, tracks);
+            return;
+        }
+
+        const oldSchedule = new Map<string, MixScheduleItem>();
+        let targetFollowItem: MixScheduleItem | null = null;
+        for (const item of this.schedule) {
+            oldSchedule.set(item.mixItemId, item);
+            if (this._currentTime >= item.startTime && this._currentTime < item.endTime) {
+                if (!targetFollowItem || item.startTime > targetFollowItem.startTime) {
+                    targetFollowItem = item;
+                }
+            }
+        }
+        const oldTimeInItem = targetFollowItem ? this._currentTime - targetFollowItem.startTime : 0;
+
+        this.mix = mix;
+        this.tracks.clear();
+        for (const t of tracks) {
+            this.tracks.set(t.id, t);
+        }
+
+        this.calculateSchedule();
+
+        if (targetFollowItem) {
+            const newItem = this.schedule.find(i => i.mixItemId === targetFollowItem!.mixItemId);
+            if (newItem) {
+                // Warp global time to maintain exact position inside the followed track
+                this._currentTime = newItem.startTime + oldTimeInItem;
+            }
+        }
+
+        const currentItemIds = new Set(this.schedule.map(i => i.mixItemId));
+        for (const [id, oldItem] of oldSchedule.entries()) {
+            if (!currentItemIds.has(id)) {
+                if (oldItem.fadeState !== 'idle' && oldItem.fadeState !== 'done') {
+                    this.stopTrackSync(oldItem);
+                }
+            }
+        }
+
+        this.ignoredOverlapItems.clear();
+
+        for (const item of this.schedule) {
+            const oldItem = oldSchedule.get(item.mixItemId);
+            if (oldItem && oldItem.fadeState !== 'idle' && oldItem.fadeState !== 'done') {
+                // By marking it 'starting', the next tick will recalculate 
+                // the crossfade ramps without calling startTrackSync() again.
+                item.fadeState = 'starting';
+            }
+        }
+    }
+
     private calculateSchedule() {
         if (!this.mix || this.mix.items.length === 0) {
             this.schedule = [];

@@ -485,9 +485,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 if (state.currentScreen === 'mixDetail' || (state.currentScreen === 'load' && state.listMode === 'mixes' && state.currentMixId)) {
                     const mix = state.savedMixes.find(m => m.id === state.currentMixId);
                     if (mix) {
-                        if (mixPlayer.currentMixId !== mix.id) {
-                            mixPlayer.loadMix(mix, state.savedTracks);
-                        }
+                        mixPlayer.updateMix(mix, state.savedTracks);
                         mixPlayer.play();
                     }
                 } else {
