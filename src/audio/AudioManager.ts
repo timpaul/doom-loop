@@ -10,14 +10,10 @@ class AudioManager {
     private previousSources: Map<string, string> = new Map();
     private trackGains: Map<string, Tone.Gain> = new Map();
 
-    private sharedDestination: MediaStreamAudioDestinationNode | null = null;
-    private destinationConnected = false;
     private isInitialized = false;
 
     private constructor() {
         this.masterChannel = new Tone.Volume(0);
-        // Removed toDestination() to prevent the native WebAudio output from duplicating 
-        // the MediaStream output routed to the visible HTML <audio> element for iOS background play.
     }
 
     public static getInstance(): AudioManager {
@@ -30,19 +26,7 @@ class AudioManager {
     public async initialize() {
         if (this.isInitialized) return;
         await Tone.start();
-
-        if (!this.sharedDestination) {
-            this.sharedDestination = Tone.getContext().createMediaStreamDestination();
-            // Force 2 channels to preserve stereo field over MediaStreamAudioDestinationNode
-            this.sharedDestination.channelCount = 2;
-            this.sharedDestination.channelCountMode = "explicit";
-        }
-
-        if (!this.destinationConnected) {
-            // this.masterChannel.toDestination();
-            this.masterChannel.connect(this.sharedDestination);
-            this.destinationConnected = true;
-        }
+        this.masterChannel.toDestination();
         this.isInitialized = true;
     }
 
@@ -53,7 +37,7 @@ class AudioManager {
     }
 
     public getSharedStream(): MediaStream | null {
-        return this.sharedDestination ? this.sharedDestination.stream : null;
+        return null;
     }
 
     public getTrackChannel(mixItemId: string): Tone.Gain {

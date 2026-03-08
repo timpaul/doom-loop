@@ -992,75 +992,54 @@ function App() {
   const initialized = useRef(false)
 
   const togglePlay = useCallback(async () => {
-    // ALWAYS ensure the context is running on user interaction to prevent iOS or browser suspending
-    await audioManager.resumeContext();
-
     if (!initialized.current) {
       await audioManager.initialize();
       initialized.current = true;
     }
-
-    // Always connect the stream if not connected, regardless of initialization timing
-    if (audioRef.current && !audioRef.current.srcObject) {
-      audioRef.current.srcObject = audioManager.getSharedStream();
-    }
-
-    if (state.isPlaying) {
-      if (audioRef.current) audioRef.current.pause()
-    } else {
-      if (audioRef.current) {
-        audioRef.current.play().catch(e => console.log('Background audio play failed:', e))
-      }
-    }
     dispatch({ type: 'TOGGLE_PLAY' });
-  }, [state.isPlaying, dispatch])
+  }, [dispatch]);
 
   const handleListTogglePlay = async (e: React.MouseEvent, track: TrackState) => {
     e.stopPropagation();
-    await audioManager.resumeContext(); // ensure iOS compliance
-
     if (!initialized.current) {
       await audioManager.initialize();
       initialized.current = true;
-    }
-
-    if (audioRef.current && !audioRef.current.srcObject) {
-      audioRef.current.srcObject = audioManager.getSharedStream();
     }
 
     const isTrackPlaying = state.isPlaying && state.currentTrackId === track.id;
 
     if (isTrackPlaying) {
-      if (audioRef.current) audioRef.current.pause();
       dispatch({ type: 'TOGGLE_PLAY' });
     } else {
       if (state.isPlaying) {
         audioManager.stopAll();
       }
-      if (audioRef.current) {
-        audioRef.current.play().catch(err => console.log('Background audio play failed:', err));
-      }
       dispatch({ type: 'LOAD_AND_PLAY_TRACK', payload: track });
     }
   };
 
-  useEffect(() => {
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.setActionHandler('play', () => { if (!state.isPlaying) togglePlay() });
-      navigator.mediaSession.setActionHandler('pause', () => { if (state.isPlaying) togglePlay() });
-      if (state.isPlaying) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: 'Playing Sounds',
-          artist: 'Noisemaker',
-          album: 'Focus & Tinnitus Relief',
-          artwork: [
-            { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-            { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' }
-          ]
-        });
-      }
+  const handleMixListTogglePlay = async (e: React.MouseEvent, mix: MixState) => {
+    e.stopPropagation();
+    if (!initialized.current) {
+      await audioManager.initialize();
+      initialized.current = true;
     }
-  }, [state.isPlaying, togglePlay]);
+
+    const isMixPlaying = state.isPlaying && state.currentMixId === mix.id;
+
+    if (isMixPlaying) {
+      dispatch({ type: 'TOGGLE_PLAY' });
+    } else {
+      if (state.isPlaying) {
+        audioManager.stopAll();
+      }
+      // If we are not currently viewing this mix, or it's not the active mix, load it and toggle play
+      if (state.currentMixId !== mix.id) {
+        dispatch({ type: 'LOAD_MIX', payload: mix.id });
+      }
+      dispatch({ type: 'TOGGLE_PLAY' });
+    }
+  };
 
   const addSound = () => {
     dispatch({ type: 'ADD_SOUND' });
@@ -1101,41 +1080,6 @@ function App() {
     e.stopPropagation();
     dispatch({ type: 'DELETE_MIX', payload: id });
   }
-
-  const handleMixListTogglePlay = async (e: React.MouseEvent, mix: MixState) => {
-    e.stopPropagation();
-    await audioManager.resumeContext();
-
-    if (!initialized.current) {
-      await audioManager.initialize();
-      initialized.current = true;
-    }
-
-    if (audioRef.current && !audioRef.current.srcObject) {
-      audioRef.current.srcObject = audioManager.getSharedStream();
-    }
-
-    const isMixPlaying = state.isPlaying && state.currentMixId === mix.id;
-
-    if (isMixPlaying) {
-      if (audioRef.current) audioRef.current.pause();
-      dispatch({ type: 'TOGGLE_PLAY' });
-    } else {
-      if (state.isPlaying) {
-        audioManager.stopAll();
-      }
-      if (audioRef.current) {
-        audioRef.current.play().catch(err => console.log('Background audio play failed:', err));
-      }
-
-      // If we are not currently viewing this mix, or it's not the active mix, load it and toggle play
-      if (state.currentMixId !== mix.id) {
-        dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
-      } else {
-        dispatch({ type: 'TOGGLE_PLAY' });
-      }
-    }
-  };
 
   const handleExportTrack = (e: React.MouseEvent, track: TrackState) => {
     e.stopPropagation();
@@ -1404,7 +1348,7 @@ function App() {
         &copy; 2026 <a href="https://www.timpaul.co.uk" target="_blank" rel="noopener noreferrer">Tim Paul</a> &middot; <button className="text-btn" onClick={() => setIsAboutModalOpen(true)}>What <em>is</em> this?</button>
       </footer>
 
-      <audio ref={audioRef} preload="none" playsInline />
+      <audio ref={audioRef} preload="auto" playsInline loop />
       {isAboutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-track-list" style={{ maxWidth: '800px', backgroundColor: 'var(--panel-bg)', borderRadius: '16px', padding: '32px' }}>

@@ -131,7 +131,6 @@ header {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     background-color: #171717;
-    overflow: hidden;
     transition: all 0.3s;
     width: 100%;
     background-color: var(--bg-primary);
@@ -672,7 +671,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
     visibility: hidden;
     transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
     pointer-events: none;
-    z-index: 10;
+    z-index: 100;
 }
 
 [data-tooltip]::before {
