@@ -205,7 +205,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   {noiseColors.map(c => (
                     <button
                       key={c}
-                      className={`color - btn ${sound.noiseColor === c ? 'active' : ''}`}
+                      className={`color-btn ${sound.noiseColor === c ? 'active' : ''}`}
                       onClick={() => update({ noiseColor: c })}
                       aria-pressed={sound.noiseColor === c}
                       aria-label={c}
