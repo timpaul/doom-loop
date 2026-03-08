@@ -157,10 +157,15 @@ function SoundPanel({ sound }: { sound: SoundState }) {
           onChange={(e) => update({ name: e.target.value })}
           aria-label="Sound Name"
         />
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button className="icon-btn delete-btn" onClick={onDelete} aria-label="Delete Sound">
-            <TrashIcon />
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="noise-header-actions">
+            <button className="icon-btn" data-tooltip="Duplicate" onClick={() => dispatch({ type: 'DUPLICATE_SOUND', payload: sound.id })} aria-label="Duplicate Sound">
+              <DuplicateIcon />
+            </button>
+            <button className="icon-btn delete-btn" data-tooltip="Remove" onClick={onDelete} aria-label="Delete Sound">
+              <TrashIcon />
+            </button>
+          </div>
           <button
             className={`mute-toggle-btn ${!sound.isMuted ? 'active' : ''}`}
             onClick={() => update({ isMuted: !sound.isMuted })}
@@ -1201,7 +1206,7 @@ function App() {
     <>
       {state.currentScreen === 'load' ? (
         <div className="app-container load-screen">
-          <img src={`${import.meta.env.BASE_URL}doom-logo.png`} alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '20px auto 10px auto' }} />
+          <img src={`${import.meta.env.BASE_URL}doom-logo.png`} alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '100px auto 10px auto' }} />
           <div className="segmented-control">
             <button
               className={`segment-btn ${state.listMode === 'tracks' ? 'active' : ''}`}

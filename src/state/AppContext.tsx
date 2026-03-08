@@ -52,6 +52,7 @@ export type Action =
     | { type: 'ADD_SOUND' }
     | { type: 'UPDATE_SOUND'; payload: { id: string; updates: Partial<SoundState> } }
     | { type: 'DELETE_SOUND'; payload: string }
+    | { type: 'DUPLICATE_SOUND'; payload: string }
     | { type: 'TOGGLE_EXPAND'; payload: string }
     | { type: 'SET_TRACK_NAME'; payload: string }
     | { type: 'LOAD_TRACK'; payload: TrackState }
@@ -224,6 +225,38 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'DELETE_SOUND':
             newState.sounds = state.sounds.filter(s => s.id !== action.payload);
             break;
+        case 'DUPLICATE_SOUND': {
+            const soundToDuplicate = state.sounds.find(s => s.id === action.payload);
+            if (!soundToDuplicate) break;
+
+            const existingNames = new Set(state.sounds.map(s => s.name));
+            let baseName = soundToDuplicate.name;
+            let counter = 1;
+            const match = soundToDuplicate.name.match(/^(.*?)(?:\s\((\d+)\))?$/);
+            if (match) {
+                baseName = match[1].trim();
+                if (match[2]) counter = parseInt(match[2], 10);
+            }
+            let newName = '';
+            do {
+                newName = `${baseName} (${counter})`;
+                counter++;
+            } while (existingNames.has(newName));
+
+            const newId = state.nextId.toString();
+            const duplicatedSound = {
+                ...soundToDuplicate,
+                id: newId,
+                name: newName
+            };
+
+            const index = state.sounds.findIndex(s => s.id === action.payload);
+            newState.sounds = [...state.sounds];
+            newState.sounds.splice(index + 1, 0, duplicatedSound);
+            newState.expandedId = newId;
+            newState.nextId = state.nextId + 1;
+            break;
+        }
         case 'TOGGLE_EXPAND':
             newState.expandedId = state.expandedId === action.payload ? '' : action.payload;
             break;
@@ -550,7 +583,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
     }
 
     // AUTO-SAVE LOGIC
-    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'SET_TRACK_NAME' || action.type === 'CREATE_TRACK' || action.type === 'LOAD_TRACK' || action.type === 'LOAD_AND_PLAY_TRACK' || action.type === 'DUPLICATE_TRACK') {
+    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'DUPLICATE_SOUND' || action.type === 'SET_TRACK_NAME' || action.type === 'CREATE_TRACK' || action.type === 'LOAD_TRACK' || action.type === 'LOAD_AND_PLAY_TRACK' || action.type === 'DUPLICATE_TRACK') {
         const existingIdx = newState.savedTracks.findIndex(s => s.id === newState.currentTrackId);
         const updatedTracks = [...newState.savedTracks];
         if (existingIdx >= 0) {

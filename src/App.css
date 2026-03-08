@@ -180,6 +180,25 @@ header {
     color: var(--text-primary);
 }
 
+.noise-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 1;
+    /* Default for touch/mobile */
+    transition: opacity 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .noise-header-actions {
+        opacity: 0;
+    }
+
+    .noise-header:hover .noise-header-actions {
+        opacity: 1;
+    }
+}
+
 .mute-toggle-btn {
     width: 24px;
     height: 24px;
