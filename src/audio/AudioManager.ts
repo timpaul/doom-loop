@@ -5,7 +5,7 @@ import type { SoundState } from '../types';
 class AudioManager {
     private static instance: AudioManager;
 
-    public masterChannel: Tone.Channel;
+    public masterChannel: Tone.Volume;
     private engines: Map<string, AudioEngine> = new Map();
     private previousSources: Map<string, string> = new Map();
     private trackGains: Map<string, Tone.Gain> = new Map();
@@ -15,7 +15,7 @@ class AudioManager {
     private isInitialized = false;
 
     private constructor() {
-        this.masterChannel = new Tone.Channel({ volume: 0, pan: 0 });
+        this.masterChannel = new Tone.Volume(0);
         // Removed toDestination() to prevent the native WebAudio output from duplicating 
         // the MediaStream output routed to the visible HTML <audio> element for iOS background play.
     }
@@ -33,9 +33,13 @@ class AudioManager {
 
         if (!this.sharedDestination) {
             this.sharedDestination = Tone.getContext().createMediaStreamDestination();
+            // Force 2 channels to preserve stereo field over MediaStreamAudioDestinationNode
+            this.sharedDestination.channelCount = 2;
+            this.sharedDestination.channelCountMode = "explicit";
         }
 
         if (!this.destinationConnected) {
+            // this.masterChannel.toDestination();
             this.masterChannel.connect(this.sharedDestination);
             this.destinationConnected = true;
         }

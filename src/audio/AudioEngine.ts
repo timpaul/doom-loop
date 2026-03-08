@@ -332,6 +332,7 @@ export class AudioEngine {
     public setPan(pan: number) {
         // Disconnect from channel pan and route to explicit panner
         this.panner.pan.rampTo(pan, 0.1);
+        // this.channel.pan.rampTo(pan, 0.1);
     }
 
     public setDetune(cents: number) {
