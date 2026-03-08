@@ -890,7 +890,12 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
                       {isTrackPlaying ? <PauseIcon /> : <PlayIcon />}
                     </div>
                   </button>
-                  <span className="track-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span className="track-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</span>
+                    <span className="track-item-time-mobile" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums' }}>
+                      {itemTimeString}
+                    </span>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div className="track-list-item-actions">
@@ -901,7 +906,7 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
                       <TrashIcon />
                     </button>
                   </div>
-                  <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', paddingRight: '10px' }}>
+                  <span className="track-item-time-desktop" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', paddingRight: '10px' }}>
                     {itemTimeString}
                   </span>
                 </div>
@@ -1294,7 +1299,14 @@ function App() {
                                 {isMixPlaying ? <PauseIcon /> : <PlayIcon />}
                               </div>
                             </button>
-                            <span className="track-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mix.name}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                              <span className="track-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mix.name}</span>
+                              {mix.items.length > 0 && (
+                                <span className="track-item-time-mobile" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums' }}>
+                                  {mixTimeString}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                             <div className="track-list-item-actions">
@@ -1309,7 +1321,7 @@ function App() {
                               </button>
                             </div>
                             {mix.items.length > 0 && (
-                              <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', paddingRight: '10px' }}>
+                              <span className="track-item-time-desktop" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', opacity: 0.8, fontVariantNumeric: 'tabular-nums', paddingRight: '10px' }}>
                                 {mixTimeString}
                               </span>
                             )}

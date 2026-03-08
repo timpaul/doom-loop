@@ -1009,9 +1009,22 @@ body:has(.modal-overlay) {
 }
 
 /* Mobile Adjustments */
+.track-item-time-mobile {
+    display: none;
+}
+
 @media (max-width: 480px) {
     .hide-on-mobile {
         display: none;
+    }
+
+    .track-item-time-desktop {
+        display: none;
+    }
+
+    .track-item-time-mobile {
+        display: block;
+        margin-top: 2px;
     }
 
     .step-sequencer-control {
