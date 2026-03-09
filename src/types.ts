@@ -55,6 +55,8 @@ export interface SoundState {
 export interface TrackState {
     id: string;
     name: string;
+    author?: string;
+    notes?: string;
     sounds: SoundState[];
 }
 

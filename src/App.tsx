@@ -990,6 +990,7 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
 function App() {
   const { state, dispatch } = useAppState();
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isMetaExpanded, setIsMetaExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null)
   const initialized = useRef(false)
 
@@ -1085,7 +1086,9 @@ function App() {
 
   const handleExportTrack = (e: React.MouseEvent, track: TrackState) => {
     e.stopPropagation();
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(track, null, 2));
+    const { id, name, author, notes, ...rest } = track;
+    const ordered = { id, name, author: author || '', notes: notes || '', ...rest };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(ordered, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", `${track.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`);
@@ -1346,6 +1349,77 @@ function App() {
           </header>
 
           <main className="main-content">
+            <section className={`panel-group ${!isMetaExpanded ? 'collapsed' : ''}`} >
+              <h2 className="panel-title" onClick={() => setIsMetaExpanded(!isMetaExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
+                TRACK INFO
+                <div className="icon-btn" style={{ width: '20px', height: '20px', marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ChevronRightIcon isExpanded={isMetaExpanded} />
+                </div>
+              </h2>
+              {isMetaExpanded && (() => {
+                const currentTrack = state.savedTracks.find(t => t.id === state.currentTrackId);
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                    <div className="control-row" style={{ marginTop: '0' }}>
+                      <span className="control-label">Author</span>
+                      <div className="slider-wrapper">
+                        <input
+                          type="text"
+                          style={{
+                            width: '100%',
+                            height: '36px',
+                            backgroundColor: '#111111',
+                            border: '1px solid transparent',
+                            borderRadius: '16px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.95rem',
+                            fontWeight: 500,
+                            padding: '0 14px',
+                            textAlign: 'left',
+                            transition: 'all 0.2s ease',
+                            boxSizing: 'border-box',
+                            fontFamily: 'inherit'
+                          }}
+                          value={currentTrack?.author || ''}
+                          onChange={(e) => dispatch({ type: 'UPDATE_TRACK_META', payload: { author: e.target.value } })}
+                          placeholder=""
+                          aria-label="Track Author"
+                        />
+                      </div>
+                    </div>
+                    <div className="control-row" style={{ marginTop: '0', alignItems: 'flex-start' }}>
+                      <span className="control-label" style={{ paddingTop: '10px' }}>Notes</span>
+                      <div className="slider-wrapper">
+                        <textarea
+                          style={{
+                            width: '100%',
+                            backgroundColor: '#111111',
+                            border: '1px solid transparent',
+                            borderRadius: '16px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.95rem',
+                            fontWeight: 500,
+                            padding: '10px 14px',
+                            textAlign: 'left',
+                            minHeight: '120px',
+                            resize: 'vertical',
+                            lineHeight: '1.5',
+                            transition: 'all 0.2s ease',
+                            boxSizing: 'border-box',
+                            fontFamily: 'inherit'
+                          }}
+                          value={currentTrack?.notes || ''}
+                          onChange={(e) => dispatch({ type: 'UPDATE_TRACK_META', payload: { notes: e.target.value } })}
+                          placeholder=""
+                          aria-label="Track Notes"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </section>
+
             {state.sounds.map(sound => (
               <SoundPanel
                 key={sound.id}

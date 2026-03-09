@@ -55,6 +55,7 @@ export type Action =
     | { type: 'DUPLICATE_SOUND'; payload: string }
     | { type: 'TOGGLE_EXPAND'; payload: string }
     | { type: 'SET_TRACK_NAME'; payload: string }
+    | { type: 'UPDATE_TRACK_META'; payload: Partial<TrackState> }
     | { type: 'LOAD_TRACK'; payload: TrackState }
     | { type: 'LOAD_AND_PLAY_TRACK'; payload: TrackState }
     | { type: 'CREATE_TRACK' }
@@ -262,6 +263,11 @@ const appReducer = (state: AppState, action: Action): AppState => {
             break;
         case 'SET_TRACK_NAME':
             newState.currentTrackName = action.payload;
+            break;
+        case 'UPDATE_TRACK_META':
+            newState.savedTracks = state.savedTracks.map(t =>
+                t.id === state.currentTrackId ? { ...t, ...action.payload } : t
+            );
             break;
         case 'LOAD_TRACK':
             // Only stop playback if loading a fundamentally different track
@@ -587,7 +593,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         const existingIdx = newState.savedTracks.findIndex(s => s.id === newState.currentTrackId);
         const updatedTracks = [...newState.savedTracks];
         if (existingIdx >= 0) {
-            updatedTracks[existingIdx] = { id: newState.currentTrackId, name: newState.currentTrackName, sounds: newState.sounds };
+            updatedTracks[existingIdx] = { ...updatedTracks[existingIdx], id: newState.currentTrackId, name: newState.currentTrackName, sounds: newState.sounds };
         } else {
             updatedTracks.push({ id: newState.currentTrackId, name: newState.currentTrackName, sounds: newState.sounds });
         }
