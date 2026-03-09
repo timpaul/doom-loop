@@ -584,7 +584,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 /* Doom Logo */
 .doom-logo-img {
     display: block;
-    margin: 60px auto 40px;
+    margin: 100px auto 10px;
     max-width: 100%;
     width: 280px;
     height: auto;
@@ -614,6 +614,43 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
     font-size: 1.5rem;
     margin: 0;
     font-weight: 600;
+}
+
+.quick-create-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /*background-color: #111111;*/
+    background-color: #1e1e1e;
+    border: 1px solid var(--border-color);
+    padding: 1rem 1rem 1rem 1.5rem;
+    border-radius: var(--border-radius);
+    margin: -12px 0 -12px 0;
+}
+
+.quick-create-count {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 400;
+}
+
+.quick-create-btn {
+    background-color: #333333;
+    color: var(--text-primary);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.quick-create-btn:hover {
+    background-color: #444444;
+    transform: scale(1.02);
+}
+
+.quick-create-btn:active {
+    transform: scale(0.98);
 }
 
 .track-list {
@@ -1034,6 +1071,12 @@ body:has(.modal-overlay) {
 @media (max-width: 480px) {
     .hide-on-mobile {
         display: none;
+    }
+
+    .doom-logo-img {
+        margin-top: 20px;
+        max-width: 100%;
+        width: 80%;
     }
 
     .track-item-time-desktop {

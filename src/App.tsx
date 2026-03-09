@@ -1150,7 +1150,7 @@ function App() {
     <>
       {state.currentScreen === 'load' ? (
         <div className="app-container load-screen">
-          <img src={`${import.meta.env.BASE_URL}doom-logo.png`} alt="Doom Loop Logo" className="doom-logo-img" style={{ margin: '100px auto 10px auto' }} />
+          <img src={`${import.meta.env.BASE_URL}doom-logo.png`} alt="Doom Loop Logo" className="doom-logo-img" />
           <div className="segmented-control">
             <button
               className={`segment-btn ${state.listMode === 'tracks' ? 'active' : ''}`}
@@ -1165,6 +1165,22 @@ function App() {
               Mixes
             </button>
           </div>
+
+          <div className="quick-create-panel">
+            <span className="quick-create-count">
+              {state.listMode === 'tracks'
+                ? `${state.savedTracks.length} tracks`
+                : `${state.savedMixes.length} mixes`
+              }
+            </span>
+            <button
+              className="quick-create-btn"
+              onClick={state.listMode === 'tracks' ? handleCreateNewTrack : handleCreateNewMix}
+            >
+              {state.listMode === 'tracks' ? 'Create new track' : 'Create new mix'}
+            </button>
+          </div>
+
           <main className="main-content">
             {state.listMode === 'tracks' ? (
               <>
