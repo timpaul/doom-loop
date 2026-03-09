@@ -3,6 +3,7 @@ import * as Tone from 'tone';
 export type NoiseColor = 'white' | 'pink' | 'brown' | 'blue' | 'purple' | 'green';
 export type ToneType = 'Low note' | 'Mid note' | 'High note' | 'Low chord' | 'Mid chord' | 'High chord';
 export type SoundType = 'noise' | 'tone';
+export type LFOModType = 'sine' | 'random';
 
 
 export class AudioEngine {
@@ -21,6 +22,27 @@ export class AudioEngine {
     private volLfo: Tone.LFO;
     private panner: Tone.Panner;
     private panLfo: Tone.LFO;
+
+    // Random modulation chains (brown noise -> filter -> gain for each param)
+    private randomNoise: Tone.Noise;
+    private randomVolFilter: Tone.Filter;
+    private randomVolGain: Tone.Gain;
+    private randomPanFilter: Tone.Filter;
+    private randomPanGain: Tone.Gain;
+    private randomFilterFilter: Tone.Filter;
+    private randomFilterGain: Tone.Gain;
+    private randomDetuneFilter: Tone.Filter;
+    private randomDetuneGain: Tone.Gain;
+    private randomMakeupGain: Tone.Gain; // boost brown noise signal
+
+    // Detune LFO via Vibrato effect
+    private vibrato: Tone.Vibrato;
+
+    // Track current LFO types to know when to re-route
+    private currentVolLfoType: LFOModType = 'sine';
+    private currentPanLfoType: LFOModType = 'sine';
+    private currentFilterLfoType: LFOModType = 'sine';
+    private currentDetuneLfoType: LFOModType = 'sine';
 
     private reverb: Tone.Reverb;
     private delay: Tone.FeedbackDelay;
@@ -44,6 +66,41 @@ export class AudioEngine {
 
         this.panLfo = new Tone.LFO({ frequency: 1, min: 0, max: 0 }).start();
 
+        // Detune LFO via Vibrato (inserted in chain before channel)
+        this.vibrato = new Tone.Vibrato({ frequency: 1, depth: 0, wet: 1 });
+
+        // Random modulation: single brown noise source, boosted, split into per-param filtered chains
+        this.randomNoise = new Tone.Noise('brown');
+        this.randomMakeupGain = new Tone.Gain(10); // Boost brown noise which is naturally quiet
+        this.randomNoise.connect(this.randomMakeupGain);
+
+        // Volume random chain
+        this.randomVolFilter = new Tone.Filter({ type: 'lowpass', frequency: 0.5, rolloff: -24 });
+        this.randomVolGain = new Tone.Gain(0);
+        this.randomMakeupGain.connect(this.randomVolFilter);
+        this.randomVolFilter.connect(this.randomVolGain);
+
+        // Pan random chain
+        this.randomPanFilter = new Tone.Filter({ type: 'lowpass', frequency: 0.5, rolloff: -24 });
+        this.randomPanGain = new Tone.Gain(0);
+        this.randomMakeupGain.connect(this.randomPanFilter);
+        this.randomPanFilter.connect(this.randomPanGain);
+
+        // Filter random chain
+        this.randomFilterFilter = new Tone.Filter({ type: 'lowpass', frequency: 0.5, rolloff: -24 });
+        this.randomFilterGain = new Tone.Gain(0);
+        this.randomMakeupGain.connect(this.randomFilterFilter);
+        this.randomFilterFilter.connect(this.randomFilterGain);
+
+        // Detune random chain
+        this.randomDetuneFilter = new Tone.Filter({ type: 'lowpass', frequency: 0.5, rolloff: -24 });
+        this.randomDetuneGain = new Tone.Gain(0);
+        this.randomMakeupGain.connect(this.randomDetuneFilter);
+        this.randomDetuneFilter.connect(this.randomDetuneGain);
+
+        // Start random noise source
+        this.randomNoise.start();
+
         this.reverb = new Tone.Reverb({ decay: 4, wet: 0 });
         this.delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.5, wet: 0 });
         this.chorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0 });
@@ -58,7 +115,7 @@ export class AudioEngine {
         this.panLfo.connect(this.panner.pan);
 
         // Chain effects - note the panner is LAST before output
-        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.chebyshev, this.distortion, this.delay, this.reverb, this.panner, outputDestination);
+        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.chebyshev, this.distortion, this.delay, this.reverb, this.vibrato, this.panner, outputDestination);
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
@@ -104,6 +161,17 @@ export class AudioEngine {
         this.volLfoGain.dispose();
         this.volLfo.dispose();
         this.panLfo.dispose();
+        this.vibrato.dispose();
+        this.randomNoise.dispose();
+        this.randomMakeupGain.dispose();
+        this.randomVolFilter.dispose();
+        this.randomVolGain.dispose();
+        this.randomPanFilter.dispose();
+        this.randomPanGain.dispose();
+        this.randomFilterFilter.dispose();
+        this.randomFilterGain.dispose();
+        this.randomDetuneFilter.dispose();
+        this.randomDetuneGain.dispose();
 
         if (this.sequencePart) {
             this.sequencePart.dispose();
@@ -291,23 +359,110 @@ export class AudioEngine {
         }
     }
 
-    public setAutoFilter(rate: number, baseFrequency: number, octaves: number) {
-        const freq = rate > 0 ? 1 / rate : 0.1;
-        this.autoFilter.set({ frequency: freq, baseFrequency: baseFrequency, octaves: octaves, depth: 1 });
+    public setAutoFilter(rate: number, baseFrequency: number, octaves: number, type: LFOModType = 'sine') {
+        if (type === 'random') {
+            // In random mode, mute the sine autoFilter and modulate the main filter frequency directly
+            this.autoFilter.set({ depth: 0 });
+            // Rate controls smoothing: convert rate (duration in seconds) to cutoff Hz
+            const cutoffHz = rate > 0 ? 1 / rate : 10;
+            this.randomFilterFilter.frequency.rampTo(Math.max(0.01, Math.min(cutoffHz, 20)), 0.1);
+            // Depth: scale random modulation to sweep filter frequency
+            // At full octaves, modulate significantly around the base frequency
+            this.randomFilterGain.gain.rampTo(octaves * 1000, 0.1);
+            if (this.currentFilterLfoType !== 'random') {
+                this.randomFilterGain.connect(this.filter.frequency);
+                this.currentFilterLfoType = 'random';
+            }
+            // Set the main filter to bandpass at the base frequency so the random modulates around it
+            this.filter.set({ frequency: baseFrequency, type: 'bandpass' });
+        } else {
+            // Sine mode: use built-in autoFilter
+            if (this.currentFilterLfoType === 'random') {
+                this.randomFilterGain.disconnect();
+                this.currentFilterLfoType = 'sine';
+            }
+            this.autoFilter.set({ depth: 1 });
+            const freq = rate > 0 ? 1 / rate : 0.1;
+            this.autoFilter.set({ frequency: freq, baseFrequency: baseFrequency, octaves: octaves, depth: 1 });
+        }
     }
 
-    public setVolLFO(rate: number, depth: number) {
-        const freq = rate > 0 ? 1 / rate : 0.1;
-        this.volLfo.frequency.rampTo(freq, 0.1);
-        this.volLfo.min = 1 - depth;
-        this.volLfo.max = 1;
+    public setVolLFO(rate: number, depth: number, type: LFOModType = 'sine') {
+        if (type === 'random') {
+            // Disconnect sine LFO, use random chain
+            this.volLfo.min = 1;
+            this.volLfo.max = 1; // Sine becomes unity passthrough
+            const cutoffHz = rate > 0 ? 1 / rate : 10;
+            this.randomVolFilter.frequency.rampTo(Math.max(0.01, Math.min(cutoffHz, 20)), 0.1);
+            // depth 0-1 maps to gain modulation: at full depth, volume swings 0 to 1
+            this.randomVolGain.gain.rampTo(depth * 0.8, 0.1);
+            if (this.currentVolLfoType !== 'random') {
+                this.randomVolGain.connect(this.volLfoGain.gain);
+                this.currentVolLfoType = 'random';
+            }
+        } else {
+            // Sine mode
+            if (this.currentVolLfoType === 'random') {
+                this.randomVolGain.disconnect();
+                this.currentVolLfoType = 'sine';
+            }
+            this.randomVolGain.gain.rampTo(0, 0.1);
+            const freq = rate > 0 ? 1 / rate : 0.1;
+            this.volLfo.frequency.rampTo(freq, 0.1);
+            this.volLfo.min = 1 - depth;
+            this.volLfo.max = 1;
+        }
     }
 
-    public setPanLFO(rate: number, depth: number) {
-        const freq = rate > 0 ? 1 / rate : 0.1;
-        this.panLfo.frequency.rampTo(freq, 0.1);
-        this.panLfo.min = -depth;
-        this.panLfo.max = depth;
+    public setPanLFO(rate: number, depth: number, type: LFOModType = 'sine') {
+        if (type === 'random') {
+            // Disconnect sine, use random
+            this.panLfo.min = 0;
+            this.panLfo.max = 0;
+            const cutoffHz = rate > 0 ? 1 / rate : 10;
+            this.randomPanFilter.frequency.rampTo(Math.max(0.01, Math.min(cutoffHz, 20)), 0.1);
+            this.randomPanGain.gain.rampTo(depth, 0.1);
+            if (this.currentPanLfoType !== 'random') {
+                this.randomPanGain.connect(this.panner.pan);
+                this.currentPanLfoType = 'random';
+            }
+        } else {
+            if (this.currentPanLfoType === 'random') {
+                this.randomPanGain.disconnect();
+                this.currentPanLfoType = 'sine';
+            }
+            this.randomPanGain.gain.rampTo(0, 0.1);
+            const freq = rate > 0 ? 1 / rate : 0.1;
+            this.panLfo.frequency.rampTo(freq, 0.1);
+            this.panLfo.min = -depth;
+            this.panLfo.max = depth;
+        }
+    }
+
+    public setDetuneLFO(rate: number, depth: number, type: LFOModType = 'sine') {
+        if (type === 'random') {
+            // For random mode, set vibrato to a moderate fixed frequency
+            // and modulate its depth with the random noise chain
+            this.vibrato.set({ frequency: 4, depth: 0, wet: 1 });
+            const cutoffHz = rate > 0 ? 1 / rate : 10;
+            this.randomDetuneFilter.frequency.rampTo(Math.max(0.01, Math.min(cutoffHz, 20)), 0.1);
+            // depth 0-1 -> vibrato depth, capped to avoid extreme artifacts
+            this.randomDetuneGain.gain.rampTo(Math.min(depth, 0.8), 0.1);
+            if (this.currentDetuneLfoType !== 'random') {
+                this.randomDetuneGain.connect(this.vibrato.depth);
+                this.currentDetuneLfoType = 'random';
+            }
+        } else {
+            if (this.currentDetuneLfoType === 'random') {
+                this.randomDetuneGain.disconnect();
+                this.currentDetuneLfoType = 'sine';
+            }
+            this.randomDetuneGain.gain.rampTo(0, 0.1);
+            const freq = rate > 0 ? 1 / rate : 0.1;
+            // For very slow rates, clamp vibrato frequency to avoid sub-audio artifacts
+            const vibratoFreq = Math.max(freq, 0.05);
+            this.vibrato.set({ frequency: vibratoFreq, depth: depth, wet: 1 });
+        }
     }
 
 

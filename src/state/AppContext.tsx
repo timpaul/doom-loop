@@ -121,7 +121,16 @@ const getInitialState = (): AppState => {
                         envRelease: 2.0
                     };
                 }
-                return sound;
+                // Ensure LFO type and detune LFO defaults exist
+                const migrated = { ...sound };
+                if (migrated.volLfoType === undefined) migrated.volLfoType = 'sine';
+                if (migrated.panLfoType === undefined) migrated.panLfoType = 'sine';
+                if (migrated.autoFilterType === undefined) migrated.autoFilterType = 'sine';
+                if (migrated.detuneLfoType === undefined) migrated.detuneLfoType = 'sine';
+                if (migrated.detuneLfoScale === undefined) migrated.detuneLfoScale = 'minute';
+                if (migrated.detuneLfoRate === undefined) migrated.detuneLfoRate = 30;
+                if (migrated.detuneLfoDepth === undefined) migrated.detuneLfoDepth = 0;
+                return migrated;
             };
 
             if (key === 'noisemaker_sounds') {
@@ -386,7 +395,15 @@ const appReducer = (state: AppState, action: Action): AppState => {
                             envRelease: 2.0
                         };
                     }
-                    return sound;
+                    const migrated = { ...sound };
+                    if (migrated.volLfoType === undefined) migrated.volLfoType = 'sine';
+                    if (migrated.panLfoType === undefined) migrated.panLfoType = 'sine';
+                    if (migrated.autoFilterType === undefined) migrated.autoFilterType = 'sine';
+                    if (migrated.detuneLfoType === undefined) migrated.detuneLfoType = 'sine';
+                    if (migrated.detuneLfoScale === undefined) migrated.detuneLfoScale = 'minute';
+                    if (migrated.detuneLfoRate === undefined) migrated.detuneLfoRate = 30;
+                    if (migrated.detuneLfoDepth === undefined) migrated.detuneLfoDepth = 0;
+                    return migrated;
                 };
 
                 const importedSounds = Array.isArray(importData.sounds)
@@ -438,7 +455,15 @@ const appReducer = (state: AppState, action: Action): AppState => {
                             envRelease: 2.0
                         };
                     }
-                    return sound;
+                    const migrated = { ...sound };
+                    if (migrated.volLfoType === undefined) migrated.volLfoType = 'sine';
+                    if (migrated.panLfoType === undefined) migrated.panLfoType = 'sine';
+                    if (migrated.autoFilterType === undefined) migrated.autoFilterType = 'sine';
+                    if (migrated.detuneLfoType === undefined) migrated.detuneLfoType = 'sine';
+                    if (migrated.detuneLfoScale === undefined) migrated.detuneLfoScale = 'minute';
+                    if (migrated.detuneLfoRate === undefined) migrated.detuneLfoRate = 30;
+                    if (migrated.detuneLfoDepth === undefined) migrated.detuneLfoDepth = 0;
+                    return migrated;
                 };
 
                 const localTrackIds = new Set(state.savedTracks.map(t => t.id));

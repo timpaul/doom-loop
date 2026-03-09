@@ -1,6 +1,7 @@
 import type { SoundType, NoiseColor } from './audio/AudioEngine';
 
 export type LFOScale = 'second' | 'minute' | 'hour';
+export type LFOType = 'sine' | 'random';
 
 export interface StepConfig {
     activeNotes: string[];
@@ -35,16 +36,23 @@ export interface SoundState {
     filterMaxFreq: number;
     filterFreq: number;
     filterQ: number;
+    volLfoType?: LFOType;
     volLfoScale: LFOScale;
     volLfoRate: number; // rate is duration in UI confusingly
     volLfoDepth: number;
+    panLfoType?: LFOType;
     panLfoScale: LFOScale;
     panLfoRate: number;
     panLfoDepth: number;
+    autoFilterType?: LFOType;
     autoFilterRate: number;
     autoFilterScale: LFOScale;
     autoFilterBaseFreq: number;
     autoFilterOctaves: number;
+    detuneLfoType?: LFOType;
+    detuneLfoScale?: LFOScale;
+    detuneLfoRate?: number;
+    detuneLfoDepth?: number;
     reverbAmount: number;
     delayAmount: number;
     chorusAmount: number;
@@ -104,7 +112,7 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     ],
     stepRatios: [null, null, null, null, null, null, null, null],
     seqLengthScale: 'minute',
-    seqLengthRate: 30, // 30 seconds default
+    seqLengthRate: 30,
     envAttack: 0.5,
     envDecay: 0.1,
     envSustain: 1.0,
@@ -116,16 +124,23 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     filterMaxFreq: 20000,
     filterFreq: 1000,
     filterQ: 1,
+    volLfoType: 'sine',
     volLfoScale: 'minute',
     volLfoRate: 30,
     volLfoDepth: 0,
+    panLfoType: 'sine',
     panLfoScale: 'minute',
     panLfoRate: 30,
     panLfoDepth: 0,
+    autoFilterType: 'sine',
     autoFilterRate: 45,
     autoFilterScale: 'minute',
     autoFilterBaseFreq: 8000,
     autoFilterOctaves: 1,
+    detuneLfoType: 'sine',
+    detuneLfoScale: 'minute',
+    detuneLfoRate: 30,
+    detuneLfoDepth: 0,
     reverbAmount: 0,
     delayAmount: 0,
     chorusAmount: 0,
