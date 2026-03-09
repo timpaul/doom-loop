@@ -236,6 +236,8 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                           const newRatios = [...sound.stepRatios];
                           if (val === '') {
                             newRatios[step] = null;
+                          } else if (val === '-') {
+                            newRatios[step] = '-';
                           } else {
                             const num = parseInt(val, 10);
                             if (!isNaN(num) && num >= 0) {

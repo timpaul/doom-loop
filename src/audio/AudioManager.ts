@@ -99,9 +99,13 @@ class AudioManager {
 
         // Compute sequence events for both tone and noise
         const totalDuration = sound.seqLengthRate;
-        const validSteps = sound.stepConfigs.map((config, index) => ({ config, ratio: sound.stepRatios[index] })).filter(item => typeof item.ratio === 'number' && item.ratio > 0);
+        const validSteps = sound.stepConfigs.map((config, index) => ({ config, ratio: sound.stepRatios[index] }))
+            .filter(item => (typeof item.ratio === 'number' && item.ratio > 0) || item.ratio === '-');
         const isContinuous = validSteps.length === 0;
-        const totalRatio = validSteps.reduce((sum, item) => sum + (item.ratio as number), 0);
+        const totalRatio = validSteps.reduce((sum, item) => {
+            const r = item.ratio === '-' ? 1 : (item.ratio as number);
+            return sum + r;
+        }, 0);
 
         const events: Array<{ time: number, notes: string[], duration: number }> = [];
         let currentTime = 0;
@@ -115,8 +119,9 @@ class AudioManager {
             });
         } else if (totalRatio > 0 && validSteps.length > 0) {
             for (const step of validSteps) {
-                const stepDuration = (step.ratio as number) / totalRatio * totalDuration;
-                const notes = step.config.activeNotes.map(n => `${n}${step.config.octave}`);
+                const stepRatio = step.ratio === '-' ? 1 : (step.ratio as number);
+                const stepDuration = stepRatio / totalRatio * totalDuration;
+                const notes = step.ratio === '-' ? [] : step.config.activeNotes.map(n => `${n}${step.config.octave}`);
                 events.push({
                     time: currentTime,
                     notes,

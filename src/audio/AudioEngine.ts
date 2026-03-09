@@ -155,8 +155,10 @@ export class AudioEngine {
                     this.noiseEnv.triggerAttack();
                 } else {
                     this.sequencePart = new Tone.Part((time, event) => {
-                        const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
-                        this.noiseEnv.triggerAttackRelease(playDuration, time);
+                        if (event.notes && event.notes.length > 0) {
+                            const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
+                            this.noiseEnv.triggerAttackRelease(playDuration, time);
+                        }
                     }, events).start(0);
 
                     this.sequencePart.loop = true;

@@ -15,7 +15,7 @@ export interface SoundState {
     sourceType: SoundType;
     noiseColor: NoiseColor;
     stepConfigs: StepConfig[];
-    stepRatios: (number | null)[];
+    stepRatios: (number | string | null)[];
     seqLengthScale: LFOScale;
     seqLengthRate: number;
     playMode: PlayMode;

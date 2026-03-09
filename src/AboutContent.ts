@@ -24,6 +24,7 @@ There are various effects you can apply to sounds, you can modulate things like 
 The sequencer is... unconventional. Instead of directly specifying note or chord lengths, you instead define the overall loop length and the _relative_ lengths of each step, expressed as integer ratios. 
 
 So for example, ratios of 1, 1, 1, 2 would define a 4 step sequence where the last step plays for twice as long as the other 3. If no ratios are provided step 1 is used to create a continuous sound with no looping.
+A dash in a step ratio field makes it act like a rest with a ratio of 1.
 
 By default, all the selected notes in a step are played at the same time, but you can also set the sequencer to play just one of them at random - good for generating random and nonrepeating melodies based on chords.
 
