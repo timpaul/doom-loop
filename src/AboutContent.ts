@@ -36,7 +36,15 @@ You can combine multiple tracks into Mixes, which work a lot like playlists in o
 
 Unlike standard playlists though, a Doom Loop mix has you define the overall mix length, and that is then split evenly across all the tracks in the mix. You can also set mixes to fade in and out and crossfade between tracks. Fades can last up to 10 minutes - great for creating sleep mixes or slowly evolving ambient suites.
 
-If you delete a track from a mix it will NOT remove the track from your library. But if you delete a track from your library it will also be removed from any mixes that it's in.
+Note that if you delete a track from a mix it will NOT remove the track from your library. But if you delete a track from your library it will also be removed from any mixes that it's in.
+
+
+## Playback
+
+Audio _should_ continue to play if you lock your phone or switch to another app. 
+However, I've found that on iPhones it's best to wait until your screen locks of it's own accord.
+Otherwise you tend to get stuttering and broken audio. Annoying - blame Apple's deliberate nerfing of web apps.
+
 
 
 ## Importing and exporting tracks and mixes
