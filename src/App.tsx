@@ -1085,6 +1085,12 @@ function App() {
   const { state, dispatch } = useAppState();
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isMetaExpanded, setIsMetaExpanded] = useState(false);
+
+  // Auto-scroll to top when screen changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [state.currentScreen]);
+
   const audioRef = useRef<HTMLAudioElement>(null)
   const initialized = useRef(false)
 

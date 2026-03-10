@@ -269,7 +269,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             newState.sounds = [initialSound];
             newState.expandedId = '1';
             newState.currentScreen = 'main';
-            newState.isPlaying = false;
+            newState.isPlaying = true;
             newState.playbackMode = 'track';
             break;
         }
