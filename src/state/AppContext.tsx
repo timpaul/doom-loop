@@ -517,6 +517,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const prevTrackIdRef = useRef(state.currentTrackId);
     const prevMixIdRef = useRef(state.currentMixId);
     const prevPlaybackModeRef = useRef(state.playbackMode);
+    const prevIsPlayingRef = useRef(state.isPlaying);
 
     // LocalStorage Syncing
     useEffect(() => { localStorage.setItem('noisemaker_listMode', state.listMode); }, [state.listMode]);
@@ -542,9 +543,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 const modeChanged = prevPlaybackModeRef.current !== state.playbackMode;
 
                 if (state.playbackMode === 'mix' && state.currentMixId) {
-                    const mixChanged = prevMixIdRef.current !== state.currentMixId;
 
-                    if (modeChanged || mixChanged) {
+                    if (modeChanged || prevMixIdRef.current !== state.currentMixId) {
                         // Only stop and re-initialize mix when mode or mix actually changed
                         audioManager.stopAll();
                         const mix = state.savedMixes.find(m => m.id === state.currentMixId);
@@ -552,6 +552,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                             mixPlayer.updateMix(mix, state.savedTracks);
                             mixPlayer.play();
                         }
+                    } else if (!prevIsPlayingRef.current && state.isPlaying) {
+                        // Resuming from pause
+                        mixPlayer.play();
                     }
                 } else {
                     // Playing a track
@@ -573,10 +576,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 prevPlaybackModeRef.current = state.playbackMode;
                 prevMixIdRef.current = state.currentMixId;
                 prevTrackIdRef.current = state.currentTrackId;
+                prevIsPlayingRef.current = state.isPlaying;
             });
         } else {
             audioManager.stopAll();
             mixPlayer.pause();
+            prevIsPlayingRef.current = false;
         }
     }, [state.isPlaying, state.playbackMode, state.currentTrackId, state.currentMixId, state.sounds, state.savedTracks, state.savedMixes]);
 

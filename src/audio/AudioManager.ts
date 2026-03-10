@@ -203,6 +203,7 @@ class AudioManager {
     public clearAll() {
         this.engines.forEach(engine => engine.dispose());
         this.engines.clear();
+        this.previousSources.clear();
         this.trackGains.forEach(gainNode => gainNode.dispose());
         this.trackGains.clear();
     }
