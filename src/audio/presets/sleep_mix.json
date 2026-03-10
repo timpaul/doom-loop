@@ -1,20 +1,20 @@
 {
   "type": "doom-loop-mix",
   "mix": {
-    "id": "mix-1772893415493",
+    "lengthMinutes": 119.94164595097484,
+    "shuffle": false,
+    "repeat": false,
+    "fadeInMinutes": 0,
+    "fadeOutMinutes": 10,
+    "crossFadeMinutes": 0,
+    "id": "mix-1773062006943-366",
     "name": "Sleep Mix",
     "items": [
       {
         "id": "item-1772893462060-mya1qg",
         "trackId": "track-1772878750991"
       }
-    ],
-    "lengthMinutes": 119.94164595097484,
-    "shuffle": false,
-    "repeat": false,
-    "fadeInMinutes": 0,
-    "fadeOutMinutes": 10,
-    "crossFadeMinutes": 0
+    ]
   },
   "tracks": [
     {
@@ -119,7 +119,7 @@
           "envSustain": 1,
           "envRelease": 2,
           "noteLengthRatio": 1,
-          "volume": 0.85,
+          "volume": 0.71,
           "pan": 0,
           "filterMinFreq": 200,
           "filterMaxFreq": 20000,
@@ -139,7 +139,18 @@
           "delayAmount": 0,
           "chorusAmount": 0,
           "distortionAmount": 0,
-          "chebyshevAmount": 0
+          "chebyshevAmount": 0,
+          "volLfoType": "sine",
+          "volLfoAdjust": 0.5,
+          "panLfoType": "sine",
+          "panLfoAdjust": 0.5,
+          "autoFilterType": "sine",
+          "autoFilterAdjust": 0.5,
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "detuneLfoType": "sine",
+          "detuneLfoAdjust": 0.5
         },
         {
           "id": "16",
@@ -259,9 +270,22 @@
           "delayAmount": 0,
           "chorusAmount": 0,
           "distortionAmount": 0,
-          "chebyshevAmount": 0
+          "chebyshevAmount": 0,
+          "volLfoType": "sine",
+          "volLfoAdjust": 0.5,
+          "panLfoType": "sine",
+          "panLfoAdjust": 0.5,
+          "autoFilterType": "sine",
+          "autoFilterAdjust": 0.5,
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "detuneLfoType": "sine",
+          "detuneLfoAdjust": 0.5
         }
-      ]
+      ],
+      "author": "Tim Paul",
+      "notes": "A simple noise track for sleep or focus"
     }
   ]
 }
