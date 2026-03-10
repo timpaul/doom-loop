@@ -147,3 +147,52 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     distortionAmount: 0,
     chebyshevAmount: 0
 };
+
+/**
+ * Migrates legacy sound data to the current SoundState schema.
+ * Handles three generations of legacy formats:
+ * 1. Pre-sequencer: no stepConfigs at all
+ * 2. Pre-envelope: no ADSR fields
+ * 3. Pre-LFO types: missing LFO type/detune LFO fields
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function migrateSound(sound: any): SoundState {
+    if (!sound.stepConfigs) {
+        const defaultNotes = sound.activeNotes || ['C', 'Eb', 'G', 'Bb'];
+        const defaultOctave = sound.octave ?? 3;
+        const defaultDetune = sound.detune ?? 0;
+        return {
+            ...sound,
+            stepConfigs: Array.from({ length: 8 }, () => ({
+                activeNotes: defaultNotes,
+                octave: defaultOctave,
+                detune: defaultDetune
+            })),
+            stepRatios: [1, null, null, null, null, null, null, null],
+            seqLengthScale: 'minute',
+            seqLengthRate: 30,
+            envAttack: 0.5,
+            envDecay: 0.1,
+            envSustain: 1.0,
+            envRelease: 2.0
+        };
+    }
+    if (sound.envAttack === undefined) {
+        return {
+            ...sound,
+            envAttack: 0.5,
+            envDecay: 0.1,
+            envSustain: 1.0,
+            envRelease: 2.0
+        };
+    }
+    const migrated = { ...sound };
+    if (migrated.volLfoType === undefined) migrated.volLfoType = 'sine';
+    if (migrated.panLfoType === undefined) migrated.panLfoType = 'sine';
+    if (migrated.autoFilterType === undefined) migrated.autoFilterType = 'sine';
+    if (migrated.detuneLfoType === undefined) migrated.detuneLfoType = 'sine';
+    if (migrated.detuneLfoScale === undefined) migrated.detuneLfoScale = 'minute';
+    if (migrated.detuneLfoRate === undefined) migrated.detuneLfoRate = 30;
+    if (migrated.detuneLfoDepth === undefined) migrated.detuneLfoDepth = 0;
+    return migrated;
+}

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { DEFAULT_SOUND } from '../types';
+import { DEFAULT_SOUND, migrateSound } from '../types';
 import type { SoundState, TrackState } from '../types';
 import { audioManager } from '../audio/AudioManager';
 import { mixPlayer } from '../audio/MixPlayer';
@@ -83,55 +83,7 @@ const getInitialState = (): AppState => {
             if (!val) return backup;
             const parsed = JSON.parse(val);
 
-            // Migration logic for old sounds without sequencer config
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const migrateSound = (sound: any) => {
-                if (!sound.stepConfigs) {
-                    const defaultNotes = sound.activeNotes || ['C', 'Eb', 'G', 'Bb'];
-                    const defaultOctave = sound.octave ?? 3;
-                    const defaultDetune = sound.detune ?? 0;
-                    return {
-                        ...sound,
-                        stepConfigs: [
-                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                            { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                        ],
-                        stepRatios: [1, null, null, null, null, null, null, null],
-                        seqLengthScale: 'minute',
-                        seqLengthRate: 30,
-                        envAttack: 0.5,
-                        envDecay: 0.1,
-                        envSustain: 1.0,
-                        envRelease: 2.0
-                    };
-                }
-                // Migration for legacy sounds without ADRS config
-                if (sound.envAttack === undefined) {
-                    return {
-                        ...sound,
-                        envAttack: 0.5,
-                        envDecay: 0.1,
-                        envSustain: 1.0,
-                        envRelease: 2.0
-                    };
-                }
-                // Ensure LFO type and detune LFO defaults exist
-                const migrated = { ...sound };
-                if (migrated.volLfoType === undefined) migrated.volLfoType = 'sine';
-                if (migrated.panLfoType === undefined) migrated.panLfoType = 'sine';
-                if (migrated.autoFilterType === undefined) migrated.autoFilterType = 'sine';
-                if (migrated.detuneLfoType === undefined) migrated.detuneLfoType = 'sine';
-                if (migrated.detuneLfoScale === undefined) migrated.detuneLfoScale = 'minute';
-                if (migrated.detuneLfoRate === undefined) migrated.detuneLfoRate = 30;
-                if (migrated.detuneLfoDepth === undefined) migrated.detuneLfoDepth = 0;
-                return migrated;
-            };
+
 
             if (key === 'noisemaker_sounds') {
                 return Array.isArray(parsed) ? parsed.map(migrateSound) : backup;
@@ -358,53 +310,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'IMPORT_TRACK': {
             try {
-                // Ensure array of sounds and apply migrations
                 const importData = action.payload;
-                const migrateSound = (sound: any) => {
-                    if (!sound.stepConfigs) {
-                        const defaultNotes = sound.activeNotes || ['C', 'Eb', 'G', 'Bb'];
-                        const defaultOctave = sound.octave ?? 3;
-                        const defaultDetune = sound.detune ?? 0;
-                        return {
-                            ...sound,
-                            stepConfigs: [
-                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                                { activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune },
-                            ],
-                            stepRatios: [1, null, null, null, null, null, null, null],
-                            seqLengthScale: 'minute',
-                            seqLengthRate: 30,
-                            envAttack: 0.5,
-                            envDecay: 0.1,
-                            envSustain: 1.0,
-                            envRelease: 2.0
-                        };
-                    }
-                    if (sound.envAttack === undefined) {
-                        return {
-                            ...sound,
-                            envAttack: 0.5,
-                            envDecay: 0.1,
-                            envSustain: 1.0,
-                            envRelease: 2.0
-                        };
-                    }
-                    const migrated = { ...sound };
-                    if (migrated.volLfoType === undefined) migrated.volLfoType = 'sine';
-                    if (migrated.panLfoType === undefined) migrated.panLfoType = 'sine';
-                    if (migrated.autoFilterType === undefined) migrated.autoFilterType = 'sine';
-                    if (migrated.detuneLfoType === undefined) migrated.detuneLfoType = 'sine';
-                    if (migrated.detuneLfoScale === undefined) migrated.detuneLfoScale = 'minute';
-                    if (migrated.detuneLfoRate === undefined) migrated.detuneLfoRate = 30;
-                    if (migrated.detuneLfoDepth === undefined) migrated.detuneLfoDepth = 0;
-                    return migrated;
-                };
 
                 const importedSounds = Array.isArray(importData.sounds)
                     ? importData.sounds.map(migrateSound)
@@ -427,44 +333,6 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'IMPORT_MIX': {
             try {
                 const { mix, tracks } = action.payload;
-
-                // Helper to safely parse sounds with backward compat
-                const migrateSound = (sound: any) => {
-                    if (!sound.stepConfigs) {
-                        const defaultNotes = sound.activeNotes || ['C', 'Eb', 'G', 'Bb'];
-                        const defaultOctave = sound.octave ?? 3;
-                        const defaultDetune = sound.detune ?? 0;
-                        return {
-                            ...sound,
-                            stepConfigs: Array(8).fill({ activeNotes: defaultNotes, octave: defaultOctave, detune: defaultDetune }),
-                            stepRatios: [1, ...Array(7).fill(null)],
-                            seqLengthScale: 'minute',
-                            seqLengthRate: 30,
-                            envAttack: 0.5,
-                            envDecay: 0.1,
-                            envSustain: 1.0,
-                            envRelease: 2.0
-                        };
-                    }
-                    if (sound.envAttack === undefined) {
-                        return {
-                            ...sound,
-                            envAttack: 0.5,
-                            envDecay: 0.1,
-                            envSustain: 1.0,
-                            envRelease: 2.0
-                        };
-                    }
-                    const migrated = { ...sound };
-                    if (migrated.volLfoType === undefined) migrated.volLfoType = 'sine';
-                    if (migrated.panLfoType === undefined) migrated.panLfoType = 'sine';
-                    if (migrated.autoFilterType === undefined) migrated.autoFilterType = 'sine';
-                    if (migrated.detuneLfoType === undefined) migrated.detuneLfoType = 'sine';
-                    if (migrated.detuneLfoScale === undefined) migrated.detuneLfoScale = 'minute';
-                    if (migrated.detuneLfoRate === undefined) migrated.detuneLfoRate = 30;
-                    if (migrated.detuneLfoDepth === undefined) migrated.detuneLfoDepth = 0;
-                    return migrated;
-                };
 
                 const localTrackIds = new Set(state.savedTracks.map(t => t.id));
                 const newTracksToSave: TrackState[] = [];
