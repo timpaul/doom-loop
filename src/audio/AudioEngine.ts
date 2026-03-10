@@ -40,7 +40,6 @@ export class AudioEngine {
     private currentVolLfoType: LFOModType = 'sine';
     private currentPanLfoType: LFOModType = 'sine';
     private currentFilterLfoType: LFOModType = 'sine';
-    private currentDetuneLfoType: LFOModType = 'sine';
 
     private reverb: Tone.Reverb;
     private delay: Tone.FeedbackDelay;
@@ -431,20 +430,17 @@ export class AudioEngine {
             // and periodically update depth with random values
             this.vibrato.set({ frequency: 4, depth: 0, wet: 1 });
             const intervalMs = Math.max(50, (rate / 4) * 1000);
-            const rampTime = intervalMs / 1000 * 0.8;
             if (this.randomDetuneInterval) clearInterval(this.randomDetuneInterval);
             this.randomDetuneInterval = setInterval(() => {
                 const randomDepth = Math.random() * Math.min(depth, 0.8);
                 this.vibrato.set({ depth: randomDepth });
             }, intervalMs);
-            this.currentDetuneLfoType = 'random';
         } else {
             if (this.randomDetuneInterval) { clearInterval(this.randomDetuneInterval); this.randomDetuneInterval = null; }
             const freq = rate > 0 ? 1 / rate : 0.1;
             // Clamp vibrato frequency to avoid sub-audio artifacts
             const vibratoFreq = Math.max(freq, 0.05);
             this.vibrato.set({ frequency: vibratoFreq, depth: depth, wet: 1 });
-            this.currentDetuneLfoType = 'sine';
         }
     }
 
