@@ -1,6 +1,8 @@
 {
-  "id": "track-1772559640327",
+  "id": "track-1773062040003-945",
   "name": "Kaiso Rando",
+  "author": "",
+  "notes": "",
   "sounds": [
     {
       "id": "1",
@@ -108,7 +110,18 @@
       "playMode": "random",
       "isMuted": false,
       "noteLengthRatio": 0.3,
-      "chebyshevAmount": 0.09
+      "chebyshevAmount": 0.09,
+      "volLfoType": "sine",
+      "volLfoAdjust": 0.5,
+      "panLfoType": "sine",
+      "panLfoAdjust": 0.5,
+      "autoFilterType": "sine",
+      "autoFilterAdjust": 0.5,
+      "detuneLfoScale": "minute",
+      "detuneLfoRate": 30,
+      "detuneLfoDepth": 0,
+      "detuneLfoType": "sine",
+      "detuneLfoAdjust": 0.5
     }
   ]
 }

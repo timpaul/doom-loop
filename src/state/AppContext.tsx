@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { DEFAULT_SOUND } from '../types';
 import type { SoundState, TrackState } from '../types';
@@ -631,6 +631,7 @@ const AppContext = createContext<{ state: AppState; dispatch: React.Dispatch<Act
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(appReducer, getInitialState());
+    const prevTrackIdRef = useRef(state.currentTrackId);
 
     // LocalStorage Syncing
     useEffect(() => { localStorage.setItem('noisemaker_listMode', state.listMode); }, [state.listMode]);
@@ -661,6 +662,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     }
                 } else {
                     mixPlayer.stop();
+                    if (prevTrackIdRef.current !== state.currentTrackId) {
+                        audioManager.clearAll();
+                        prevTrackIdRef.current = state.currentTrackId;
+                    }
                     state.sounds.forEach(sound => {
                         audioManager.syncSoundState(sound, true);
                     });
