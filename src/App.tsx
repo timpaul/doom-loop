@@ -1240,6 +1240,7 @@ function App() {
       {state.currentScreen === 'load' ? (
         <div className="app-container load-screen">
           <img src={`${import.meta.env.BASE_URL}doom-logo.png`} alt="Doom Loop Logo" className="doom-logo-img" />
+          <button className="alpha-sticker" onClick={() => setIsAboutModalOpen(true)}>alpha</button>
           <div className="segmented-control">
             <button
               className={`segment-btn ${state.listMode === 'tracks' ? 'active' : ''}`}

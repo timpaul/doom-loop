@@ -533,6 +533,27 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
     height: auto;
 }
 
+.alpha-sticker {
+    font-family: 'Questrial', 'Century Gothic', 'Futura', sans-serif;
+    background: #252525;
+    color: var(--accent-color);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    width: 105px;
+    margin: -40px auto 0;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+    opacity: 0.8;
+}
+
+.alpha-sticker:hover {
+    background: #333;
+    opacity: 1;
+    transform: scale(1.05);
+}
+
 /* Load Screen */
 .load-screen {
     display: flex;
