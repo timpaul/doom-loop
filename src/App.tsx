@@ -1268,8 +1268,8 @@ function App() {
           <div className="quick-create-panel">
             <span className="quick-create-count">
               {state.listMode === 'tracks'
-                ? `${state.savedTracks.length} tracks`
-                : `${state.savedMixes.length} mixes`
+                ? `${state.savedTracks.length} ${state.savedTracks.length === 1 ? 'track' : 'tracks'}`
+                : `${state.savedMixes.length} ${state.savedMixes.length === 1 ? 'mix' : 'mixes'}`
               }
             </span>
             <button
