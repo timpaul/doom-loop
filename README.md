@@ -200,6 +200,33 @@ When exported, mixes bundle their referenced tracks for portability:
 }
 ```
 
+## Generation Guide (for Humans and AIs)
+
+When generating tracks or mixes for Doom Loop, follow these rules to ensure the results are audible, balanced, and compatible.
+
+### 1. Volume & Headroom
+- **Default Baseline:** Use `0.25` for single sounds. Summing multiple sounds at `0.5` or higher will likely trigger the master limiter and cause distortion.
+- **Chord Density:** If a sound plays 4+ note chords, use `0.15` to `0.2`.
+- **Limiter:** The app has a brick-wall limiter at `-0.3dB`. It will prevent clipping but will "squash" your sound if it's too hot.
+
+### 2. Envelopes & Drones
+- **Continuous Sounds:** To create a drone, set `stepRatios` to `[null, null, ...]` and `envSustain` to `1.0`. 
+- **Missing Sustain:** If `envSustain` is `0`, the sound will immediately silence after the attack/decay, regardless of the sequencer.
+- **Transitions:** Use long `envAttack` and `envRelease` (5–10s) for ambient "swells".
+
+### 3. Filters & AutoFilter
+- **Filter Type:** By default, `filterFreq < 18000` Hz uses a `bandpass` filter for focused, "airy" sounds. `20000` Hz uses a `lowpass` for full-range sound.
+- **AutoFilter Base:** Set `autoFilterBaseFreq` to at least `200` Hz for tone sounds to avoid muting them. For noise, you can go lower (`20-60` Hz) for "sub" pressure.
+- **Sweep Range:** Keep `autoFilterOctaves` between `1` and `4` for subtle movement. `8+` octaves can create very aggressive, piercing sweeps.
+
+### 4. Logic & Scaling
+- **Sequencer Length:** `seqLengthRate` is always in **seconds**, regardless of whether the UI scale (`seqLengthScale`) is set to minutes or hours.
+- **Note Names:** Only use sharp (`#`) or flat (`b`) notation: `C#` or `Db`. Do not use both in the same chord unless you want specific microtonality.
+- **IDs:** Mix items (`mix.items`) MUST have a unique `id` and a `trackId` that matches one of the tracks in the `tracks` array.
+
+### 5. AI Prompting Tip
+If asking an AI to generate a mix, provide it with the `TrackState` and `SoundState` interfaces from `types.ts` and remind it that **"lower volumes and higher sustain make for better ambient drones."**
+
 ## Tech Stack
 
 - **[Tone.js](https://tonejs.github.io/)** — Web Audio synthesis, sequencing, and effects
