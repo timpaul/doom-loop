@@ -164,6 +164,7 @@ header {
     align-items: center;
     justify-content: space-between;
     padding: 16px;
+    position: relative;
 }
 
 .icon-btn {
@@ -252,6 +253,9 @@ header {
 }
 
 .noise-name-input {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     background: transparent;
     border: none;
     color: var(--text-primary);
@@ -259,8 +263,8 @@ header {
     font-weight: 400;
     text-align: center;
     width: 200px;
-    margin-left: 35px;
     outline: none;
+    pointer-events: auto;
 }
 
 .noise-name-input:focus {
