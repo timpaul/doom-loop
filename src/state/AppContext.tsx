@@ -43,6 +43,7 @@ export interface AppState {
     sounds: SoundState[];
     expandedId: string;
     nextId: number;
+    playbackMode: 'track' | 'mix';
 }
 
 export type Action =
@@ -158,7 +159,8 @@ const getInitialState = (): AppState => {
         sounds,
         toastMessage: null,
         expandedId,
-        nextId: parseJSON('noisemaker_nextId', 2)
+        nextId: parseJSON('noisemaker_nextId', 2),
+        playbackMode: 'track'
     };
 };
 
@@ -240,6 +242,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             newState.sounds = action.payload.sounds;
             newState.currentScreen = 'main';
             newState.expandedId = action.payload.sounds.length > 0 ? action.payload.sounds[0].id : '';
+            newState.playbackMode = 'track';
             break;
         case 'LOAD_AND_PLAY_TRACK':
             newState.currentTrackId = action.payload.id;
@@ -247,6 +250,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             newState.sounds = action.payload.sounds;
             newState.isPlaying = true;
             newState.expandedId = action.payload.sounds.length > 0 ? action.payload.sounds[0].id : '';
+            newState.playbackMode = 'track';
             break;
         case 'CREATE_TRACK': {
             const newId = `track-${Date.now()}`;
@@ -258,6 +262,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             newState.expandedId = '1';
             newState.currentScreen = 'main';
             newState.isPlaying = false;
+            newState.playbackMode = 'track';
             break;
         }
         case 'DELETE_TRACK':
@@ -432,10 +437,12 @@ const appReducer = (state: AppState, action: Action): AppState => {
             }
             newState.currentMixId = action.payload;
             newState.currentScreen = 'mixDetail';
+            newState.playbackMode = 'mix';
             break;
         case 'LOAD_AND_PLAY_MIX':
             newState.currentMixId = action.payload;
             newState.isPlaying = true;
+            newState.playbackMode = 'mix';
             break;
         case 'UPDATE_MIX_SETTINGS':
             if (state.currentMixId) {
@@ -500,6 +507,8 @@ const AppContext = createContext<{ state: AppState; dispatch: React.Dispatch<Act
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(appReducer, getInitialState());
     const prevTrackIdRef = useRef(state.currentTrackId);
+    const prevMixIdRef = useRef(state.currentMixId);
+    const prevPlaybackModeRef = useRef(state.playbackMode);
 
     // LocalStorage Syncing
     useEffect(() => { localStorage.setItem('noisemaker_listMode', state.listMode); }, [state.listMode]);
@@ -522,29 +531,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (state.isPlaying) {
             audioManager.resumeContext().then(() => audioManager.initialize()).then(() => {
-                if (state.currentScreen === 'mixDetail' || (state.currentScreen === 'load' && state.listMode === 'mixes' && state.currentMixId)) {
-                    const mix = state.savedMixes.find(m => m.id === state.currentMixId);
-                    if (mix) {
-                        mixPlayer.updateMix(mix, state.savedTracks);
-                        mixPlayer.play();
+                const modeChanged = prevPlaybackModeRef.current !== state.playbackMode;
+
+                if (state.playbackMode === 'mix' && state.currentMixId) {
+                    const mixChanged = prevMixIdRef.current !== state.currentMixId;
+
+                    if (modeChanged || mixChanged) {
+                        // Only stop and re-initialize mix when mode or mix actually changed
+                        audioManager.stopAll();
+                        const mix = state.savedMixes.find(m => m.id === state.currentMixId);
+                        if (mix) {
+                            mixPlayer.updateMix(mix, state.savedTracks);
+                            mixPlayer.play();
+                        }
                     }
                 } else {
-                    mixPlayer.stop();
-                    if (prevTrackIdRef.current !== state.currentTrackId) {
-                        audioManager.clearAll();
-                        prevTrackIdRef.current = state.currentTrackId;
+                    // Playing a track
+                    if (modeChanged) {
+                        mixPlayer.stop();
                     }
+
+                    if (modeChanged || prevTrackIdRef.current !== state.currentTrackId) {
+                        audioManager.clearAll();
+                    }
+
                     state.sounds.forEach(sound => {
                         audioManager.syncSoundState(sound, true);
                     });
                     audioManager.cleanupEngines(state.sounds.map(s => s.id));
                 }
+
+                // Update refs for next check
+                prevPlaybackModeRef.current = state.playbackMode;
+                prevMixIdRef.current = state.currentMixId;
+                prevTrackIdRef.current = state.currentTrackId;
             });
         } else {
             audioManager.stopAll();
             mixPlayer.pause();
         }
-    }, [state.isPlaying, state.sounds, state.currentScreen, state.listMode, state.currentMixId, state.savedMixes, state.savedTracks]);
+    }, [state.isPlaying, state.playbackMode, state.currentTrackId, state.currentMixId, state.sounds, state.savedTracks, state.savedMixes]);
 
     return (
         <AppContext.Provider value={{ state, dispatch }}>

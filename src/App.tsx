@@ -852,9 +852,9 @@ function MixDetailScreen({ togglePlay }: { togglePlay: () => void }) {
         <button
           className="play-button"
           onClick={togglePlay}
-          aria-label={state.isPlaying ? "Pause" : "Play"}
+          aria-label={state.isPlaying && state.playbackMode === 'mix' ? "Pause" : "Play"}
         >
-          {state.isPlaying ? <PauseIcon /> : <PlayIcon />}
+          {state.isPlaying && state.playbackMode === 'mix' ? <PauseIcon /> : <PlayIcon />}
         </button>
       </div>
 
@@ -1103,14 +1103,11 @@ function App() {
       initialized.current = true;
     }
 
-    const isTrackPlaying = state.isPlaying && state.currentTrackId === track.id;
+    const isTrackPlaying = state.isPlaying && state.playbackMode === 'track' && state.currentTrackId === track.id;
 
     if (isTrackPlaying) {
       dispatch({ type: 'TOGGLE_PLAY' });
     } else {
-      if (state.isPlaying) {
-        audioManager.stopAll();
-      }
       dispatch({ type: 'LOAD_AND_PLAY_TRACK', payload: track });
     }
   };
@@ -1122,19 +1119,12 @@ function App() {
       initialized.current = true;
     }
 
-    const isMixPlaying = state.isPlaying && state.currentMixId === mix.id;
+    const isMixPlaying = state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
 
     if (isMixPlaying) {
       dispatch({ type: 'TOGGLE_PLAY' });
     } else {
-      if (state.isPlaying) {
-        audioManager.stopAll();
-      }
-      // If we are not currently viewing this mix, or it's not the active mix, load it and toggle play
-      if (state.currentMixId !== mix.id) {
-        dispatch({ type: 'LOAD_MIX', payload: mix.id });
-      }
-      dispatch({ type: 'TOGGLE_PLAY' });
+      dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
     }
   };
 
@@ -1288,7 +1278,7 @@ function App() {
                     <p className="empty-state">No saved tracks yet.</p>
                   ) : (
                     state.savedTracks.map(track => {
-                      const isTrackPlaying = state.isPlaying && state.currentTrackId === track.id;
+                      const isTrackPlaying = state.isPlaying && state.playbackMode === 'track' && state.currentTrackId === track.id;
                       return (
                         <div key={track.id} className="track-list-item" onClick={() => loadTrack(track)}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -1338,7 +1328,7 @@ function App() {
                     <p className="empty-state">No saved mixes yet.</p>
                   ) : (
                     state.savedMixes.map(mix => {
-                      const isMixPlaying = state.isPlaying && state.currentMixId === mix.id;
+                      const isMixPlaying = state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
 
                       const totalLengthMin = mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0);
                       const totalLengthSec = totalLengthMin * 60;
@@ -1425,9 +1415,9 @@ function App() {
             <button
               className="play-button"
               onClick={togglePlay}
-              aria-label={state.isPlaying ? "Pause" : "Play"}
+              aria-label={state.isPlaying && state.playbackMode === 'track' ? "Pause" : "Play"}
             >
-              {state.isPlaying ? <PauseIcon /> : <PlayIcon />}
+              {state.isPlaying && state.playbackMode === 'track' ? <PauseIcon /> : <PlayIcon />}
             </button>
           </div>
 
