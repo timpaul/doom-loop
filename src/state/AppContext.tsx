@@ -15,9 +15,17 @@ Object.values(presetFiles).forEach((module: any) => {
     const data = module.default || module;
     if (data.type === 'doom-loop-mix' && data.mix && data.tracks) {
         DEFAULT_MIXES.push(data.mix);
-        presetTracksList.push(...data.tracks);
+        // Migrate track sounds so they have all current defaults
+        const migratedTracks = data.tracks.map((t: any) => ({
+            ...t,
+            sounds: (t.sounds || []).map(migrateSound)
+        }));
+        presetTracksList.push(...migratedTracks);
     } else if (data.sounds) {
-        presetTracksList.push(data);
+        presetTracksList.push({
+            ...data,
+            sounds: data.sounds.map(migrateSound)
+        });
     }
 });
 

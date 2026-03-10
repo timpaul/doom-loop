@@ -56,6 +56,7 @@ export class AudioEngine {
         // Create effects
         this.filter = new Tone.Filter({ type: 'lowpass', frequency: 20000 }); // open by default so AutoFilter works
         this.autoFilter = new Tone.AutoFilter({ frequency: 1, depth: 1, baseFrequency: 100, octaves: 4, type: 'sine' }).start();
+        this.autoFilter.filter.set({ type: 'lowpass' });
 
         this.volLfoGain = new Tone.Gain(0); // Intrinsic gain 0, fully driven by LFO
         this.volLfo = new Tone.LFO({ frequency: 1, min: 1, max: 1 }).start();
@@ -102,7 +103,8 @@ export class AudioEngine {
         // Setup Synth
         this.polySynth = new Tone.PolySynth(Tone.Synth, {
             oscillator: { type: 'sine' },
-            envelope: { attack: 0.5, decay: 0.1, sustain: 1, release: 2 }
+            envelope: { attack: 0.5, decay: 0.1, sustain: 1, release: 2 },
+            volume: -6
         });
         this.polySynth.connect(this.channel);
     }
@@ -319,7 +321,7 @@ export class AudioEngine {
 
     public setFilter(frequency: number, q: number = 1) {
         // Only apply if user changes it to something audible, else let it pass
-        if (frequency < 19000) {
+        if (frequency < 18000) {
             this.filter.set({ frequency, Q: q, type: 'bandpass' });
         } else {
             this.filter.set({ frequency: 20000, type: 'lowpass' });

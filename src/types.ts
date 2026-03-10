@@ -96,7 +96,7 @@ export const DEFAULT_MIX: Omit<MixState, 'id' | 'name' | 'items'> = {
 
 
 export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
-    sourceType: 'noise',
+    sourceType: 'tone',
     noiseColor: 'brown',
     playMode: 'chord',
     isMuted: false,
@@ -118,11 +118,11 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     envSustain: 1.0,
     envRelease: 2.0,
     noteLengthRatio: 1.0,
-    volume: 0.5,
+    volume: 0.25,
     pan: 0,
-    filterMinFreq: 200,
+    filterMinFreq: 20,
     filterMaxFreq: 20000,
-    filterFreq: 1000,
+    filterFreq: 20000,
     filterQ: 1,
     volLfoType: 'sine',
     volLfoScale: 'minute',
@@ -133,10 +133,10 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     panLfoRate: 30,
     panLfoDepth: 0,
     autoFilterType: 'sine',
-    autoFilterRate: 45,
+    autoFilterRate: 0,
     autoFilterScale: 'minute',
-    autoFilterBaseFreq: 8000,
-    autoFilterOctaves: 1,
+    autoFilterBaseFreq: 20000,
+    autoFilterOctaves: 0,
     detuneLfoType: 'sine',
     detuneLfoScale: 'minute',
     detuneLfoRate: 30,
@@ -157,42 +157,31 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function migrateSound(sound: any): SoundState {
+    const base = { ...DEFAULT_SOUND };
+
+    // If no stepConfigs, it's a very old format or a minimal AI generation
     if (!sound.stepConfigs) {
         const defaultNotes = sound.activeNotes || ['C', 'Eb', 'G', 'Bb'];
         const defaultOctave = sound.octave ?? 3;
         const defaultDetune = sound.detune ?? 0;
+
         return {
+            ...base,
             ...sound,
+            id: sound.id || `s-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+            name: sound.name || "Untitled Sound",
             stepConfigs: Array.from({ length: 8 }, () => ({
                 activeNotes: defaultNotes,
                 octave: defaultOctave,
                 detune: defaultDetune
             })),
-            stepRatios: [1, null, null, null, null, null, null, null],
-            seqLengthScale: 'minute',
-            seqLengthRate: 30,
-            envAttack: 0.5,
-            envDecay: 0.1,
-            envSustain: 1.0,
-            envRelease: 2.0
+            stepRatios: [1, null, null, null, null, null, null, null]
         };
     }
-    if (sound.envAttack === undefined) {
-        return {
-            ...sound,
-            envAttack: 0.5,
-            envDecay: 0.1,
-            envSustain: 1.0,
-            envRelease: 2.0
-        };
-    }
-    const migrated = { ...sound };
-    if (migrated.volLfoType === undefined) migrated.volLfoType = 'sine';
-    if (migrated.panLfoType === undefined) migrated.panLfoType = 'sine';
-    if (migrated.autoFilterType === undefined) migrated.autoFilterType = 'sine';
-    if (migrated.detuneLfoType === undefined) migrated.detuneLfoType = 'sine';
-    if (migrated.detuneLfoScale === undefined) migrated.detuneLfoScale = 'minute';
-    if (migrated.detuneLfoRate === undefined) migrated.detuneLfoRate = 30;
-    if (migrated.detuneLfoDepth === undefined) migrated.detuneLfoDepth = 0;
-    return migrated;
+
+    // Modern format migration
+    return {
+        ...base,
+        ...sound
+    };
 }

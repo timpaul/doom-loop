@@ -6,6 +6,7 @@ class AudioManager {
     private static instance: AudioManager;
 
     public masterChannel: Tone.Volume;
+    private masterLimiter: Tone.Limiter;
     private engines: Map<string, AudioEngine> = new Map();
     private previousSources: Map<string, string> = new Map();
     private trackGains: Map<string, Tone.Gain> = new Map();
@@ -14,6 +15,7 @@ class AudioManager {
 
     private constructor() {
         this.masterChannel = new Tone.Volume(0);
+        this.masterLimiter = new Tone.Limiter(-0.3);
     }
 
     public static getInstance(): AudioManager {
@@ -26,7 +28,7 @@ class AudioManager {
     public async initialize() {
         if (this.isInitialized) return;
         await Tone.start();
-        this.masterChannel.toDestination();
+        this.masterChannel.chain(this.masterLimiter, Tone.Destination);
         this.isInitialized = true;
     }
 

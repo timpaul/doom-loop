@@ -1,0 +1,843 @@
+{
+  "type": "doom-loop-mix",
+  "mix": {
+    "lengthMinutes": 60,
+    "shuffle": false,
+    "repeat": true,
+    "fadeInMinutes": 2,
+    "fadeOutMinutes": 5,
+    "crossFadeMinutes": 5,
+    "id": "mix-1773136591690-839",
+    "name": "The Entropy Archive",
+    "items": [
+      {
+        "id": "item-1",
+        "trackId": "track-ghost-tape"
+      },
+      {
+        "id": "item-2",
+        "trackId": "track-radigue-pulse"
+      },
+      {
+        "id": "item-3",
+        "trackId": "track-rhubarb-echo"
+      },
+      {
+        "id": "item-4",
+        "trackId": "track-abyssal-engine"
+      },
+      {
+        "id": "item-5",
+        "trackId": "track-corroded-signal"
+      },
+      {
+        "id": "item-6",
+        "trackId": "track-thermal-death"
+      }
+    ]
+  },
+  "tracks": [
+    {
+      "id": "track-ghost-tape",
+      "name": "I. Ghost in the Magnetic Tape",
+      "author": "Gemini",
+      "notes": "Inspired by Basinski. A simple minor triad with heavy volume LFO and brown noise floor.",
+      "sounds": [
+        {
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "chord",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G"
+              ],
+              "octave": 3
+            }
+          ],
+          "stepRatios": [
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 60,
+          "envAttack": 8,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 10,
+          "noteLengthRatio": 1,
+          "volume": 0.6,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 20000,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 12,
+          "volLfoDepth": 0.7,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 0,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 200,
+          "autoFilterOctaves": 0,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "reverbAmount": 0.8,
+          "delayAmount": 0.4,
+          "chorusAmount": 0,
+          "distortionAmount": 0,
+          "chebyshevAmount": 0,
+          "id": "s1",
+          "name": "Degraded Piano"
+        },
+        {
+          "sourceType": "noise",
+          "noiseColor": "brown",
+          "playMode": "chord",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            }
+          ],
+          "stepRatios": [
+            1,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 30,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2,
+          "noteLengthRatio": 1,
+          "volume": 0.15,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 800,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 30,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 200,
+          "autoFilterOctaves": 2,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "reverbAmount": 0,
+          "delayAmount": 0,
+          "chorusAmount": 0,
+          "distortionAmount": 0,
+          "chebyshevAmount": 0,
+          "id": "s2",
+          "name": "Tape Hiss"
+        }
+      ]
+    },
+    {
+      "id": "track-radigue-pulse",
+      "name": "II. Occam’s Resin",
+      "author": "Gemini",
+      "notes": "Minimalist modular pulse. Focus on slow AutoFilter sweeps and microtonal detuning.",
+      "sounds": [
+        {
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "chord",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "F"
+              ],
+              "octave": 2
+            }
+          ],
+          "stepRatios": [
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 30,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2,
+          "noteLengthRatio": 1,
+          "volume": 0.98,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 20000,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 90,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 150,
+          "autoFilterOctaves": 4,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 45,
+          "detuneLfoDepth": 0.2,
+          "reverbAmount": 0,
+          "delayAmount": 0,
+          "chorusAmount": 0.3,
+          "distortionAmount": 0,
+          "chebyshevAmount": 0,
+          "id": "s3",
+          "name": "ARP Core",
+          "detune": -12
+        }
+      ]
+    },
+    {
+      "id": "track-rhubarb-echo",
+      "name": "III. Rhubarb and Obsidian",
+      "author": "Gemini",
+      "notes": "Aphex Twin SAW II style. Eerie, drifting chords with long release times.",
+      "sounds": [
+        {
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "chord",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "Ab",
+                "C",
+                "Eb",
+                "G"
+              ],
+              "octave": 4
+            }
+          ],
+          "stepRatios": [
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 30,
+          "envAttack": 5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 8,
+          "noteLengthRatio": 1,
+          "volume": 0.4,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 20000,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 20,
+          "volLfoDepth": 0.3,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 0,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 200,
+          "autoFilterOctaves": 0,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "reverbAmount": 0.9,
+          "delayAmount": 0,
+          "chorusAmount": 0.5,
+          "distortionAmount": 0,
+          "chebyshevAmount": 0,
+          "id": "s4",
+          "name": "Distant Pad"
+        }
+      ]
+    },
+    {
+      "id": "track-abyssal-engine",
+      "name": "IV. The Abyssal Engine",
+      "author": "Gemini",
+      "notes": "Iron Cthulhu Apocalypse style. Heavy distortion and ultra-low frequency noise.",
+      "sounds": [
+        {
+          "sourceType": "noise",
+          "noiseColor": "brown",
+          "playMode": "chord",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            }
+          ],
+          "stepRatios": [
+            1,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 30,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2,
+          "noteLengthRatio": 1,
+          "volume": 0.52,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 120,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 120,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 200,
+          "autoFilterOctaves": 1,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "reverbAmount": 0,
+          "delayAmount": 0,
+          "chorusAmount": 0,
+          "distortionAmount": 0.6,
+          "chebyshevAmount": 0,
+          "id": "s5",
+          "name": "Sub Pressure"
+        },
+        {
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "chord",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C"
+              ],
+              "octave": 1
+            }
+          ],
+          "stepRatios": [
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 30,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2,
+          "noteLengthRatio": 1,
+          "volume": 0.34,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 20000,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0.2,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 0,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 200,
+          "autoFilterOctaves": 0,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "reverbAmount": 0,
+          "delayAmount": 0,
+          "chorusAmount": 0,
+          "distortionAmount": 0.2,
+          "chebyshevAmount": 0.8,
+          "id": "s6",
+          "name": "Machine Hum"
+        }
+      ]
+    },
+    {
+      "id": "track-corroded-signal",
+      "name": "V. Corroded Signal Logic",
+      "author": "Gemini",
+      "notes": "Semi-random metallic 'pings' processed through heavy delay and saturation.",
+      "sounds": [
+        {
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "random",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Db",
+                "Gb",
+                "Bb"
+              ],
+              "octave": 5
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Db",
+                "Gb",
+                "Bb"
+              ],
+              "octave": 5
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Db",
+                "Gb",
+                "Bb"
+              ],
+              "octave": 5
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Db",
+                "Gb",
+                "Bb"
+              ],
+              "octave": 5
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Db",
+                "Gb",
+                "Bb"
+              ],
+              "octave": 5
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Db",
+                "Gb",
+                "Bb"
+              ],
+              "octave": 5
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Db",
+                "Gb",
+                "Bb"
+              ],
+              "octave": 5
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Db",
+                "Gb",
+                "Bb"
+              ],
+              "octave": 5
+            }
+          ],
+          "stepRatios": [
+            1,
+            2,
+            1,
+            3,
+            1,
+            2,
+            1,
+            3
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 15,
+          "envAttack": 0.1,
+          "envDecay": 4,
+          "envSustain": 0,
+          "envRelease": 2,
+          "noteLengthRatio": 1,
+          "volume": 0.3,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 20000,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 0,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 200,
+          "autoFilterOctaves": 0,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "reverbAmount": 0,
+          "delayAmount": 0.6,
+          "chorusAmount": 0,
+          "distortionAmount": 0,
+          "chebyshevAmount": 0.4,
+          "id": "s7",
+          "name": "Random Wire"
+        }
+      ]
+    },
+    {
+      "id": "track-thermal-death",
+      "name": "VI. Thermal Death Phase",
+      "author": "Gemini",
+      "notes": "The final fade into white noise. Total entropy.",
+      "sounds": [
+        {
+          "sourceType": "noise",
+          "noiseColor": "white",
+          "playMode": "chord",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            },
+            {
+              "activeNotes": [
+                "C",
+                "Eb",
+                "G",
+                "Bb"
+              ],
+              "octave": 3,
+              "detune": 0
+            }
+          ],
+          "stepRatios": [
+            1,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 30,
+          "envAttack": 0.5,
+          "envDecay": 0.1,
+          "envSustain": 1,
+          "envRelease": 2,
+          "noteLengthRatio": 1,
+          "volume": 0.09,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 20000,
+          "filterQ": 1,
+          "volLfoType": "random",
+          "volLfoScale": "minute",
+          "volLfoRate": 10,
+          "volLfoDepth": 0.5,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 200,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 10.864256236170656,
+          "autoFilterOctaves": 8,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "reverbAmount": 0,
+          "delayAmount": 0,
+          "chorusAmount": 0,
+          "distortionAmount": 0,
+          "chebyshevAmount": 0,
+          "id": "s8",
+          "name": "Static Fade"
+        }
+      ]
+    }
+  ]
+}
