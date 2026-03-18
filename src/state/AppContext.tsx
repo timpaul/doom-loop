@@ -279,6 +279,9 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 ...mix,
                 items: mix.items.filter(item => item.trackId !== action.payload)
             }));
+            if (state.currentTrackId === action.payload && state.isPlaying && state.playbackMode === 'track') {
+                newState.isPlaying = false;
+            }
             break;
         case 'DUPLICATE_TRACK': {
             const trackToDuplicate = state.savedTracks.find(t => t.id === action.payload);
@@ -407,6 +410,9 @@ const appReducer = (state: AppState, action: Action): AppState => {
             if (newState.currentMixId === action.payload) {
                 newState.currentMixId = null;
                 newState.currentScreen = 'load';
+                if (state.isPlaying && state.playbackMode === 'mix') {
+                    newState.isPlaying = false;
+                }
             }
             break;
         case 'DUPLICATE_MIX': {
