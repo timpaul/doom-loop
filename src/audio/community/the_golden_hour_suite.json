@@ -1,0 +1,304 @@
+{
+  "type": "doom-loop-mix",
+  "mix": {
+    "id": "mix-golden-hour-2026",
+    "name": "The Golden Hour Suite",
+    "lengthMinutes": 20,
+    "shuffle": false,
+    "repeat": true,
+    "fadeInMinutes": 1,
+    "fadeOutMinutes": 1,
+    "crossFadeMinutes": 2,
+    "items": [
+      {
+        "id": "item-gh1",
+        "trackId": "track-amber-horizons"
+      },
+      {
+        "id": "item-gh2",
+        "trackId": "track-luminous-ripples"
+      },
+      {
+        "id": "item-gh3",
+        "trackId": "track-crystalline-dust"
+      },
+      {
+        "id": "item-gh4",
+        "trackId": "track-dusk-glow"
+      }
+    ]
+  },
+  "tracks": [
+    {
+      "id": "track-amber-horizons",
+      "name": "I. Amber Horizons",
+      "author": "Gemini",
+      "notes": "A warm C Major 9 opening. Slow filter sweeps on the pads with a soft chime melody.",
+      "sounds": [
+        {
+          "id": "s1",
+          "name": "Golden Pad",
+          "sourceType": "tone",
+          "playMode": "chord",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G",
+                "B",
+                "D"
+              ],
+              "octave": 3
+            }
+          ],
+          "stepRatios": [
+            null
+          ],
+          "volume": 0.5,
+          "envAttack": 4,
+          "envRelease": 6,
+          "autoFilterRate": 40,
+          "autoFilterBaseFreq": 400,
+          "autoFilterOctaves": 2,
+          "chorusAmount": 0.6,
+          "reverbAmount": 0.7
+        },
+        {
+          "id": "s2",
+          "name": "Soft Mallets",
+          "sourceType": "tone",
+          "playMode": "random",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G"
+              ],
+              "octave": 5
+            }
+          ],
+          "stepRatios": [
+            2,
+            1,
+            1,
+            2
+          ],
+          "seqLengthRate": 8,
+          "volume": 0.3,
+          "envAttack": 0.01,
+          "envDecay": 0.5,
+          "envSustain": 0.1,
+          "delayAmount": 0.4
+        }
+      ]
+    },
+    {
+      "id": "track-luminous-ripples",
+      "name": "II. Luminous Ripples",
+      "author": "Gemini",
+      "notes": "Transitioning to F Major. More active sequencing to simulate sunlight on water.",
+      "sounds": [
+        {
+          "id": "s3",
+          "name": "Warming Filter",
+          "sourceType": "tone",
+          "playMode": "chord",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "F",
+                "A",
+                "C",
+                "E"
+              ],
+              "octave": 3
+            }
+          ],
+          "stepRatios": [
+            null
+          ],
+          "volume": 0.4,
+          "autoFilterRate": 15,
+          "autoFilterOctaves": 3,
+          "chorusAmount": 0.4,
+          "reverbAmount": 0.8
+        },
+        {
+          "id": "s4",
+          "name": "Water Marimba",
+          "sourceType": "tone",
+          "playMode": "random",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "F",
+                "G",
+                "A",
+                "C"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "D",
+                "E",
+                "G"
+              ],
+              "octave": 5
+            }
+          ],
+          "stepRatios": [
+            1,
+            1,
+            1,
+            1,
+            2
+          ],
+          "seqLengthRate": 6,
+          "volume": 0.35,
+          "envAttack": 0.02,
+          "envDecay": 0.3,
+          "envSustain": 0,
+          "delayAmount": 0.5
+        }
+      ]
+    },
+    {
+      "id": "track-crystalline-dust",
+      "name": "III. Crystalline Dust",
+      "author": "Gemini",
+      "notes": "A high-register G Major suite. Focus on 'shimmer' and delicate transients.",
+      "sounds": [
+        {
+          "id": "s5",
+          "name": "Sky Pad",
+          "sourceType": "tone",
+          "playMode": "chord",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D",
+                "F#"
+              ],
+              "octave": 4
+            }
+          ],
+          "stepRatios": [
+            null
+          ],
+          "volume": 0.3,
+          "envAttack": 6,
+          "envRelease": 10,
+          "volLfoRate": 25,
+          "volLfoDepth": 0.4,
+          "reverbAmount": 0.9
+        },
+        {
+          "id": "s6",
+          "name": "Dust Pings",
+          "sourceType": "tone",
+          "playMode": "random",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "G",
+                "A",
+                "B",
+                "D",
+                "E"
+              ],
+              "octave": 5
+            }
+          ],
+          "stepRatios": [
+            1,
+            "-",
+            1,
+            2,
+            "-",
+            1
+          ],
+          "seqLengthRate": 12,
+          "volume": 0.2,
+          "envAttack": 0,
+          "envDecay": 0.1,
+          "envSustain": 0,
+          "delayAmount": 0.7,
+          "chorusAmount": 0.8
+        }
+      ]
+    },
+    {
+      "id": "track-dusk-glow",
+      "name": "IV. Dusk Glow",
+      "author": "Gemini",
+      "notes": "The finale. Deep, resonant E Minor / G Major tones. Fading into a warm hum.",
+      "sounds": [
+        {
+          "id": "s7",
+          "name": "Low Resonator",
+          "sourceType": "tone",
+          "playMode": "chord",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "E",
+                "G",
+                "B"
+              ],
+              "octave": 2
+            }
+          ],
+          "stepRatios": [
+            null
+          ],
+          "volume": 0.6,
+          "filterFreq": 250,
+          "autoFilterRate": 60,
+          "distortionAmount": 0.05,
+          "chorusAmount": 0.5
+        },
+        {
+          "id": "s8",
+          "name": "Final Embers",
+          "sourceType": "tone",
+          "playMode": "random",
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D"
+              ],
+              "octave": 3
+            }
+          ],
+          "stepRatios": [
+            4,
+            4,
+            8
+          ],
+          "seqLengthRate": 30,
+          "volume": 0.4,
+          "envAttack": 2,
+          "envDecay": 2,
+          "envSustain": 0.5,
+          "reverbAmount": 0.6
+        }
+      ]
+    }
+  ]
+}

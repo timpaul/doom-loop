@@ -35,6 +35,32 @@ presetTracksList.forEach(t => trackMap.set(t.id, t));
 const DEFAULT_TRACKS: TrackState[] = Array.from(trackMap.values())
     .sort((a, b) => a.name.localeCompare(b.name));
 
+// Load community files
+const communityFiles = import.meta.glob('../audio/community/*.json', { eager: true });
+const communityMixesList: MixState[] = [];
+const communityTracksList: TrackState[] = [];
+
+Object.values(communityFiles).forEach((module: any) => {
+    const data = module.default || module;
+    if (data.type === 'doom-loop-mix' && data.mix && data.tracks) {
+        communityMixesList.push(data.mix);
+        const migratedTracks = data.tracks.map((t: any) => ({
+            ...t,
+            sounds: (t.sounds || []).map(migrateSound)
+        }));
+        communityTracksList.push(...migratedTracks);
+    } else if (data.sounds) {
+        communityTracksList.push({
+            ...data,
+            sounds: data.sounds.map(migrateSound)
+        });
+    }
+});
+const commTrackMap = new Map<string, TrackState>();
+communityTracksList.forEach(t => commTrackMap.set(t.id, t));
+const COMMUNITY_TRACKS: TrackState[] = Array.from(commTrackMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+
 import { DEFAULT_MIX } from '../types';
 import type { MixState, MixItem } from '../types';
 
@@ -47,6 +73,8 @@ export interface AppState {
     savedTracks: TrackState[];
     savedMixes: MixState[];
     currentMixId: string | null;
+    communityTracks: TrackState[];
+    communityMixes: MixState[];
     toastMessage: string | null;
     sounds: SoundState[];
     expandedId: string;
@@ -77,6 +105,8 @@ export type Action =
     | { type: 'LOAD_MIX'; payload: string }
     | { type: 'LOAD_AND_PLAY_MIX'; payload: string }
     | { type: 'IMPORT_MIX'; payload: { mix: Omit<MixState, 'items'> & { items: any[] }, tracks: TrackState[] } }
+    | { type: 'ADD_COMMUNITY_TRACK'; payload: string }
+    | { type: 'ADD_COMMUNITY_MIX'; payload: string }
     | { type: 'UPDATE_MIX_SETTINGS'; payload: Partial<MixState> }
     | { type: 'ADD_TRACK_TO_MIX'; payload: string }
     | { type: 'REMOVE_MIX_ITEM'; payload: string }
@@ -163,6 +193,8 @@ const getInitialState = (): AppState => {
         currentTrackName,
         savedTracks: initialTracks,
         savedMixes,
+        communityTracks: COMMUNITY_TRACKS,
+        communityMixes: communityMixesList,
         currentMixId,
         sounds,
         toastMessage: null,
@@ -465,6 +497,43 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 );
             }
             break;
+        case 'ADD_COMMUNITY_TRACK': {
+            const trackToAdd = state.communityTracks.find(t => t.id === action.payload);
+            if (trackToAdd && !state.savedTracks.some(t => t.id === trackToAdd.id)) {
+                newState.savedTracks = [...state.savedTracks, trackToAdd];
+                newState.toastMessage = "Track added to library";
+            } else {
+                newState.toastMessage = "Track already in library";
+            }
+            break;
+        }
+        case 'ADD_COMMUNITY_MIX': {
+            const mixToAdd = state.communityMixes.find(m => m.id === action.payload);
+            if (mixToAdd) {
+                let mixAdded = false;
+                let newTracksAdded = 0;
+                
+                if (!state.savedMixes.some(m => m.id === mixToAdd.id)) {
+                    newState.savedMixes = [...state.savedMixes, mixToAdd];
+                    mixAdded = true;
+                }
+                
+                const trackIdsNeeded = new Set(mixToAdd.items.map(i => i.trackId));
+                const newTracks = state.communityTracks.filter(t => trackIdsNeeded.has(t.id) && !state.savedTracks.some(st => st.id === t.id));
+                
+                if (newTracks.length > 0) {
+                    newState.savedTracks = [...state.savedTracks, ...newTracks];
+                    newTracksAdded = newTracks.length;
+                }
+                
+                if (mixAdded || newTracksAdded > 0) {
+                    newState.toastMessage = `Added mix to library${newTracksAdded > 0 ? ` (and ${newTracksAdded} new tracks)` : ''}`;
+                } else {
+                    newState.toastMessage = "Mix already in library";
+                }
+            }
+            break;
+        }
         case 'ADD_TRACK_TO_MIX':
             if (state.currentMixId) {
                 const newMixItem: MixItem = {
@@ -553,9 +622,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     if (modeChanged || prevMixIdRef.current !== state.currentMixId) {
                         // Only stop and re-initialize mix when mode or mix actually changed
                         audioManager.stopAll();
-                        const mix = state.savedMixes.find(m => m.id === state.currentMixId);
+                        const mix = state.savedMixes.find(m => m.id === state.currentMixId) 
+                                 || state.communityMixes.find(m => m.id === state.currentMixId);
                         if (mix) {
-                            mixPlayer.updateMix(mix, state.savedTracks);
+                            mixPlayer.updateMix(mix, [...state.savedTracks, ...state.communityTracks]);
                             mixPlayer.play();
                         }
                     } else if (!prevIsPlayingRef.current && state.isPlaying) {
@@ -589,7 +659,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             mixPlayer.pause();
             prevIsPlayingRef.current = false;
         }
-    }, [state.isPlaying, state.playbackMode, state.currentTrackId, state.currentMixId, state.sounds, state.savedTracks, state.savedMixes]);
+    }, [state.isPlaying, state.playbackMode, state.currentTrackId, state.currentMixId, state.sounds, state.savedTracks, state.savedMixes, state.communityTracks, state.communityMixes]);
 
     return (
         <AppContext.Provider value={{ state, dispatch }}>

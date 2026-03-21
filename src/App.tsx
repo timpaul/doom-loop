@@ -806,7 +806,7 @@ function MixDetailScreen() {
   const { state, dispatch } = useAppState();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
   const [isAddTrackOpen, setIsAddTrackOpen] = useState(false);
   const [selectedTracksToAdd, setSelectedTracksToAdd] = useState<string[]>([]);
@@ -823,7 +823,7 @@ function MixDetailScreen() {
 
   useEffect(() => {
     if (mix && state.currentMixId !== mix.id) {
-       dispatch({ type: 'LOAD_MIX', payload: mix.id });
+      dispatch({ type: 'LOAD_MIX', payload: mix.id });
     }
   }, [mix, dispatch, state.currentMixId]);
 
@@ -1150,7 +1150,7 @@ function TrackDetailScreen() {
 
   useEffect(() => {
     if (currentTrack && state.currentTrackId !== currentTrack.id) {
-       dispatch({ type: 'LOAD_TRACK', payload: currentTrack });
+      dispatch({ type: 'LOAD_TRACK', payload: currentTrack });
     }
   }, [currentTrack, dispatch, state.currentTrackId]);
 
@@ -1270,7 +1270,7 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
   const handleListTogglePlay = async (e: React.MouseEvent, track: TrackState) => {
     e.stopPropagation();
     await audioManager.initialize();
-    
+
     const isTrackPlaying = state.isPlaying && state.playbackMode === 'track' && state.currentTrackId === track.id;
     if (isTrackPlaying) {
       dispatch({ type: 'TOGGLE_PLAY' });
@@ -1282,7 +1282,7 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
   const handleMixListTogglePlay = async (e: React.MouseEvent, mix: MixState) => {
     e.stopPropagation();
     await audioManager.initialize();
-    
+
     const isMixPlaying = state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
     if (isMixPlaying) {
       dispatch({ type: 'TOGGLE_PLAY' });
@@ -1294,7 +1294,7 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
   const handleCreateNewTrack = () => {
     dispatch({ type: 'CREATE_TRACK' });
   }
-  
+
   const handleCreateNewMix = () => {
     dispatch({ type: 'CREATE_MIX' });
   }
@@ -1335,7 +1335,7 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", `${track.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`);
-    document.body.appendChild(downloadAnchorNode); 
+    document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
   };
@@ -1349,7 +1349,7 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", `${mix.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`);
-    document.body.appendChild(downloadAnchorNode); 
+    document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
   };
@@ -1429,7 +1429,11 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
             </div>
             <div className="create-track-container">
               <button className="create-track-btn" onClick={handleCreateNewTrack}>Create new track</button>
-              <button className="import-track-link" onClick={handleImportClick}>Import track</button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                <button className="import-track-link" onClick={handleImportClick}>Import track</button>
+                <span style={{ color: 'var(--text-secondary)', opacity: 0.5 }}>&middot;</span>
+                <button className="import-track-link" onClick={() => navigate('/community/mixes')}>Browse community mixes</button>
+              </div>
               <input
                 type="file"
                 accept=".json"
@@ -1505,7 +1509,11 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
             </div>
             <div className="create-track-container">
               <button className="create-track-btn" onClick={handleCreateNewMix}>Create new mix</button>
-              <button className="import-track-link" onClick={handleImportClick}>Import mix</button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                <button className="import-track-link" onClick={handleImportClick}>Import mix</button>
+                <span style={{ color: 'var(--text-secondary)', opacity: 0.5 }}>&middot;</span>
+                <button className="import-track-link" onClick={() => navigate('/community/mixes')}>Browse community mixes</button>
+              </div>
               <input
                 type="file"
                 accept=".json"
@@ -1521,35 +1529,248 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
   );
 }
 
+
+
+function CommunityListScreen() {
+  const { state, dispatch } = useAppState();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (state.listMode !== 'mixes') {
+      dispatch({ type: 'SET_LIST_MODE', payload: 'mixes' });
+    }
+  }, [state.listMode, dispatch]);
+
+  const handleMixListTogglePlay = async (e: React.MouseEvent, mix: MixState) => {
+    e.stopPropagation();
+    await audioManager.initialize();
+
+    const isMixPlaying = state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
+    if (isMixPlaying) {
+      dispatch({ type: 'TOGGLE_PLAY' });
+    } else {
+      dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
+    }
+  };
+
+  return (
+    <div className="app-container load-screen community-mode">
+      <img src={`${import.meta.env.BASE_URL}doom-logo-community.png`} alt="Doom Loop Logo" className="doom-logo-img community-logo" />
+      <span className="community-pill">community mixes</span>
+
+      <div className="quick-create-panel community-quick-panel">
+        <span className="quick-create-count" style={{ color: '#000', fontWeight: 500 }}>
+          {state.communityMixes.length} mixes
+        </span>
+        <button
+          className="quick-create-btn"
+          onClick={() => window.open('https://github.com/timpaul/doom-loop/tree/main/src/audio/community', '_blank')}
+        >
+          Submit mix
+        </button>
+      </div>
+
+      <main className="main-content">
+        <div className="track-list">
+          {state.communityMixes.length === 0 ? (
+            <p className="empty-state" style={{ color: '#111' }}>No community mixes yet.</p>
+          ) : (
+            state.communityMixes.map(mix => {
+              const isMixPlaying = state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
+
+              return (
+                <div key={mix.id} className="track-list-item community-list-item" onClick={() => navigate(`/community/mixes/${mix.id}`)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
+                    <button
+                      className={`track-play-btn ${isMixPlaying ? 'active' : ''}`}
+                      onClick={(e) => handleMixListTogglePlay(e, mix)}
+                      aria-label={isMixPlaying ? "Pause Mix" : "Play Mix"}
+                    >
+                      <div className="track-play-icon-circle">
+                        {isMixPlaying ? <PauseIcon /> : <PlayIcon />}
+                      </div>
+                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <span className="track-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mix.name}</span>
+                      {mix.items.length > 0 && (
+                        <span style={{ fontSize: '0.9rem', color: '#888888', opacity: 0.8, fontVariantNumeric: 'tabular-nums' }}>
+                          {mix.items.length} track{mix.items.length !== 1 ? 's' : ''} &middot; {formatLengthFullWords(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="track-list-item-actions">
+                    <button className="add-library-btn" onClick={(e) => { e.stopPropagation(); dispatch({ type: 'ADD_COMMUNITY_MIX', payload: mix.id }); }}>
+                      Add to library
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+        <div className="create-track-container" style={{ marginTop: '20px' }}>
+          <button className="import-track-link" style={{ color: '#111' }} onClick={() => navigate('/mixes')}>Back to my library</button>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function CommunityMixDetailScreen() {
+  const { togglePlay } = useAudioActions();
+  const { state, dispatch } = useAppState();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const mix = state.communityMixes.find(m => m.id === id);
+
+  useEffect(() => {
+    if (mix && state.currentMixId !== mix.id) {
+      dispatch({ type: 'LOAD_MIX', payload: mix.id });
+    }
+  }, [mix, dispatch, state.currentMixId]);
+
+  if (!mix) return <NotFoundScreen type="Mix" />;
+
+  const isMixPlaying = state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
+
+  return (
+    <div className="app-container community-mode">
+      <div className="top-play-area">
+        <button
+          className="tracks-nav-btn"
+          onClick={() => navigate('/community/mixes')}
+          aria-label="Back to Community"
+        >
+          <img src={`${import.meta.env.BASE_URL}grid-icon.png`} alt="Back to mixes" className="grid-icon-img community-logo" />
+        </button>
+        <button
+          className="play-button"
+          onClick={togglePlay}
+          aria-label={isMixPlaying ? "Pause" : "Play"}
+        >
+          {isMixPlaying ? <PauseIcon /> : <PlayIcon />}
+        </button>
+      </div>
+
+      <header className="track-header" style={{ marginBottom: '24px', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+        <div style={{ fontSize: '2rem', fontWeight: 500, textAlign: 'center', color: '#111', marginBottom: '8px', letterSpacing: '-0.5px' }}>
+          {mix.name}
+        </div>
+        <div style={{ fontSize: '0.9rem', color: '#333', opacity: 0.8, letterSpacing: '0.5px' }}>
+          {mix.items.length} track{mix.items.length !== 1 ? 's' : ''}
+          {mix.items.length > 0 && ` · ${formatLengthFullWords(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}`}
+        </div>
+        <button className="add-library-btn" style={{ marginTop: '16px', backgroundColor: '#333', color: '#eee' }} onClick={(e) => { e.stopPropagation(); dispatch({ type: 'ADD_COMMUNITY_MIX', payload: mix.id }); }}>
+          Add mix to library
+        </button>
+      </header>
+
+      <main className="main-content">
+        <div className="track-list" style={{ marginTop: '0' }}>
+          {mix.items.map((item) => {
+            const allTracks = [...state.savedTracks, ...state.communityTracks];
+            const track = allTracks.find(t => t.id === item.trackId);
+            if (!track) return null;
+            const isTrackPlaying = state.isPlaying && mixPlayer.isTrackPlaying(item.id);
+
+            const N = mix.items.length;
+            const totalLengthSec = mix.lengthMinutes * 60;
+            const crossfadeSec = mix.crossFadeMinutes * 60;
+            let itemLengthSec = totalLengthSec;
+            if (N > 1) {
+              itemLengthSec = (totalLengthSec + (N - 1) * crossfadeSec) / N;
+            }
+            let itemTimeString = '';
+            if (itemLengthSec >= 3600) {
+              itemTimeString = formatLength(itemLengthSec / 60);
+            } else {
+              const m = Math.floor(itemLengthSec / 60);
+              const s = Math.floor(itemLengthSec % 60).toString().padStart(2, '0');
+              itemTimeString = `${m}:${s}`;
+            }
+            return (
+              <div
+                key={item.id}
+                className="track-list-item community-list-item"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
+                  <button
+                    className={`track-play-btn ${isTrackPlaying ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isTrackPlaying) {
+                        togglePlay();
+                      } else {
+                        if (mixPlayer.currentMixId !== mix.id) {
+                          mixPlayer.loadMix(mix, allTracks);
+                        }
+                        mixPlayer.seekToItem(item.id);
+                        if (!state.isPlaying) {
+                          togglePlay();
+                        }
+                      }
+                      setTick(t => t + 1);
+                    }}
+                    aria-label={isTrackPlaying ? "Pause Track" : "Play Track"}
+                  >
+                    <div className="track-play-icon-circle">
+                      {isTrackPlaying ? <PauseIcon /> : <PlayIcon />}
+                    </div>
+                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: '4px' }}>
+                    <span className="track-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.name}</span>
+                    <span style={{ fontSize: '0.85rem', color: '#888888', fontVariantNumeric: 'tabular-nums' }}>{itemTimeString}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+    </div>
+  );
+}
+
 function RouteSync() {
   const { state, dispatch } = useAppState();
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
-  
-  // Track previous IDs to detect when a new track/mix is programmatically created
+
   const prevTrackId = useRef(state.currentTrackId);
   const prevMixId = useRef(state.currentMixId);
   const prevScreen = useRef(state.currentScreen);
 
   useEffect(() => {
     // Sync URL -> State
-    const isMixDetail = currentPath.startsWith('/mixes/');
+    const isMixDetail = currentPath.startsWith('/mixes/') || currentPath.startsWith('/community/mixes/') && currentPath.length > 17;
     const isTrackDetail = currentPath.startsWith('/tracks/');
-    
+
     if (isTrackDetail && state.currentScreen !== 'main') {
-        dispatch({ type: 'SET_SCREEN', payload: 'main' });
+      dispatch({ type: 'SET_SCREEN', payload: 'main' });
     } else if (isMixDetail && state.currentScreen !== 'mixDetail') {
-        dispatch({ type: 'SET_SCREEN', payload: 'mixDetail' });
+      dispatch({ type: 'SET_SCREEN', payload: 'mixDetail' });
     } else if (!isTrackDetail && !isMixDetail && state.currentScreen !== 'load') {
-        dispatch({ type: 'SET_SCREEN', payload: 'load' });
+      dispatch({ type: 'SET_SCREEN', payload: 'load' });
     }
 
-    // Sync State -> URL (only when programmatically creating/loading different tracks while NOT already on URL)
+    // Sync State -> URL
     if (state.currentScreen === 'main' && prevScreen.current === 'load' && state.currentTrackId !== prevTrackId.current) {
-       if (!currentPath.startsWith('/tracks/')) navigate(`/tracks/${state.currentTrackId}`);
+      if (!currentPath.startsWith('/tracks/')) navigate(`/tracks/${state.currentTrackId}`);
     } else if (state.currentScreen === 'mixDetail' && prevScreen.current === 'load' && state.currentMixId !== prevMixId.current) {
-       if (!currentPath.startsWith('/mixes/')) navigate(`/mixes/${state.currentMixId}`);
+      // Only force navigate to /mixes/ if we aren't already on the community mix screen.
+      if (!currentPath.startsWith('/mixes/') && !currentPath.startsWith('/community/mixes/')) {
+        navigate(`/mixes/${state.currentMixId}`);
+      }
     }
 
     prevTrackId.current = state.currentTrackId;
@@ -1561,10 +1782,21 @@ function RouteSync() {
 }
 
 function App() {
+  const { state, dispatch } = useAppState();
   const location = useLocation();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (state.toastMessage) {
+      const timer = setTimeout(() => {
+        dispatch({ type: 'SET_TOAST', payload: null });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [state.toastMessage, dispatch]);
 
   const navigate = useNavigate();
 
@@ -1577,6 +1809,10 @@ function App() {
         <Route path="/tracks/:id" element={<TrackDetailScreen />} />
         <Route path="/mixes" element={<ListScreen listMode="mixes" />} />
         <Route path="/mixes/:id" element={<MixDetailScreen />} />
+
+        <Route path="/community/mixes" element={<CommunityListScreen />} />
+        <Route path="/community/mixes/:id" element={<CommunityMixDetailScreen />} />
+
         <Route path="/about" element={<AboutScreen />} />
         <Route path="*" element={<NotFoundScreen />} />
       </Routes>
@@ -1584,6 +1820,12 @@ function App() {
       <footer className="app-footer">
         &copy; 2026 <a href="https://www.timpaul.co.uk" target="_blank" rel="noopener noreferrer">Tim Paul</a> &middot; <button className="text-btn" onClick={() => navigate('/about')}>What <em>is</em> this?</button>
       </footer>
+
+      {state.toastMessage && (
+        <div className="toast-notification">
+          {state.toastMessage}
+        </div>
+      )}
     </>
   );
 }
