@@ -137,13 +137,14 @@ class AudioManager {
         const noteLengthRatio = sound.noteLengthRatio ?? 1.0;
 
         if (sound.sourceType === 'noise') {
-            sourceConfigStr = `noise-${sound.noiseColor}-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${noteLengthRatio}-${isContinuous}`;
+            sourceConfigStr = `noise-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${noteLengthRatio}-${isContinuous}-${sound.slack}`;
             playArgs = {
                 color: sound.noiseColor,
                 events,
                 loopLength: totalDuration || 1,
                 noteLengthRatio,
                 isContinuous,
+                slack: sound.slack || 0,
                 envelope: {
                     attack: sound.envAttack,
                     decay: sound.envDecay,
@@ -153,13 +154,14 @@ class AudioManager {
             };
         } else {
             // Build cache key based on EVERYTHING that changes the sequence structurally
-            sourceConfigStr = `tone-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${JSON.stringify(sound.stepConfigs)}-${sound.playMode}-${noteLengthRatio}-${isContinuous}`;
+            sourceConfigStr = `tone-${totalDuration}-${JSON.stringify(sound.stepRatios)}-${JSON.stringify(sound.stepConfigs)}-${sound.playMode}-${noteLengthRatio}-${isContinuous}-${sound.slack}`;
             playArgs = {
                 events,
                 loopLength: totalDuration || 1,
                 playMode: sound.playMode,
                 noteLengthRatio,
                 isContinuous,
+                slack: sound.slack || 0,
                 envelope: {
                     attack: sound.envAttack,
                     decay: sound.envDecay,

@@ -19,6 +19,7 @@ export interface SoundState {
     stepRatios: (number | string | null)[];
     seqLengthScale: LFOScale;
     seqLengthRate: number;
+    slack?: number;
     playMode: PlayMode;
     isMuted?: boolean;
     // Legacy properties maintained for backwards compatibility loading
@@ -113,6 +114,7 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     stepRatios: [null, null, null, null, null, null, null, null],
     seqLengthScale: 'minute',
     seqLengthRate: 30,
+    slack: 0,
     envAttack: 0.5,
     envDecay: 0.1,
     envSustain: 1.0,

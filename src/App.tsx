@@ -284,6 +284,20 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                     />
                   </div>
                 </div>
+                <div className="control-row">
+                  <div className="slider-wrapper">
+                    <span className="control-label">Slack</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={sound.slack || 0}
+                      onChange={e => update({ slack: parseFloat(e.target.value) })}
+                      aria-label="Sequencer Slack"
+                    />
+                  </div>
+                </div>
                 {sound.sourceType === 'tone' && (
                   <div className="control-row">
                     <span className="control-label">Play</span>
