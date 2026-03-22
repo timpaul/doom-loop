@@ -56,6 +56,8 @@ export interface SoundState {
     detuneLfoDepth?: number;
     reverbAmount: number;
     delayAmount: number;
+    delayTime?: number;
+    delayFeedback?: number;
     chorusAmount: number;
     distortionAmount: number;
     chebyshevAmount: number;
@@ -145,6 +147,8 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     detuneLfoDepth: 0,
     reverbAmount: 0,
     delayAmount: 0,
+    delayTime: 0.25,
+    delayFeedback: 0.5,
     chorusAmount: 0,
     distortionAmount: 0,
     chebyshevAmount: 0

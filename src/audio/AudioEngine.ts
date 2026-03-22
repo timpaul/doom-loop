@@ -514,8 +514,10 @@ export class AudioEngine {
         this.reverb.wet.rampTo(amount, 0.1);
     }
 
-    public setDelay(amount: number) {
+    public setDelay(amount: number, time: number = 0.25, feedback: number = 0.5) {
         this.delay.wet.rampTo(amount, 0.1);
+        this.delay.delayTime.rampTo(time, 0.1);
+        this.delay.feedback.rampTo(feedback, 0.1);
     }
 
     public setChorus(amount: number) {

@@ -692,12 +692,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                     <input type="range" min="0" max="1" step="0.01" value={sound.distortionAmount ?? 0} onChange={e => update({ distortionAmount: parseFloat(e.target.value) })} aria-label="Distortion" />
                   </div>
                 </div>
-                <div className="control-row">
-                  <span className="control-label">Delay</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={sound.delayAmount} onChange={e => update({ delayAmount: parseFloat(e.target.value) })} aria-label="Delay" />
-                  </div>
-                </div>
+
                 <div className="control-row">
                   <span className="control-label">Chorus</span>
                   <div className="slider-wrapper">
@@ -708,6 +703,32 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   <span className="control-label">Chebyshev</span>
                   <div className="slider-wrapper">
                     <input type="range" min="0" max="1" step="0.01" value={sound.chebyshevAmount ?? 0} onChange={e => update({ chebyshevAmount: parseFloat(e.target.value) })} aria-label="Chebyshev" />
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+
+          <section className={`panel-group ${collapsedPanels['DELAY'] ? 'collapsed' : ''}`}>
+            <h2 className="panel-title" onClick={() => togglePanel('DELAY')}>DELAY</h2>
+            {!collapsedPanels['DELAY'] && (
+              <>
+                <div className="control-row">
+                  <span className="control-label">Amount</span>
+                  <div className="slider-wrapper">
+                    <input type="range" min="0" max="1" step="0.01" value={sound.delayAmount} onChange={e => update({ delayAmount: parseFloat(e.target.value) })} aria-label="Delay Amount" />
+                  </div>
+                </div>
+                <div className="control-row">
+                  <span className="control-label">Time</span>
+                  <div className="slider-wrapper">
+                    <input type="range" min="0.1" max="5" step="0.01" value={sound.delayTime ?? 0.25} onChange={e => update({ delayTime: parseFloat(e.target.value) })} aria-label="Delay Time" />
+                  </div>
+                </div>
+                <div className="control-row">
+                  <span className="control-label">Feedback</span>
+                  <div className="slider-wrapper">
+                    <input type="range" min="0.1" max="0.9" step="0.01" value={sound.delayFeedback ?? 0.5} onChange={e => update({ delayFeedback: parseFloat(e.target.value) })} aria-label="Delay Feedback" />
                   </div>
                 </div>
               </>

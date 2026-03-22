@@ -78,7 +78,7 @@ class AudioManager {
         engine.setDetuneLFO(sound.detuneLfoRate ?? 30, sound.detuneLfoDepth ?? 0, sound.detuneLfoType || 'sine');
 
         engine.setReverb(sound.reverbAmount);
-        engine.setDelay(sound.delayAmount);
+        engine.setDelay(sound.delayAmount, sound.delayTime ?? 0.25, sound.delayFeedback ?? 0.5);
         engine.setChorus(sound.chorusAmount);
         engine.setDistortion(sound.distortionAmount ?? 0);
         engine.setChebyshev(sound.chebyshevAmount ?? 0);
