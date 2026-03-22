@@ -1610,7 +1610,7 @@ function CommunityListScreen() {
           )}
         </div>
         <div className="create-track-container" style={{ marginTop: '20px' }}>
-          <button className="import-track-link" style={{ color: '#111' }} onClick={() => navigate('/mixes')}>Back to my library</button>
+          <button className="quick-create-btn" onClick={() => navigate('/mixes')}>Back to my library</button>
         </div>
       </main>
     </div>
@@ -1650,7 +1650,7 @@ function CommunityMixDetailScreen() {
           onClick={() => navigate('/community/mixes')}
           aria-label="Back to Community"
         >
-          <img src={`${import.meta.env.BASE_URL}grid-icon.png`} alt="Back to mixes" className="grid-icon-img community-logo" />
+          <img src={`${import.meta.env.BASE_URL}grid-icon-community.png`} alt="Back to mixes" className="grid-icon-img community-logo" />
         </button>
         <button
           className="play-button"

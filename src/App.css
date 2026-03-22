@@ -524,6 +524,12 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
     transform: scale(1.05);
 }
 
+.community-mode .play-button {
+    background: #000;
+    color: var(--accent-color);
+}
+
+
 /* Doom Logo */
 .doom-logo-img {
     display: block;
