@@ -1534,6 +1534,33 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
 function CommunityListScreen() {
   const { state, dispatch } = useAppState();
   const navigate = useNavigate();
+  const [isSubmitMixOpen, setIsSubmitMixOpen] = useState(false);
+  const [selectedMixToSubmit, setSelectedMixToSubmit] = useState<string | null>(null);
+
+  const handleSubmitMix = () => {
+    if (!selectedMixToSubmit) return;
+    const mix = state.savedMixes.find(m => m.id === selectedMixToSubmit);
+    if (!mix) return;
+
+    const trackIdsInMix = new Set(mix.items.map(item => item.trackId));
+    const bundledTracks = state.savedTracks.filter(track => trackIdsInMix.has(track.id));
+    const payload = { type: 'doom-loop-mix', mix, tracks: bundledTracks };
+    const jsonStr = JSON.stringify(payload, null, 2);
+
+    navigator.clipboard.writeText(jsonStr)
+      .then(() => {
+        dispatch({ type: 'SET_TOAST', payload: "Mix copied to clipboard! Please paste into the issue body." });
+      })
+      .catch(err => console.error("Clipboard failed", err));
+
+    const title = encodeURIComponent(`Mix Submission: ${mix.name}`);
+    const body = encodeURIComponent(`Please review my mix submission!\n\n*(Your mix JSON has been copied to your clipboard. Please paste it below!)*\n\n\`\`\`json\n[ PASTE JSON HERE ]\n\`\`\``);
+    const issueUrl = `https://github.com/timpaul/doom-loop/issues/new?title=${title}&body=${body}`;
+    window.open(issueUrl, '_blank');
+
+    setIsSubmitMixOpen(false);
+    setSelectedMixToSubmit(null);
+  };
 
   useEffect(() => {
     if (state.listMode !== 'mixes') {
@@ -1564,7 +1591,10 @@ function CommunityListScreen() {
         </span>
         <button
           className="quick-create-btn"
-          onClick={() => window.open('https://github.com/timpaul/doom-loop/tree/main/src/audio/community', '_blank')}
+          onClick={() => {
+            setSelectedMixToSubmit(null);
+            setIsSubmitMixOpen(true);
+          }}
         >
           Submit mix
         </button>
@@ -1613,6 +1643,52 @@ function CommunityListScreen() {
           <button className="quick-create-btn" onClick={() => navigate('/mixes')}>Back to my library</button>
         </div>
       </main>
+
+      {isSubmitMixOpen && (
+        <div className="modal-overlay">
+          <div className="modal-track-list">
+            <div className="modal-header">
+              <div style={{ width: '40px' }} />
+              <h2 className="modal-title">Select mix to submit via GitHub</h2>
+              <button className="modal-close-btn" onClick={() => setIsSubmitMixOpen(false)} aria-label="Close modal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {state.savedMixes.length === 0 ? (
+              <p className="empty-state" style={{ padding: '20px', color: '#888' }}>No saved mixes to submit.</p>
+            ) : (
+              state.savedMixes.map(m => {
+                const isSelected = selectedMixToSubmit === m.id;
+                return (
+                  <div
+                    key={m.id}
+                    className={`modal-track-item ${isSelected ? 'selected' : ''}`}
+                    onClick={() => setSelectedMixToSubmit(isSelected ? null : m.id)}
+                  >
+                    <div className="custom-checkbox" />
+                    <span style={{ fontSize: '1.1rem' }}>{m.name}</span>
+                  </div>
+                );
+              })
+            )}
+
+            <div className="modal-actions">
+              <button
+                className="create-track-btn"
+                onClick={handleSubmitMix}
+                disabled={!selectedMixToSubmit}
+                style={{ opacity: !selectedMixToSubmit ? 0.5 : 1 }}
+              >
+                Create submission request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
