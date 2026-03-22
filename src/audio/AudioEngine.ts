@@ -330,23 +330,28 @@ export class AudioEngine {
 
     public setAutoFilter(rate: number, baseFrequency: number, octaves: number, type: LFOModType = 'sine') {
         if (type === 'random') {
-            // In random mode, mute the sine autoFilter and modulate the main filter frequency directly
+            // Mute the internal sine LFO of the AutoFilter and sweep its base frequency manually
             this.autoFilter.set({ depth: 0 });
-            // Set the main filter to bandpass at the base frequency
-            this.filter.set({ frequency: baseFrequency, type: 'bandpass' });
-            // Connect random signal to filter frequency if not already
+            
             if (this.currentFilterLfoType !== 'random') {
-                this.randomFilterSignal.connect(this.filter.frequency);
+                this.randomFilterSignal.disconnect();
                 this.currentFilterLfoType = 'random';
             }
+            
             // Schedule random value changes
-            const modRange = octaves * 1000;
+            const minFreq = Math.max(10, baseFrequency);
             const intervalMs = Math.max(50, (rate / 4) * 1000); // pick new values several times per cycle
             const rampTime = intervalMs / 1000 * 0.8; // smooth ramp
             if (this.randomFilterInterval) clearInterval(this.randomFilterInterval);
             this.randomFilterInterval = setInterval(() => {
-                const randomVal = (Math.random() * 2 - 1) * modRange;
-                this.randomFilterSignal.rampTo(randomVal, rampTime);
+                // Logarithmic frequency sweep up to the specified octaves
+                const randomOctaves = Math.random() * octaves;
+                // Make it oscillate somewhat symmetrically around the octave center or bottom up?
+                // Standard LFOs usually oscillate symmetrically so we can map Math.random() 
+                // between -octaves/2 and +octaves/2, but AutoFilter only sweeps upwards natively.
+                // We'll mimic Tone.AutoFilter which natively sweeps upwards from baseFrequency.
+                const randomFreq = Math.min(20000, minFreq * Math.pow(2, randomOctaves));
+                this.autoFilter.filter.frequency.rampTo(randomFreq, rampTime);
             }, intervalMs);
         } else {
             // Sine mode: use built-in autoFilter
