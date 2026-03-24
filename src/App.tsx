@@ -946,6 +946,21 @@ function MixDetailScreen() {
                 </div>
               </div>
               <div className="control-row">
+                <span className="control-label">Spread</span>
+                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={mix.spread || 0}
+                    onChange={e => updateSettings({ spread: parseFloat(e.target.value) })}
+                    aria-label="Mix Spread"
+                  />
+                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{((mix.spread || 0) * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+              <div className="control-row">
                 <span className="control-label">Shuffle</span>
                 <div className="segmented-control" style={{ marginTop: '0', width: '50%' }}>
                   <button className={`segment-btn ${!mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: false })}>Off</button>
@@ -993,10 +1008,10 @@ function MixDetailScreen() {
             const N = mix.items.length;
             const totalLengthSec = mix.lengthMinutes * 60;
             const crossfadeSec = mix.crossFadeMinutes * 60;
-            let itemLengthSec = totalLengthSec;
-            if (N > 1) {
-              itemLengthSec = (totalLengthSec + (N - 1) * crossfadeSec) / N;
-            }
+            const totalTargetDuration = totalLengthSec + (N > 1 ? (N - 1) * crossfadeSec : 0);
+            const totalWeight = mix.items.reduce((sum, it) => sum + (it.weight || 1), 0);
+            const itemWeight = item.weight || 1;
+            const itemLengthSec = (itemWeight / totalWeight) * totalTargetDuration;
             let itemTimeString = '';
             if (itemLengthSec >= 3600) {
               itemTimeString = formatLength(itemLengthSec / 60);
@@ -1796,10 +1811,10 @@ function CommunityMixDetailScreen() {
             const N = mix.items.length;
             const totalLengthSec = mix.lengthMinutes * 60;
             const crossfadeSec = mix.crossFadeMinutes * 60;
-            let itemLengthSec = totalLengthSec;
-            if (N > 1) {
-              itemLengthSec = (totalLengthSec + (N - 1) * crossfadeSec) / N;
-            }
+            const totalTargetDuration = totalLengthSec + (N > 1 ? (N - 1) * crossfadeSec : 0);
+            const totalWeight = mix.items.reduce((sum, it) => sum + (it.weight || 1), 0);
+            const itemWeight = item.weight || 1;
+            const itemLengthSec = (itemWeight / totalWeight) * totalTargetDuration;
             let itemTimeString = '';
             if (itemLengthSec >= 3600) {
               itemTimeString = formatLength(itemLengthSec / 60);

@@ -72,8 +72,9 @@ export interface TrackState {
 }
 
 export interface MixItem {
-    id: string;
+    id: string; // unique ID for this instance in the mix
     trackId: string;
+    weight?: number; // Spread ratio fraction
 }
 
 export interface MixState {
@@ -86,6 +87,7 @@ export interface MixState {
     fadeInMinutes: number;
     fadeOutMinutes: number;
     crossFadeMinutes: number;
+    spread?: number;
 }
 
 export const DEFAULT_MIX: Omit<MixState, 'id' | 'name' | 'items'> = {
@@ -94,7 +96,8 @@ export const DEFAULT_MIX: Omit<MixState, 'id' | 'name' | 'items'> = {
     repeat: false,
     fadeInMinutes: 0,
     fadeOutMinutes: 0,
-    crossFadeMinutes: 0
+    crossFadeMinutes: 0,
+    spread: 0
 };
 
 

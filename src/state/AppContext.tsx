@@ -111,6 +111,7 @@ export type Action =
     | { type: 'ADD_TRACK_TO_MIX'; payload: string }
     | { type: 'REMOVE_MIX_ITEM'; payload: string }
     | { type: 'REORDER_MIX_ITEMS'; payload: { sourceIndex: number, destIndex: number } }
+    | { type: 'REROLL_MIX_WEIGHTS'; payload: string }
     | { type: 'SET_TOAST'; payload: string | null };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -367,6 +368,8 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 const newTrack: TrackState = {
                     id: `track-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                     name: importData.name || `Imported Track ${state.savedTracks.length + 1}`,
+                    author: importData.author,
+                    notes: importData.notes,
                     sounds: importedSounds
                 };
 
@@ -492,9 +495,19 @@ const appReducer = (state: AppState, action: Action): AppState => {
             break;
         case 'UPDATE_MIX_SETTINGS':
             if (state.currentMixId) {
-                newState.savedMixes = state.savedMixes.map(m =>
-                    m.id === state.currentMixId ? { ...m, ...action.payload } : m
-                );
+                newState.savedMixes = state.savedMixes.map(m => {
+                    if (m.id === state.currentMixId) {
+                        const newSettings = { ...m, ...action.payload };
+                        if (action.payload.spread !== undefined && action.payload.spread !== m.spread) {
+                            newSettings.items = m.items.map(item => ({
+                                ...item,
+                                weight: 1 + Math.random() * (9 * action.payload.spread!)
+                            }));
+                        }
+                        return newSettings;
+                    }
+                    return m;
+                });
             }
             break;
         case 'ADD_COMMUNITY_TRACK': {
@@ -566,6 +579,20 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 });
             }
             break;
+        case 'REROLL_MIX_WEIGHTS':
+            newState.savedMixes = state.savedMixes.map(m => {
+                if (m.id === action.payload) {
+                    return {
+                        ...m,
+                        items: m.items.map(item => ({
+                            ...item,
+                            weight: 1 + Math.random() * (9 * (m.spread || 0))
+                        }))
+                    };
+                }
+                return m;
+            });
+            break;
         case 'SET_TOAST':
             newState.toastMessage = action.payload;
             break;
@@ -610,6 +637,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             localStorage.removeItem('noisemaker_currentMixId');
         }
     }, [state.currentMixId]);
+
+    // Global Event Listeners
+    useEffect(() => {
+        const handleMixRepeat = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail?.mixId) {
+                dispatch({ type: 'REROLL_MIX_WEIGHTS', payload: customEvent.detail.mixId });
+            }
+        };
+        window.addEventListener('mix-repeat', handleMixRepeat);
+        return () => window.removeEventListener('mix-repeat', handleMixRepeat);
+    }, []);
 
     // Audio Manager Syncing
     useEffect(() => {

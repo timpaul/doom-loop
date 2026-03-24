@@ -157,14 +157,19 @@ export class MixPlayer {
         const totalLengthSec = this.mix.lengthMinutes * 60;
         const crossfadeSec = this.mix.crossFadeMinutes * 60;
 
-        let itemLengthSec = totalLengthSec;
-        if (N > 1) {
-            itemLengthSec = (totalLengthSec + (N - 1) * crossfadeSec) / N;
-        }
+        const currentWeights = this.shuffledItems.map(item => item.weight || 1);
+        const totalWeight = currentWeights.reduce((a, b) => a + b, 0);
+        const totalTargetDuration = totalLengthSec + (N > 1 ? (N - 1) * crossfadeSec : 0);
+
+        let currentStartTime = 0;
 
         this.schedule = this.shuffledItems.map((item, index) => {
-            const startTime = index * (itemLengthSec - crossfadeSec);
+            const weight = currentWeights[index];
+            const itemLengthSec = (weight / totalWeight) * totalTargetDuration;
+
+            const startTime = currentStartTime;
             const endTime = startTime + itemLengthSec;
+            currentStartTime = endTime - crossfadeSec;
 
             // First item fade in = mix fade in, otherwise crossfade
             const fadeInDuration = index === 0 ? this.mix!.fadeInMinutes * 60 : crossfadeSec;
@@ -261,6 +266,7 @@ export class MixPlayer {
         if (this._currentTime >= totalLengthSec) {
             if (this.mix.repeat) {
                 this._currentTime = 0;
+                window.dispatchEvent(new CustomEvent('mix-repeat', { detail: { mixId: this.mix.id } }));
                 this.ignoredOverlapItems.clear();
                 this.schedule.forEach(item => {
                     if (item.fadeState !== 'idle' && item.fadeState !== 'done') {
@@ -270,8 +276,8 @@ export class MixPlayer {
                 });
                 if (this.mix.shuffle) {
                     this.shuffledItems = shuffleArray(this.mix.items);
-                    this.calculateSchedule();
                 }
+                this.calculateSchedule();
             } else {
                 this.stop();
                 return;
