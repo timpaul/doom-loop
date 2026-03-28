@@ -74,7 +74,7 @@ export class AudioEngine {
         this.randomFilterSignal = new Tone.Signal(0);
 
         this.reverb = new Tone.Reverb({ decay: 4, wet: 0 });
-        this.delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.5, wet: 0 });
+        this.delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.5, wet: 0, maxDelay: 5 });
         this.chorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0 });
         this.distortion = new Tone.Distortion(0);
         this.chebyshev = new Tone.Chebyshev({ order: 50, wet: 0 });
