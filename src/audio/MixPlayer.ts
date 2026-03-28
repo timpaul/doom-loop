@@ -34,6 +34,7 @@ export class MixPlayer {
     private _currentTime = 0; // in seconds
     private timerId: any = null;
     private ignoredOverlapItems = new Set<string>();
+    public pendingSeekItemId: string | null = null;
 
     private constructor() { }
 
@@ -210,6 +211,7 @@ export class MixPlayer {
                 item.fadeState = 'idle'; // force it to re-evaluate on resume
             }
         }
+        this.cleanupUnusedEngines();
     }
 
     public stop() {
@@ -239,6 +241,7 @@ export class MixPlayer {
             item.fadeState = 'playing';
             this.startTrackSync(item);
             audioManager.setTrackVolume(item.mixItemId, 1);
+            this.cleanupUnusedEngines();
 
             // Next tick will continue the audio sync natively
         }
@@ -337,6 +340,7 @@ export class MixPlayer {
                 if (item.fadeState !== 'idle' && item.fadeState !== 'done') {
                     this.stopTrackSync(item);
                     item.fadeState = 'done';
+                    this.cleanupUnusedEngines();
                 }
             }
         }
@@ -360,6 +364,22 @@ export class MixPlayer {
         track.sounds.forEach(sound => {
             audioManager.syncSoundState(sound, false, item.mixItemId);
         });
+    }
+
+    private cleanupUnusedEngines() {
+        const activeSoundIds: string[] = [];
+        for (const item of this.schedule) {
+            if (item.fadeState !== 'idle' && item.fadeState !== 'done') {
+                const track = this.tracks.get(item.trackId);
+                if (track) {
+                    track.sounds.forEach(sound => {
+                        activeSoundIds.push(`${item.mixItemId}-${sound.id}`);
+                    });
+                }
+            }
+        }
+        audioManager.cleanupEngines(activeSoundIds);
+        audioManager.cleanupTrackGains(this.schedule.map(i => i.mixItemId));
     }
 }
 

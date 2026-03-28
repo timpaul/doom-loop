@@ -210,6 +210,16 @@ class AudioManager {
         this.trackGains.clear();
     }
 
+    public cleanupTrackGains(activeMixItemIds: string[]) {
+        const activeSet = new Set(activeMixItemIds);
+        for (const [id, gainNode] of this.trackGains.entries()) {
+            if (!activeSet.has(id)) {
+                gainNode.dispose();
+                this.trackGains.delete(id);
+            }
+        }
+    }
+
     public setTrackVolume(mixItemId: string, volume: number) {
         const gainNode = this.getTrackChannel(mixItemId);
         gainNode.gain.cancelScheduledValues(Tone.now());

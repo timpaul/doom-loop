@@ -665,10 +665,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                                  || state.communityMixes.find(m => m.id === state.currentMixId);
                         if (mix) {
                             mixPlayer.updateMix(mix, [...state.savedTracks, ...state.communityTracks]);
+                            if (mixPlayer.pendingSeekItemId) {
+                                mixPlayer.seekToItem(mixPlayer.pendingSeekItemId);
+                                mixPlayer.pendingSeekItemId = null;
+                            }
                             mixPlayer.play();
                         }
                     } else if (!prevIsPlayingRef.current && state.isPlaying) {
                         // Resuming from pause
+                        if (mixPlayer.pendingSeekItemId) {
+                            mixPlayer.seekToItem(mixPlayer.pendingSeekItemId);
+                            mixPlayer.pendingSeekItemId = null;
+                        }
                         mixPlayer.play();
                     }
                 } else {

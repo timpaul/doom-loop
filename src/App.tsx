@@ -1038,12 +1038,12 @@ function MixDetailScreen() {
                       if (isTrackPlaying) {
                         togglePlay();
                       } else {
-                        if (mixPlayer.currentMixId !== mix.id) {
-                          mixPlayer.loadMix(mix, state.savedTracks);
-                        }
-                        mixPlayer.seekToItem(item.id);
-                        if (!state.isPlaying) {
-                          togglePlay();
+                        mixPlayer.pendingSeekItemId = item.id;
+                        if (!state.isPlaying || state.playbackMode !== 'mix' || state.currentMixId !== mix.id) {
+                          dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
+                        } else {
+                          mixPlayer.seekToItem(item.id);
+                          mixPlayer.pendingSeekItemId = null;
                         }
                       }
                       setTick(t => t + 1);
@@ -1836,12 +1836,12 @@ function CommunityMixDetailScreen() {
                       if (isTrackPlaying) {
                         togglePlay();
                       } else {
-                        if (mixPlayer.currentMixId !== mix.id) {
-                          mixPlayer.loadMix(mix, allTracks);
-                        }
-                        mixPlayer.seekToItem(item.id);
-                        if (!state.isPlaying) {
-                          togglePlay();
+                        mixPlayer.pendingSeekItemId = item.id;
+                        if (!state.isPlaying || state.playbackMode !== 'mix' || state.currentMixId !== mix.id) {
+                          dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
+                        } else {
+                          mixPlayer.seekToItem(item.id);
+                          mixPlayer.pendingSeekItemId = null;
                         }
                       }
                       setTick(t => t + 1);
