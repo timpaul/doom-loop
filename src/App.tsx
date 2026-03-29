@@ -7,7 +7,7 @@ import { useAppState } from './state/AppContext'
 import { audioManager } from './audio/AudioManager'
 import { mixPlayer } from './audio/MixPlayer'
 import type { SoundState, TrackState, LFOScale, LFOType, MixState } from './types'
-import type { NoiseColor } from './audio/AudioEngine'
+import type { NoiseColor, OscillatorType } from './audio/AudioEngine'
 import { aboutMarkdown } from './AboutContent'
 
 const PlayIcon = () => (
@@ -181,18 +181,41 @@ function SoundPanel({ sound }: { sound: SoundState }) {
           <section className={`panel-group ${collapsedPanels['TYPE'] ? 'collapsed' : ''}`}>
             <h2 className="panel-title" onClick={() => togglePanel('TYPE')}>TYPE</h2>
             {!collapsedPanels['TYPE'] && (
-              <div className="segmented-control" role="group" aria-label="Select Source Type">
+              <div className="segmented-control" style={{ flexWrap: 'wrap', gap: '4px' }} role="group" aria-label="Select Source Type">
                 <button
                   className={`segment-btn ${sound.sourceType === 'noise' ? 'active' : ''}`}
                   onClick={() => update({ sourceType: 'noise' })}
+                  style={{ flexBasis: 'calc(33.333% - 4px)', flexGrow: 1 }}
                 >
                   Noise
                 </button>
                 <button
                   className={`segment-btn ${sound.sourceType === 'tone' ? 'active' : ''}`}
                   onClick={() => update({ sourceType: 'tone' })}
+                  style={{ flexBasis: 'calc(33.333% - 4px)', flexGrow: 1 }}
                 >
-                  Tones
+                  Synth
+                </button>
+                <button
+                  className={`segment-btn ${sound.sourceType === 'fm' ? 'active' : ''}`}
+                  onClick={() => update({ sourceType: 'fm' })}
+                  style={{ flexBasis: 'calc(33.333% - 4px)', flexGrow: 1 }}
+                >
+                  FM Synth
+                </button>
+                <button
+                  className={`segment-btn ${sound.sourceType === 'metal' ? 'active' : ''}`}
+                  onClick={() => update({ sourceType: 'metal' })}
+                  style={{ flexBasis: 'calc(50% - 2px)', flexGrow: 1 }}
+                >
+                  Metal
+                </button>
+                <button
+                  className={`segment-btn ${sound.sourceType === 'pluck' ? 'active' : ''}`}
+                  onClick={() => update({ sourceType: 'pluck' })}
+                  style={{ flexBasis: 'calc(50% - 2px)', flexGrow: 1 }}
+                >
+                  Pluck
                 </button>
               </div>
             )}
@@ -215,6 +238,134 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                     </button>
                   ))}
                 </div>
+              )}
+            </section>
+          )}
+
+          {sound.sourceType === 'tone' && (
+            <section className={`panel-group ${collapsedPanels['SYNTH'] ? 'collapsed' : ''}`}>
+              <h2 className="panel-title" onClick={() => togglePanel('SYNTH')}>SYNTH</h2>
+              {!collapsedPanels['SYNTH'] && (
+                <div className="colour-picker-grid" role="group" aria-label="Select oscillator type" style={{ gap: '8px' }}>
+                  {['sine', 'square', 'sawtooth', 'triangle', 'pulse', 'fatsine', 'fatsquare', 'fatsawtooth', 'fattriangle'].map(osc => (
+                    <button
+                      key={osc}
+                      className={`color-btn ${sound.oscillatorType === osc ? 'active' : ''}`}
+                      onClick={() => update({ oscillatorType: osc as OscillatorType })}
+                      aria-pressed={sound.oscillatorType === osc}
+                      style={{ padding: '6px 8px', fontSize: '0.8rem', flexBasis: 'calc(33.333% - 8px)' }}
+                    >
+                      {osc === 'fatsine' ? 'Fat Sine' : osc === 'fatsquare' ? 'Fat Square' : osc === 'fatsawtooth' ? 'Fat Saw' : osc === 'fattriangle' ? 'Fat Tri' : osc.charAt(0).toUpperCase() + osc.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {sound.sourceType === 'fm' && (
+            <section className={`panel-group ${collapsedPanels['FM_SYNTH'] ? 'collapsed' : ''}`}>
+              <h2 className="panel-title" onClick={() => togglePanel('FM_SYNTH')}>FM SYNTH</h2>
+              {!collapsedPanels['FM_SYNTH'] && (
+                <>
+                  <div className="control-row">
+                    <span className="control-label">Ratio / Harm</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="0.1" max="10" step="0.1"
+                        value={sound.fmHarmonicity ?? 1}
+                        onChange={(e) => update({ fmHarmonicity: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="control-row">
+                    <span className="control-label">Index</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="0" max="100" step="1"
+                        value={sound.fmModulationIndex ?? 10}
+                        onChange={(e) => update({ fmModulationIndex: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          {sound.sourceType === 'metal' && (
+            <section className={`panel-group ${collapsedPanels['METAL'] ? 'collapsed' : ''}`}>
+              <h2 className="panel-title" onClick={() => togglePanel('METAL')}>METAL</h2>
+              {!collapsedPanels['METAL'] && (
+                <>
+                  <div className="control-row">
+                    <span className="control-label">Harmonicity</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="0.1" max="20" step="0.1"
+                        value={sound.metalHarmonicity ?? 5.1}
+                        onChange={(e) => update({ metalHarmonicity: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="control-row">
+                    <span className="control-label">Resonance</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="100" max="8000" step="100"
+                        value={sound.metalResonance ?? 4000}
+                        onChange={(e) => update({ metalResonance: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          {sound.sourceType === 'pluck' && (
+            <section className={`panel-group ${collapsedPanels['PLUCK'] ? 'collapsed' : ''}`}>
+              <h2 className="panel-title" onClick={() => togglePanel('PLUCK')}>PLUCK</h2>
+              {!collapsedPanels['PLUCK'] && (
+                <>
+                  <div className="control-row">
+                    <span className="control-label">Attack</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="0.01" max="0.5" step="0.01"
+                        value={sound.pluckAttackNoise ?? 0.1}
+                        onChange={(e) => update({ pluckAttackNoise: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="control-row">
+                    <span className="control-label">Resonance</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="0" max="0.99" step="0.01"
+                        value={sound.pluckResonance ?? 0.7}
+                        onChange={(e) => update({ pluckResonance: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="control-row">
+                    <span className="control-label">Dampen</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="100" max="8000" step="100"
+                        value={sound.pluckDampening ?? 4000}
+                        onChange={(e) => update({ pluckDampening: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                </>
               )}
             </section>
           )}
@@ -298,7 +449,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                     />
                   </div>
                 </div>
-                {sound.sourceType === 'tone' && (
+                {sound.sourceType !== 'noise' && (
                   <div className="control-row">
                     <span className="control-label">Play</span>
                     <div className="segmented-control" style={{ marginTop: 0 }}>
@@ -321,7 +472,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
             )}
           </section>
 
-          {sound.sourceType === 'tone' && (
+          {sound.sourceType !== 'noise' && (
             <section className={`panel-group ${collapsedPanels['TONES'] ? 'collapsed' : ''}`}>
               <h2 className="panel-title" onClick={() => togglePanel('TONES')}>TONES</h2>
               {!collapsedPanels['TONES'] && (
@@ -414,9 +565,10 @@ function SoundPanel({ sound }: { sound: SoundState }) {
             </section>
           )}
 
-          <section className={`panel-group ${collapsedPanels['ENVELOPE'] ? 'collapsed' : ''}`}>
-            <h2 className="panel-title" onClick={() => togglePanel('ENVELOPE')}>ENVELOPE</h2>
-            {!collapsedPanels['ENVELOPE'] && (
+          {sound.sourceType !== 'pluck' && (
+            <section className={`panel-group ${collapsedPanels['ENVELOPE'] ? 'collapsed' : ''}`}>
+              <h2 className="panel-title" onClick={() => togglePanel('ENVELOPE')}>ENVELOPE</h2>
+              {!collapsedPanels['ENVELOPE'] && (
               <>
                 <div className="control-row">
                   <span className="control-label">Attack</span>
@@ -458,7 +610,8 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 </div>
               </>
             )}
-          </section>
+            </section>
+          )}
 
           <section className={`panel-group ${collapsedPanels['VOLUME'] ? 'collapsed' : ''}`}>
             <h2 className="panel-title" onClick={() => togglePanel('VOLUME')}>VOLUME</h2>

@@ -1,4 +1,4 @@
-import type { SoundType, NoiseColor } from './audio/AudioEngine';
+import type { SoundType, NoiseColor, OscillatorType } from './audio/AudioEngine';
 
 export type LFOScale = 'second' | 'minute' | 'hour';
 export type LFOType = 'sine' | 'random';
@@ -14,6 +14,14 @@ export interface SoundState {
     id: string;
     name: string;
     sourceType: SoundType;
+    oscillatorType?: OscillatorType;
+    fmHarmonicity?: number;
+    fmModulationIndex?: number;
+    metalHarmonicity?: number;
+    metalResonance?: number;
+    pluckAttackNoise?: number;
+    pluckResonance?: number;
+    pluckDampening?: number;
     noiseColor: NoiseColor;
     stepConfigs: StepConfig[];
     stepRatios: (number | string | null)[];
@@ -120,6 +128,14 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     seqLengthScale: 'minute',
     seqLengthRate: 30,
     slack: 0,
+    oscillatorType: 'sine',
+    fmHarmonicity: 1,
+    fmModulationIndex: 10,
+    metalHarmonicity: 5.1,
+    metalResonance: 4000,
+    pluckAttackNoise: 0.1,
+    pluckResonance: 0.9,
+    pluckDampening: 4000,
     envAttack: 0.5,
     envDecay: 0.1,
     envSustain: 1.0,

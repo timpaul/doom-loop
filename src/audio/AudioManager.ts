@@ -83,6 +83,7 @@ class AudioManager {
         engine.setDistortion(sound.distortionAmount ?? 0);
         engine.setChebyshev(sound.chebyshevAmount ?? 0);
         engine.setDetune(sound.detune ?? 0);
+        const synthRecreated = engine.setSynthConfig(sound);
         engine.setEnvelope({
             attack: sound.envAttack,
             decay: sound.envDecay,
@@ -171,7 +172,7 @@ class AudioManager {
             };
         }
 
-        if (this.previousSources.get(engineId) !== sourceConfigStr) {
+        if (synthRecreated || this.previousSources.get(engineId) !== sourceConfigStr) {
             engine.play(sound.sourceType, playArgs);
             this.previousSources.set(engineId, sourceConfigStr);
         }

@@ -2,8 +2,9 @@ import * as Tone from 'tone';
 
 export type NoiseColor = 'white' | 'pink' | 'brown' | 'blue' | 'purple' | 'green';
 export type ToneType = 'Low note' | 'Mid note' | 'High note' | 'Low chord' | 'Mid chord' | 'High chord';
-export type SoundType = 'noise' | 'tone';
+export type SoundType = 'noise' | 'tone' | 'fm' | 'metal' | 'pluck';
 export type LFOModType = 'sine' | 'random';
+export type OscillatorType = 'sine' | 'square' | 'triangle' | 'sawtooth' | 'fatsine' | 'fatsquare' | 'fattriangle' | 'fatsawtooth' | 'pulse' | 'pwm';
 
 
 export class AudioEngine {
@@ -48,6 +49,8 @@ export class AudioEngine {
     private chebyshev: Tone.Chebyshev;
 
     private currentSource: SoundType | null = null;
+    private currentSynthVoice: SoundType = 'tone';
+    private currentOscType: OscillatorType = 'sine';
     private sequencePart: Tone.Part | null = null;
     private sequenceEventId: number | null = null;
     private isInitialized = false;
@@ -250,7 +253,7 @@ export class AudioEngine {
             } else {
                 this.noiseEnv.triggerAttack();
             }
-        } else if (sourceType === 'tone') {
+        } else if (sourceType === 'tone' || sourceType === 'fm' || sourceType === 'metal' || sourceType === 'pluck') {
             // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
             const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
 
@@ -359,7 +362,7 @@ export class AudioEngine {
             setTimeout(() => {
                 if (this.currentSource !== 'noise') this.noise.stop();
             }, releaseTime * 1000);
-        } else if (this.currentSource === 'tone') {
+        } else if (this.currentSource !== null) {
             this.polySynth.releaseAll();
         }
         this.currentSource = null;
@@ -547,7 +550,103 @@ export class AudioEngine {
         if (this.currentEnvelopeStr === envStr) return;
 
         this.currentEnvelopeStr = envStr;
-        this.polySynth.set({ envelope });
+        if (this.currentSynthVoice === 'tone' || this.currentSynthVoice === 'fm' || this.currentSynthVoice === 'metal') {
+            this.polySynth.set({ envelope });
+        }
         this.noiseEnv.set(envelope);
+    }
+
+    public setSynthConfig(sound: any) {
+        if (sound.sourceType === 'noise') return; // Handled dynamically in play()
+
+        const sourceType = sound.sourceType as SoundType;
+        const oscType = sound.oscillatorType as OscillatorType || 'sine';
+        
+        let shouldRecreate = false;
+        if (this.currentSynthVoice !== sourceType) {
+            shouldRecreate = true;
+            this.currentSynthVoice = sourceType;
+        }
+
+        if (sourceType === 'tone' && oscType !== this.currentOscType) {
+            shouldRecreate = true;
+            this.currentOscType = oscType;
+        }
+
+        if (shouldRecreate) {
+            if (this.polySynth) {
+                this.polySynth.releaseAll();
+                this.polySynth.disconnect();
+                this.polySynth.dispose();
+            }
+
+            let VoiceClass: any = Tone.Synth;
+            const options: any = {
+                volume: -6
+            };
+            
+            // Apply current envelope to new synth instantiation
+            if (this.currentEnvelopeStr) {
+                try {
+                    options.envelope = JSON.parse(this.currentEnvelopeStr);
+                } catch(e) {}
+            } else {
+                options.envelope = { attack: 0.5, decay: 0.1, sustain: 1, release: 2 };
+            }
+
+            if (sourceType === 'tone') {
+                VoiceClass = Tone.Synth;
+                options.oscillator = { type: oscType };
+            } else if (sourceType === 'fm') {
+                VoiceClass = Tone.FMSynth;
+                options.harmonicity = sound.fmHarmonicity ?? 1;
+                options.modulationIndex = sound.fmModulationIndex ?? 10;
+            } else if (sourceType === 'metal') {
+                VoiceClass = Tone.MetalSynth;
+                options.harmonicity = sound.metalHarmonicity ?? 5.1;
+                options.resonance = sound.metalResonance ?? 4000;
+            } else if (sourceType === 'pluck') {
+                VoiceClass = Tone.MonoSynth;
+                options.oscillator = { type: 'square' };
+                // Emulate a plucked string fast decay
+                options.envelope = { attack: 0.005, decay: 0.5, sustain: 0.0, release: 0.1 };
+                options.filter = { type: 'lowpass', Q: (sound.pluckResonance ?? 0.9) * 10 };
+                options.filterEnvelope = {
+                    attack: 0.005,
+                    decay: (sound.pluckAttackNoise ?? 0.1) * 2, // Map attack noise approx to decay
+                    sustain: 0,
+                    release: 0.1,
+                    baseFrequency: 150,
+                    octaves: (sound.pluckDampening ?? 4000) / 1000
+                };
+            }
+
+            this.polySynth = new Tone.PolySynth(VoiceClass, options);
+            this.polySynth.connect(this.channel);
+            return true;
+        } else {
+            // Just update parameters without recreating
+            const typedSynth = this.polySynth as any;
+            if (sourceType === 'fm') {
+                typedSynth.set({ 
+                    harmonicity: sound.fmHarmonicity ?? 1,
+                    modulationIndex: sound.fmModulationIndex ?? 10,
+                });
+            } else if (sourceType === 'metal') {
+                typedSynth.set({
+                    harmonicity: sound.metalHarmonicity ?? 5.1,
+                    resonance: sound.metalResonance ?? 4000,
+                });
+            } else if (sourceType === 'pluck') {
+                typedSynth.set({
+                    filter: { Q: (sound.pluckResonance ?? 0.9) * 10 },
+                    filterEnvelope: {
+                        decay: (sound.pluckAttackNoise ?? 0.1) * 2,
+                        octaves: (sound.pluckDampening ?? 4000) / 1000
+                    }
+                });
+            }
+            return false;
+        }
     }
 }
