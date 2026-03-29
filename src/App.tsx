@@ -470,7 +470,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 </div>
                 <div className="control-row">
                   <div className="slider-wrapper">
-                    <span className="control-label">Slack</span>
+                    <span className="control-label">Timing</span>
                     <input
                       type="range"
                       min="0"
@@ -478,7 +478,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       step="0.01"
                       value={sound.slack || 0}
                       onChange={e => update({ slack: parseFloat(e.target.value) })}
-                      aria-label="Sequencer Slack"
+                      aria-label="Sequencer Timing"
                     />
                   </div>
                 </div>
@@ -1132,7 +1132,7 @@ function MixDetailScreen() {
                 </div>
               </div>
               <div className="control-row">
-                <span className="control-label">Spread</span>
+                <span className="control-label">Timing</span>
                 <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <input
                     type="range"
@@ -1141,9 +1141,8 @@ function MixDetailScreen() {
                     step="0.01"
                     value={mix.spread || 0}
                     onChange={e => updateSettings({ spread: parseFloat(e.target.value) })}
-                    aria-label="Mix Spread"
+                    aria-label="Mix Timing"
                   />
-                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{((mix.spread || 0) * 100).toFixed(0)}%</span>
                 </div>
               </div>
               <div className="control-row">
