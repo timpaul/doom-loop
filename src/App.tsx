@@ -2097,6 +2097,12 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
+    // Intercept real URL paths (like /community) that the static server/Vite might serve 
+    // before the HashRouter processes the empty hash, and rewrite them to the correct hash.
+    if (window.location.pathname === '/community' || window.location.pathname === '/community/') {
+      window.location.replace('/#/community/mixes');
+      return;
+    }
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
@@ -2121,6 +2127,7 @@ function App() {
         <Route path="/mixes" element={<ListScreen listMode="mixes" />} />
         <Route path="/mixes/:id" element={<MixDetailScreen />} />
 
+        <Route path="/community" element={<Navigate to="/community/mixes" replace />} />
         <Route path="/community/mixes" element={<CommunityListScreen />} />
         <Route path="/community/mixes/:id" element={<CommunityMixDetailScreen />} />
 
