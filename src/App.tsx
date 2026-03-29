@@ -181,41 +181,42 @@ function SoundPanel({ sound }: { sound: SoundState }) {
           <section className={`panel-group ${collapsedPanels['TYPE'] ? 'collapsed' : ''}`}>
             <h2 className="panel-title" onClick={() => togglePanel('TYPE')}>TYPE</h2>
             {!collapsedPanels['TYPE'] && (
-              <div className="segmented-control" style={{ flexWrap: 'wrap', gap: '4px' }} role="group" aria-label="Select Source Type">
+              <div className="colour-picker-grid" role="group" aria-label="Select Source Type">
                 <button
-                  className={`segment-btn ${sound.sourceType === 'noise' ? 'active' : ''}`}
+                  className={`color-btn ${sound.sourceType === 'noise' ? 'active' : ''}`}
                   onClick={() => update({ sourceType: 'noise' })}
-                  style={{ flexBasis: 'calc(33.333% - 4px)', flexGrow: 1 }}
                 >
                   Noise
                 </button>
                 <button
-                  className={`segment-btn ${sound.sourceType === 'tone' ? 'active' : ''}`}
+                  className={`color-btn ${sound.sourceType === 'tone' ? 'active' : ''}`}
                   onClick={() => update({ sourceType: 'tone' })}
-                  style={{ flexBasis: 'calc(33.333% - 4px)', flexGrow: 1 }}
                 >
                   Synth
                 </button>
                 <button
-                  className={`segment-btn ${sound.sourceType === 'fm' ? 'active' : ''}`}
+                  className={`color-btn ${sound.sourceType === 'fm' ? 'active' : ''}`}
                   onClick={() => update({ sourceType: 'fm' })}
-                  style={{ flexBasis: 'calc(33.333% - 4px)', flexGrow: 1 }}
                 >
                   FM Synth
                 </button>
                 <button
-                  className={`segment-btn ${sound.sourceType === 'metal' ? 'active' : ''}`}
+                  className={`color-btn ${sound.sourceType === 'metal' ? 'active' : ''}`}
                   onClick={() => update({ sourceType: 'metal' })}
-                  style={{ flexBasis: 'calc(50% - 2px)', flexGrow: 1 }}
                 >
                   Metal
                 </button>
                 <button
-                  className={`segment-btn ${sound.sourceType === 'pluck' ? 'active' : ''}`}
+                  className={`color-btn ${sound.sourceType === 'pluck' ? 'active' : ''}`}
                   onClick={() => update({ sourceType: 'pluck' })}
-                  style={{ flexBasis: 'calc(50% - 2px)', flexGrow: 1 }}
                 >
                   Pluck
+                </button>
+                <button
+                  className={`color-btn ${sound.sourceType === 'kick' ? 'active' : ''}`}
+                  onClick={() => update({ sourceType: 'kick' })}
+                >
+                  Kick
                 </button>
               </div>
             )}
@@ -362,6 +363,38 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                         min="100" max="8000" step="100"
                         value={sound.pluckDampening ?? 4000}
                         onChange={(e) => update({ pluckDampening: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          {sound.sourceType === 'kick' && (
+            <section className={`panel-group ${collapsedPanels['KICK'] ? 'collapsed' : ''}`}>
+              <h2 className="panel-title" onClick={() => togglePanel('KICK')}>KICK</h2>
+              {!collapsedPanels['KICK'] && (
+                <>
+                  <div className="control-row">
+                    <span className="control-label">Pitch Decay</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="0.01" max="0.5" step="0.01"
+                        value={sound.kickPitchDecay ?? 0.05}
+                        onChange={(e) => update({ kickPitchDecay: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="control-row">
+                    <span className="control-label">Octaves</span>
+                    <div className="slider-wrapper">
+                      <input
+                        type="range"
+                        min="0.1" max="10" step="0.1"
+                        value={sound.kickOctaves ?? 10}
+                        onChange={(e) => update({ kickOctaves: parseFloat(e.target.value) })}
                       />
                     </div>
                   </div>

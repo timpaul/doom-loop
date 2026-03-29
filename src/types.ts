@@ -22,6 +22,8 @@ export interface SoundState {
     pluckAttackNoise?: number;
     pluckResonance?: number;
     pluckDampening?: number;
+    kickPitchDecay?: number;
+    kickOctaves?: number;
     noiseColor: NoiseColor;
     stepConfigs: StepConfig[];
     stepRatios: (number | string | null)[];
@@ -136,6 +138,8 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     pluckAttackNoise: 0.1,
     pluckResonance: 0.9,
     pluckDampening: 4000,
+    kickPitchDecay: 0.05,
+    kickOctaves: 10,
     envAttack: 0.5,
     envDecay: 0.1,
     envSustain: 1.0,

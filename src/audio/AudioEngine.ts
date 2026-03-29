@@ -2,7 +2,7 @@ import * as Tone from 'tone';
 
 export type NoiseColor = 'white' | 'pink' | 'brown' | 'blue' | 'purple' | 'green';
 export type ToneType = 'Low note' | 'Mid note' | 'High note' | 'Low chord' | 'Mid chord' | 'High chord';
-export type SoundType = 'noise' | 'tone' | 'fm' | 'metal' | 'pluck';
+export type SoundType = 'noise' | 'tone' | 'fm' | 'metal' | 'pluck' | 'kick';
 export type LFOModType = 'sine' | 'random';
 export type OscillatorType = 'sine' | 'square' | 'triangle' | 'sawtooth' | 'fatsine' | 'fatsquare' | 'fattriangle' | 'fatsawtooth' | 'pulse' | 'pwm';
 
@@ -253,7 +253,7 @@ export class AudioEngine {
             } else {
                 this.noiseEnv.triggerAttack();
             }
-        } else if (sourceType === 'tone' || sourceType === 'fm' || sourceType === 'metal' || sourceType === 'pluck') {
+        } else if (sourceType === 'tone' || sourceType === 'fm' || sourceType === 'metal' || sourceType === 'pluck' || sourceType === 'kick') {
             // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
             const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
 
@@ -619,6 +619,10 @@ export class AudioEngine {
                     baseFrequency: 150,
                     octaves: (sound.pluckDampening ?? 4000) / 1000
                 };
+            } else if (sourceType === 'kick') {
+                VoiceClass = Tone.MembraneSynth;
+                options.pitchDecay = sound.kickPitchDecay ?? 0.05;
+                options.octaves = sound.kickOctaves ?? 10;
             }
 
             this.polySynth = new Tone.PolySynth(VoiceClass, options);
@@ -644,6 +648,11 @@ export class AudioEngine {
                         decay: (sound.pluckAttackNoise ?? 0.1) * 2,
                         octaves: (sound.pluckDampening ?? 4000) / 1000
                     }
+                });
+            } else if (sourceType === 'kick') {
+                typedSynth.set({
+                    pitchDecay: sound.kickPitchDecay ?? 0.05,
+                    octaves: sound.kickOctaves ?? 10
                 });
             }
             return false;
