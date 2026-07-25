@@ -509,7 +509,7 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   />
                 </div>
                 <div className="control-row">
-                  <span className="control-label">Timing</span>
+                  <span className="control-label">Jitter</span>
                   <Slider
                     min="0"
                     max="1"
@@ -644,61 +644,61 @@ function SoundPanel({ sound }: { sound: SoundState }) {
             <section className={`panel-group ${collapsedPanels['ENVELOPE'] ? 'collapsed' : ''}`}>
               <h2 className="panel-title" onClick={() => togglePanel('ENVELOPE')}>ENVELOPE</h2>
               {!collapsedPanels['ENVELOPE'] && (
-              <>
-                <div className="control-row">
-                  <span className="control-label">Attack</span>
-                  <Slider
-                    min="0" max="1" step="0.01"
-                    value={Math.pow(sound.envAttack / 10, 1 / 3) || 0}
-                    onChange={e => update({ envAttack: Math.pow(parseFloat(e.target.value), 3) * 10 })}
-                    aria-label="Attack"
-                    displayValue={formatSecondsDisplay(sound.envAttack)}
-                  />
-                </div>
-                <div className="control-row">
-                  <span className="control-label">Decay</span>
-                  <Slider
-                    min="0" max="1" step="0.01"
-                    value={Math.pow(sound.envDecay / 10, 1 / 3) || 0}
-                    onChange={e => update({ envDecay: Math.pow(parseFloat(e.target.value), 3) * 10 })}
-                    aria-label="Decay"
-                    displayValue={formatSecondsDisplay(sound.envDecay)}
-                  />
-                </div>
-                <div className="control-row">
-                  <span className="control-label">Sustain</span>
-                  <Slider
-                    min="0" max="1" step="0.01"
-                    value={sound.envSustain || 0}
-                    onChange={e => update({ envSustain: parseFloat(e.target.value) })}
-                    aria-label="Sustain"
-                    displayValue={formatPercentDisplay(sound.envSustain || 0)}
-                  />
-                </div>
-                <div className="control-row">
-                  <span className="control-label">Release</span>
-                  <Slider
-                    min="0" max="1" step="0.01"
-                    value={Math.pow(sound.envRelease / 10, 1 / 3) || 0}
-                    onChange={e => update({ envRelease: Math.pow(parseFloat(e.target.value), 3) * 10 })}
-                    aria-label="Release"
-                    displayValue={formatSecondsDisplay(sound.envRelease)}
-                  />
-                </div>
-                <div className="control-row" style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
-                  <span className="control-label">Length</span>
-                  <Slider
-                    min="0.1"
-                    max="1"
-                    step="0.05"
-                    value={sound.noteLengthRatio ?? 1.0}
-                    onChange={e => update({ noteLengthRatio: parseFloat(e.target.value) })}
-                    aria-label="Note Length Ratio"
-                    displayValue={formatPercentDisplay(sound.noteLengthRatio ?? 1.0)}
-                  />
-                </div>
-              </>
-            )}
+                <>
+                  <div className="control-row">
+                    <span className="control-label">Attack</span>
+                    <Slider
+                      min="0" max="1" step="0.01"
+                      value={Math.pow(sound.envAttack / 10, 1 / 3) || 0}
+                      onChange={e => update({ envAttack: Math.pow(parseFloat(e.target.value), 3) * 10 })}
+                      aria-label="Attack"
+                      displayValue={formatSecondsDisplay(sound.envAttack)}
+                    />
+                  </div>
+                  <div className="control-row">
+                    <span className="control-label">Decay</span>
+                    <Slider
+                      min="0" max="1" step="0.01"
+                      value={Math.pow(sound.envDecay / 10, 1 / 3) || 0}
+                      onChange={e => update({ envDecay: Math.pow(parseFloat(e.target.value), 3) * 10 })}
+                      aria-label="Decay"
+                      displayValue={formatSecondsDisplay(sound.envDecay)}
+                    />
+                  </div>
+                  <div className="control-row">
+                    <span className="control-label">Sustain</span>
+                    <Slider
+                      min="0" max="1" step="0.01"
+                      value={sound.envSustain || 0}
+                      onChange={e => update({ envSustain: parseFloat(e.target.value) })}
+                      aria-label="Sustain"
+                      displayValue={formatPercentDisplay(sound.envSustain || 0)}
+                    />
+                  </div>
+                  <div className="control-row">
+                    <span className="control-label">Release</span>
+                    <Slider
+                      min="0" max="1" step="0.01"
+                      value={Math.pow(sound.envRelease / 10, 1 / 3) || 0}
+                      onChange={e => update({ envRelease: Math.pow(parseFloat(e.target.value), 3) * 10 })}
+                      aria-label="Release"
+                      displayValue={formatSecondsDisplay(sound.envRelease)}
+                    />
+                  </div>
+                  <div className="control-row" style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                    <span className="control-label">Length</span>
+                    <Slider
+                      min="0.1"
+                      max="1"
+                      step="0.05"
+                      value={sound.noteLengthRatio ?? 1.0}
+                      onChange={e => update({ noteLengthRatio: parseFloat(e.target.value) })}
+                      aria-label="Note Length Ratio"
+                      displayValue={formatPercentDisplay(sound.noteLengthRatio ?? 1.0)}
+                    />
+                  </div>
+                </>
+              )}
             </section>
           )}
 
@@ -1229,7 +1229,7 @@ function MixDetailScreen() {
                 />
               </div>
               <div className="control-row">
-                <span className="control-label">Timing</span>
+                <span className="control-label">Jitter</span>
                 <Slider
                   min="0"
                   max="1"
