@@ -9,6 +9,66 @@ import { mixPlayer } from './audio/MixPlayer'
 import type { SoundState, TrackState, LFOScale, LFOType, MixState } from './types'
 import type { NoiseColor, OscillatorType } from './audio/AudioEngine'
 import { aboutMarkdown } from './AboutContent'
+import { Slider } from './components/Slider'
+
+function formatRateDisplay(rate: number, scale?: LFOScale): string {
+  if (scale === 'second' || !scale) {
+    if (rate <= 0) return '0 Hz';
+    const hz = 1 / rate;
+    if (hz >= 1) return `${+(hz.toFixed(1))}hz`;
+    return `${+(rate.toFixed(2))}s`;
+  } else if (scale === 'minute') {
+    return `${+(rate.toFixed(2))}m`;
+  } else {
+    if (rate < 3600) return `${+(rate / 60).toFixed(1)}m`;
+    return `${+(rate / 3600).toFixed(2)}h`;
+  }
+}
+
+function formatPercentDisplay(val: number): string {
+  const p = Math.round((val || 0) * 100);
+  return `${p}%`;
+}
+
+function formatSecondsDisplay(sec: number): string {
+  const s = sec || 0;
+  if (s < 1) return `${+(s.toFixed(2))}s`;
+  if (s < 60) return `${+(s.toFixed(1))}s`;
+  const mins = Math.floor(s / 60);
+  const remSec = Math.round(s % 60);
+  return remSec > 0 ? `${mins}m ${remSec}s` : `${mins}m`;
+}
+
+function formatFreqDisplay(freq: number): string {
+  const f = freq || 0;
+  if (f >= 1000) {
+    const k = f / 1000;
+    return `${+(k.toFixed(k % 1 === 0 ? 0 : 1))} kHz`;
+  }
+  return `${Math.round(f)} Hz`;
+}
+
+function formatPanDisplay(pan: number): string {
+  const p = pan || 0;
+  if (Math.abs(p) < 0.02) return 'C';
+  if (p < 0) return `${Math.round(Math.abs(p) * 100)}% L`;
+  return `${Math.round(p * 100)}% R`;
+}
+
+function formatDetuneDisplay(cents: number): string {
+  const c = cents || 0;
+  if (c === 0) return '0 ct';
+  if (c > 0) return `+${c} ct`;
+  return `${c} ct`;
+}
+
+function formatRatioDisplay(val: number): string {
+  return `${+((val || 0).toFixed(2))}x`;
+}
+
+function formatOctavesDisplay(val: number): string {
+  return `${+((val || 0).toFixed(1))} oct`;
+}
 
 const PlayIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
@@ -271,25 +331,21 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 <>
                   <div className="control-row">
                     <span className="control-label">Ratio / Harm</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="0.1" max="10" step="0.1"
-                        value={sound.fmHarmonicity ?? 1}
-                        onChange={(e) => update({ fmHarmonicity: parseFloat(e.target.value) })}
-                      />
-                    </div>
+                    <Slider
+                      min="0.1" max="10" step="0.1"
+                      value={sound.fmHarmonicity ?? 1}
+                      onChange={(e) => update({ fmHarmonicity: parseFloat(e.target.value) })}
+                      displayValue={formatRatioDisplay(sound.fmHarmonicity ?? 1)}
+                    />
                   </div>
                   <div className="control-row">
                     <span className="control-label">Index</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="0" max="100" step="1"
-                        value={sound.fmModulationIndex ?? 10}
-                        onChange={(e) => update({ fmModulationIndex: parseFloat(e.target.value) })}
-                      />
-                    </div>
+                    <Slider
+                      min="0" max="100" step="1"
+                      value={sound.fmModulationIndex ?? 10}
+                      onChange={(e) => update({ fmModulationIndex: parseFloat(e.target.value) })}
+                      displayValue={sound.fmModulationIndex ?? 10}
+                    />
                   </div>
                 </>
               )}
@@ -303,25 +359,21 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 <>
                   <div className="control-row">
                     <span className="control-label">Harmonicity</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="0.1" max="20" step="0.1"
-                        value={sound.metalHarmonicity ?? 5.1}
-                        onChange={(e) => update({ metalHarmonicity: parseFloat(e.target.value) })}
-                      />
-                    </div>
+                    <Slider
+                      min="0.1" max="20" step="0.1"
+                      value={sound.metalHarmonicity ?? 5.1}
+                      onChange={(e) => update({ metalHarmonicity: parseFloat(e.target.value) })}
+                      displayValue={formatRatioDisplay(sound.metalHarmonicity ?? 5.1)}
+                    />
                   </div>
                   <div className="control-row">
                     <span className="control-label">Resonance</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="100" max="8000" step="100"
-                        value={sound.metalResonance ?? 4000}
-                        onChange={(e) => update({ metalResonance: parseFloat(e.target.value) })}
-                      />
-                    </div>
+                    <Slider
+                      min="100" max="8000" step="100"
+                      value={sound.metalResonance ?? 4000}
+                      onChange={(e) => update({ metalResonance: parseFloat(e.target.value) })}
+                      displayValue={formatFreqDisplay(sound.metalResonance ?? 4000)}
+                    />
                   </div>
                 </>
               )}
@@ -335,36 +387,30 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 <>
                   <div className="control-row">
                     <span className="control-label">Attack</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="0.01" max="0.5" step="0.01"
-                        value={sound.pluckAttackNoise ?? 0.1}
-                        onChange={(e) => update({ pluckAttackNoise: parseFloat(e.target.value) })}
-                      />
-                    </div>
+                    <Slider
+                      min="0.01" max="0.5" step="0.01"
+                      value={sound.pluckAttackNoise ?? 0.1}
+                      onChange={(e) => update({ pluckAttackNoise: parseFloat(e.target.value) })}
+                      displayValue={formatSecondsDisplay(sound.pluckAttackNoise ?? 0.1)}
+                    />
                   </div>
                   <div className="control-row">
                     <span className="control-label">Resonance</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="0" max="0.99" step="0.01"
-                        value={sound.pluckResonance ?? 0.7}
-                        onChange={(e) => update({ pluckResonance: parseFloat(e.target.value) })}
-                      />
-                    </div>
+                    <Slider
+                      min="0" max="0.99" step="0.01"
+                      value={sound.pluckResonance ?? 0.7}
+                      onChange={(e) => update({ pluckResonance: parseFloat(e.target.value) })}
+                      displayValue={formatPercentDisplay(sound.pluckResonance ?? 0.7)}
+                    />
                   </div>
                   <div className="control-row">
                     <span className="control-label">Dampen</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="100" max="8000" step="100"
-                        value={sound.pluckDampening ?? 4000}
-                        onChange={(e) => update({ pluckDampening: parseFloat(e.target.value) })}
-                      />
-                    </div>
+                    <Slider
+                      min="100" max="8000" step="100"
+                      value={sound.pluckDampening ?? 4000}
+                      onChange={(e) => update({ pluckDampening: parseFloat(e.target.value) })}
+                      displayValue={formatFreqDisplay(sound.pluckDampening ?? 4000)}
+                    />
                   </div>
                 </>
               )}
@@ -378,25 +424,21 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 <>
                   <div className="control-row">
                     <span className="control-label">Pitch Decay</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="0.01" max="0.5" step="0.01"
-                        value={sound.kickPitchDecay ?? 0.05}
-                        onChange={(e) => update({ kickPitchDecay: parseFloat(e.target.value) })}
-                      />
-                    </div>
+                    <Slider
+                      min="0.01" max="0.5" step="0.01"
+                      value={sound.kickPitchDecay ?? 0.05}
+                      onChange={(e) => update({ kickPitchDecay: parseFloat(e.target.value) })}
+                      displayValue={formatSecondsDisplay(sound.kickPitchDecay ?? 0.05)}
+                    />
                   </div>
                   <div className="control-row">
                     <span className="control-label">Octaves</span>
-                    <div className="slider-wrapper">
-                      <input
-                        type="range"
-                        min="0.1" max="10" step="0.1"
-                        value={sound.kickOctaves ?? 10}
-                        onChange={(e) => update({ kickOctaves: parseFloat(e.target.value) })}
-                      />
-                    </div>
+                    <Slider
+                      min="0.1" max="10" step="0.1"
+                      value={sound.kickOctaves ?? 10}
+                      onChange={(e) => update({ kickOctaves: parseFloat(e.target.value) })}
+                      displayValue={formatOctavesDisplay(sound.kickOctaves ?? 10)}
+                    />
                   </div>
                 </>
               )}
@@ -457,30 +499,26 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                 </div>
                 <div className="control-row">
                   <span className="control-label">Rate</span>
-                  <div className="slider-wrapper">
-                    <input
-                      type="range"
-                      min={sound.seqLengthScale === 'hour' ? 60 : sound.seqLengthScale === 'minute' ? 1 : 0.01}
-                      max={sound.seqLengthScale === 'hour' ? 3600 : sound.seqLengthScale === 'minute' ? 60 : 1}
-                      step={sound.seqLengthScale === 'second' ? 0.01 : 1}
-                      value={sound.seqLengthRate}
-                      onChange={e => update({ seqLengthRate: parseFloat(e.target.value) })}
-                    />
-                  </div>
+                  <Slider
+                    min={sound.seqLengthScale === 'hour' ? 60 : sound.seqLengthScale === 'minute' ? 1 : 0.01}
+                    max={sound.seqLengthScale === 'hour' ? 3600 : sound.seqLengthScale === 'minute' ? 60 : 1}
+                    step={sound.seqLengthScale === 'second' ? 0.01 : 1}
+                    value={sound.seqLengthRate}
+                    onChange={e => update({ seqLengthRate: parseFloat(e.target.value) })}
+                    displayValue={formatRateDisplay(sound.seqLengthRate, sound.seqLengthScale)}
+                  />
                 </div>
                 <div className="control-row">
-                  <div className="slider-wrapper">
-                    <span className="control-label">Timing</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={sound.slack || 0}
-                      onChange={e => update({ slack: parseFloat(e.target.value) })}
-                      aria-label="Sequencer Timing"
-                    />
-                  </div>
+                  <span className="control-label">Timing</span>
+                  <Slider
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={sound.slack || 0}
+                    onChange={e => update({ slack: parseFloat(e.target.value) })}
+                    aria-label="Sequencer Timing"
+                    displayValue={formatPercentDisplay(sound.slack || 0)}
+                  />
                 </div>
                 {sound.sourceType !== 'noise' && (
                   <div className="control-row">
@@ -526,14 +564,18 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                   </div>
                   <div className="control-row">
                     <span className="control-label">Octave</span>
-                    <div className="slider-wrapper">
-                      <input type="range" min="1" max="5" step="1" value={sound.stepConfigs?.[selectedStep]?.octave ?? 3} onChange={e => {
+                    <Slider
+                      min="1" max="5" step="1"
+                      value={sound.stepConfigs?.[selectedStep]?.octave ?? 3}
+                      onChange={e => {
                         if (!sound.stepConfigs) return;
                         const newConfigs = [...sound.stepConfigs];
                         newConfigs[selectedStep] = { ...newConfigs[selectedStep], octave: parseInt(e.target.value, 10) };
                         update({ stepConfigs: newConfigs });
-                      }} aria-label="Octave" />
-                    </div>
+                      }}
+                      aria-label="Octave"
+                      displayValue={sound.stepConfigs?.[selectedStep]?.octave ?? 3}
+                    />
                   </div>
 
                   <div className="control-row">
@@ -605,41 +647,55 @@ function SoundPanel({ sound }: { sound: SoundState }) {
               <>
                 <div className="control-row">
                   <span className="control-label">Attack</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={Math.pow(sound.envAttack / 10, 1 / 3) || 0} onChange={e => update({ envAttack: Math.pow(parseFloat(e.target.value), 3) * 10 })} aria-label="Attack" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={Math.pow(sound.envAttack / 10, 1 / 3) || 0}
+                    onChange={e => update({ envAttack: Math.pow(parseFloat(e.target.value), 3) * 10 })}
+                    aria-label="Attack"
+                    displayValue={formatSecondsDisplay(sound.envAttack)}
+                  />
                 </div>
                 <div className="control-row">
                   <span className="control-label">Decay</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={Math.pow(sound.envDecay / 10, 1 / 3) || 0} onChange={e => update({ envDecay: Math.pow(parseFloat(e.target.value), 3) * 10 })} aria-label="Decay" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={Math.pow(sound.envDecay / 10, 1 / 3) || 0}
+                    onChange={e => update({ envDecay: Math.pow(parseFloat(e.target.value), 3) * 10 })}
+                    aria-label="Decay"
+                    displayValue={formatSecondsDisplay(sound.envDecay)}
+                  />
                 </div>
                 <div className="control-row">
                   <span className="control-label">Sustain</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={sound.envSustain || 0} onChange={e => update({ envSustain: parseFloat(e.target.value) })} aria-label="Sustain" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={sound.envSustain || 0}
+                    onChange={e => update({ envSustain: parseFloat(e.target.value) })}
+                    aria-label="Sustain"
+                    displayValue={formatPercentDisplay(sound.envSustain || 0)}
+                  />
                 </div>
                 <div className="control-row">
                   <span className="control-label">Release</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={Math.pow(sound.envRelease / 10, 1 / 3) || 0} onChange={e => update({ envRelease: Math.pow(parseFloat(e.target.value), 3) * 10 })} aria-label="Release" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={Math.pow(sound.envRelease / 10, 1 / 3) || 0}
+                    onChange={e => update({ envRelease: Math.pow(parseFloat(e.target.value), 3) * 10 })}
+                    aria-label="Release"
+                    displayValue={formatSecondsDisplay(sound.envRelease)}
+                  />
                 </div>
                 <div className="control-row" style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
                   <span className="control-label">Length</span>
-                  <div className="slider-wrapper">
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="1"
-                      step="0.05"
-                      value={sound.noteLengthRatio ?? 1.0}
-                      onChange={e => update({ noteLengthRatio: parseFloat(e.target.value) })}
-                      aria-label="Note Length Ratio"
-                    />
-                  </div>
+                  <Slider
+                    min="0.1"
+                    max="1"
+                    step="0.05"
+                    value={sound.noteLengthRatio ?? 1.0}
+                    onChange={e => update({ noteLengthRatio: parseFloat(e.target.value) })}
+                    aria-label="Note Length Ratio"
+                    displayValue={formatPercentDisplay(sound.noteLengthRatio ?? 1.0)}
+                  />
                 </div>
               </>
             )}
@@ -651,9 +707,13 @@ function SoundPanel({ sound }: { sound: SoundState }) {
             {!collapsedPanels['VOLUME'] && (
               <>
                 <div className="control-row">
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={sound.volume} onChange={e => update({ volume: parseFloat(e.target.value) })} aria-label="Volume" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={sound.volume}
+                    onChange={e => update({ volume: parseFloat(e.target.value) })}
+                    aria-label="Volume"
+                    displayValue={formatPercentDisplay(sound.volume)}
+                  />
                 </div>
 
                 <div className={`sub - panel ${collapsedPanels['VOLUME_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
@@ -693,23 +753,25 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       </div>
                       <div className="control-row" style={{ marginTop: '5px' }}>
                         <span className="control-label">Rate</span>
-                        <div className="slider-wrapper">
-                          <input
-                            type="range"
-                            min={sound.volLfoScale === 'hour' ? 60 : sound.volLfoScale === 'minute' ? 1 : 0.01}
-                            max={sound.volLfoScale === 'hour' ? 3600 : sound.volLfoScale === 'minute' ? 60 : 1}
-                            step={sound.volLfoScale === 'second' ? 0.01 : 1}
-                            value={sound.volLfoRate}
-                            onChange={e => update({ volLfoRate: parseFloat(e.target.value) })}
-                            aria-label="Volume LFO Rate"
-                          />
-                        </div>
+                        <Slider
+                          min={sound.volLfoScale === 'hour' ? 60 : sound.volLfoScale === 'minute' ? 1 : 0.01}
+                          max={sound.volLfoScale === 'hour' ? 3600 : sound.volLfoScale === 'minute' ? 60 : 1}
+                          step={sound.volLfoScale === 'second' ? 0.01 : 1}
+                          value={sound.volLfoRate}
+                          onChange={e => update({ volLfoRate: parseFloat(e.target.value) })}
+                          aria-label="Volume LFO Rate"
+                          displayValue={formatRateDisplay(sound.volLfoRate, sound.volLfoScale)}
+                        />
                       </div>
                       <div className="control-row">
                         <span className="control-label">Depth</span>
-                        <div className="slider-wrapper">
-                          <input type="range" min="0" max="1" step="0.01" value={sound.volLfoDepth ?? 0} onChange={e => update({ volLfoDepth: parseFloat(e.target.value) })} aria-label="Volume LFO Depth" />
-                        </div>
+                        <Slider
+                          min="0" max="1" step="0.01"
+                          value={sound.volLfoDepth ?? 0}
+                          onChange={e => update({ volLfoDepth: parseFloat(e.target.value) })}
+                          aria-label="Volume LFO Depth"
+                          displayValue={formatPercentDisplay(sound.volLfoDepth ?? 0)}
+                        />
                       </div>
                     </>
                   )}
@@ -723,9 +785,13 @@ function SoundPanel({ sound }: { sound: SoundState }) {
             {!collapsedPanels['PAN'] && (
               <>
                 <div className="control-row">
-                  <div className="slider-wrapper">
-                    <input type="range" min="-1" max="1" step="0.01" value={sound.pan} onChange={e => update({ pan: parseFloat(e.target.value) })} aria-label="Pan" />
-                  </div>
+                  <Slider
+                    min="-1" max="1" step="0.01"
+                    value={sound.pan}
+                    onChange={e => update({ pan: parseFloat(e.target.value) })}
+                    aria-label="Pan"
+                    displayValue={formatPanDisplay(sound.pan)}
+                  />
                 </div>
 
                 <div className={`sub - panel ${collapsedPanels['PAN_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
@@ -765,23 +831,25 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       </div>
                       <div className="control-row" style={{ marginTop: '5px' }}>
                         <span className="control-label">Rate</span>
-                        <div className="slider-wrapper">
-                          <input
-                            type="range"
-                            min={sound.panLfoScale === 'hour' ? 60 : sound.panLfoScale === 'minute' ? 1 : 0.01}
-                            max={sound.panLfoScale === 'hour' ? 3600 : sound.panLfoScale === 'minute' ? 60 : 1}
-                            step={sound.panLfoScale === 'second' ? 0.01 : 1}
-                            value={sound.panLfoRate || 1}
-                            onChange={e => update({ panLfoRate: parseFloat(e.target.value) })}
-                            aria-label="Pan LFO Rate"
-                          />
-                        </div>
+                        <Slider
+                          min={sound.panLfoScale === 'hour' ? 60 : sound.panLfoScale === 'minute' ? 1 : 0.01}
+                          max={sound.panLfoScale === 'hour' ? 3600 : sound.panLfoScale === 'minute' ? 60 : 1}
+                          step={sound.panLfoScale === 'second' ? 0.01 : 1}
+                          value={sound.panLfoRate || 1}
+                          onChange={e => update({ panLfoRate: parseFloat(e.target.value) })}
+                          aria-label="Pan LFO Rate"
+                          displayValue={formatRateDisplay(sound.panLfoRate || 1, sound.panLfoScale)}
+                        />
                       </div>
                       <div className="control-row">
                         <span className="control-label">Depth</span>
-                        <div className="slider-wrapper">
-                          <input type="range" min="0" max="1" step="0.01" value={sound.panLfoDepth || 0} onChange={e => update({ panLfoDepth: parseFloat(e.target.value) })} aria-label="Pan LFO Depth" />
-                        </div>
+                        <Slider
+                          min="0" max="1" step="0.01"
+                          value={sound.panLfoDepth || 0}
+                          onChange={e => update({ panLfoDepth: parseFloat(e.target.value) })}
+                          aria-label="Pan LFO Depth"
+                          displayValue={formatPercentDisplay(sound.panLfoDepth || 0)}
+                        />
                       </div>
                     </>
                   )}
@@ -795,9 +863,13 @@ function SoundPanel({ sound }: { sound: SoundState }) {
             {!collapsedPanels['FILTER'] && (
               <>
                 <div className="control-row">
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="100" step="0.1" value={filterSliderVal} onChange={handleFilterBaseFreqChange} aria-label="Filter Base Freq" />
-                  </div>
+                  <Slider
+                    min="0" max="100" step="0.1"
+                    value={filterSliderVal}
+                    onChange={handleFilterBaseFreqChange}
+                    aria-label="Filter Base Freq"
+                    displayValue={formatFreqDisplay(sound.autoFilterBaseFreq || 8000)}
+                  />
                 </div>
 
                 <div className={`sub - panel ${collapsedPanels['FILTER_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
@@ -837,23 +909,25 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       </div>
                       <div className="control-row" style={{ marginTop: '5px' }}>
                         <span className="control-label">Rate</span>
-                        <div className="slider-wrapper">
-                          <input
-                            type="range"
-                            min={sound.autoFilterScale === 'hour' ? 60 : sound.autoFilterScale === 'minute' ? 1 : 0.01}
-                            max={sound.autoFilterScale === 'hour' ? 3600 : sound.autoFilterScale === 'minute' ? 60 : 1}
-                            step={sound.autoFilterScale === 'second' ? 0.01 : 1}
-                            value={sound.autoFilterRate || 1}
-                            onChange={e => update({ autoFilterRate: parseFloat(e.target.value) })}
-                            aria-label="Filter LFO Rate"
-                          />
-                        </div>
+                        <Slider
+                          min={sound.autoFilterScale === 'hour' ? 60 : sound.autoFilterScale === 'minute' ? 1 : 0.01}
+                          max={sound.autoFilterScale === 'hour' ? 3600 : sound.autoFilterScale === 'minute' ? 60 : 1}
+                          step={sound.autoFilterScale === 'second' ? 0.01 : 1}
+                          value={sound.autoFilterRate || 1}
+                          onChange={e => update({ autoFilterRate: parseFloat(e.target.value) })}
+                          aria-label="Filter LFO Rate"
+                          displayValue={formatRateDisplay(sound.autoFilterRate || 1, sound.autoFilterScale)}
+                        />
                       </div>
                       <div className="control-row">
                         <span className="control-label">Depth</span>
-                        <div className="slider-wrapper">
-                          <input type="range" min="0.1" max="10" step="0.1" value={sound.autoFilterOctaves || 4} onChange={e => update({ autoFilterOctaves: parseFloat(e.target.value) })} aria-label="Filter LFO Depth" />
-                        </div>
+                        <Slider
+                          min="0.1" max="10" step="0.1"
+                          value={sound.autoFilterOctaves || 4}
+                          onChange={e => update({ autoFilterOctaves: parseFloat(e.target.value) })}
+                          aria-label="Filter LFO Depth"
+                          displayValue={formatOctavesDisplay(sound.autoFilterOctaves || 4)}
+                        />
                       </div>
                     </>
                   )}
@@ -868,28 +942,44 @@ function SoundPanel({ sound }: { sound: SoundState }) {
               <>
                 <div className="control-row">
                   <span className="control-label">Reverb</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={sound.reverbAmount} onChange={e => update({ reverbAmount: parseFloat(e.target.value) })} aria-label="Reverb" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={sound.reverbAmount}
+                    onChange={e => update({ reverbAmount: parseFloat(e.target.value) })}
+                    aria-label="Reverb"
+                    displayValue={formatPercentDisplay(sound.reverbAmount)}
+                  />
                 </div>
                 <div className="control-row">
                   <span className="control-label">Distortion</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={sound.distortionAmount ?? 0} onChange={e => update({ distortionAmount: parseFloat(e.target.value) })} aria-label="Distortion" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={sound.distortionAmount ?? 0}
+                    onChange={e => update({ distortionAmount: parseFloat(e.target.value) })}
+                    aria-label="Distortion"
+                    displayValue={formatPercentDisplay(sound.distortionAmount ?? 0)}
+                  />
                 </div>
 
                 <div className="control-row">
                   <span className="control-label">Chorus</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={sound.chorusAmount} onChange={e => update({ chorusAmount: parseFloat(e.target.value) })} aria-label="Chorus" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={sound.chorusAmount}
+                    onChange={e => update({ chorusAmount: parseFloat(e.target.value) })}
+                    aria-label="Chorus"
+                    displayValue={formatPercentDisplay(sound.chorusAmount)}
+                  />
                 </div>
                 <div className="control-row">
                   <span className="control-label">Chebyshev</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={sound.chebyshevAmount ?? 0} onChange={e => update({ chebyshevAmount: parseFloat(e.target.value) })} aria-label="Chebyshev" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={sound.chebyshevAmount ?? 0}
+                    onChange={e => update({ chebyshevAmount: parseFloat(e.target.value) })}
+                    aria-label="Chebyshev"
+                    displayValue={formatPercentDisplay(sound.chebyshevAmount ?? 0)}
+                  />
                 </div>
               </>
             )}
@@ -901,21 +991,33 @@ function SoundPanel({ sound }: { sound: SoundState }) {
               <>
                 <div className="control-row">
                   <span className="control-label">Amount</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0" max="1" step="0.01" value={sound.delayAmount} onChange={e => update({ delayAmount: parseFloat(e.target.value) })} aria-label="Delay Amount" />
-                  </div>
+                  <Slider
+                    min="0" max="1" step="0.01"
+                    value={sound.delayAmount}
+                    onChange={e => update({ delayAmount: parseFloat(e.target.value) })}
+                    aria-label="Delay Amount"
+                    displayValue={formatPercentDisplay(sound.delayAmount)}
+                  />
                 </div>
                 <div className="control-row">
                   <span className="control-label">Time</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0.1" max="5" step="0.01" value={sound.delayTime ?? 0.25} onChange={e => update({ delayTime: parseFloat(e.target.value) })} aria-label="Delay Time" />
-                  </div>
+                  <Slider
+                    min="0.1" max="5" step="0.01"
+                    value={sound.delayTime ?? 0.25}
+                    onChange={e => update({ delayTime: parseFloat(e.target.value) })}
+                    aria-label="Delay Time"
+                    displayValue={formatSecondsDisplay(sound.delayTime ?? 0.25)}
+                  />
                 </div>
                 <div className="control-row">
                   <span className="control-label">Feedback</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="0.1" max="0.9" step="0.01" value={sound.delayFeedback ?? 0.5} onChange={e => update({ delayFeedback: parseFloat(e.target.value) })} aria-label="Delay Feedback" />
-                  </div>
+                  <Slider
+                    min="0.1" max="0.9" step="0.01"
+                    value={sound.delayFeedback ?? 0.5}
+                    onChange={e => update({ delayFeedback: parseFloat(e.target.value) })}
+                    aria-label="Delay Feedback"
+                    displayValue={formatPercentDisplay(sound.delayFeedback ?? 0.5)}
+                  />
                 </div>
               </>
             )}
@@ -927,9 +1029,13 @@ function SoundPanel({ sound }: { sound: SoundState }) {
               <>
                 <div className="control-row">
                   <span className="control-label">Detune</span>
-                  <div className="slider-wrapper">
-                    <input type="range" min="-50" max="50" step="1" value={sound.detune ?? 0} onChange={e => update({ detune: parseInt(e.target.value, 10) })} aria-label="Detune" />
-                  </div>
+                  <Slider
+                    min="-50" max="50" step="1"
+                    value={sound.detune ?? 0}
+                    onChange={e => update({ detune: parseInt(e.target.value, 10) })}
+                    aria-label="Detune"
+                    displayValue={formatDetuneDisplay(sound.detune ?? 0)}
+                  />
                 </div>
 
                 <div className={`sub - panel ${collapsedPanels['DETUNE_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
@@ -969,23 +1075,25 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                       </div>
                       <div className="control-row" style={{ marginTop: '5px' }}>
                         <span className="control-label">Rate</span>
-                        <div className="slider-wrapper">
-                          <input
-                            type="range"
-                            min={(sound.detuneLfoScale || 'minute') === 'hour' ? 60 : (sound.detuneLfoScale || 'minute') === 'minute' ? 1 : 0.01}
-                            max={(sound.detuneLfoScale || 'minute') === 'hour' ? 3600 : (sound.detuneLfoScale || 'minute') === 'minute' ? 60 : 1}
-                            step={(sound.detuneLfoScale || 'minute') === 'second' ? 0.01 : 1}
-                            value={sound.detuneLfoRate || 30}
-                            onChange={e => update({ detuneLfoRate: parseFloat(e.target.value) })}
-                            aria-label="Detune LFO Rate"
-                          />
-                        </div>
+                        <Slider
+                          min={(sound.detuneLfoScale || 'minute') === 'hour' ? 60 : (sound.detuneLfoScale || 'minute') === 'minute' ? 1 : 0.01}
+                          max={(sound.detuneLfoScale || 'minute') === 'hour' ? 3600 : (sound.detuneLfoScale || 'minute') === 'minute' ? 60 : 1}
+                          step={(sound.detuneLfoScale || 'minute') === 'second' ? 0.01 : 1}
+                          value={sound.detuneLfoRate || 30}
+                          onChange={e => update({ detuneLfoRate: parseFloat(e.target.value) })}
+                          aria-label="Detune LFO Rate"
+                          displayValue={formatRateDisplay(sound.detuneLfoRate || 30, sound.detuneLfoScale || 'minute')}
+                        />
                       </div>
                       <div className="control-row">
                         <span className="control-label">Depth</span>
-                        <div className="slider-wrapper">
-                          <input type="range" min="0" max="1" step="0.01" value={sound.detuneLfoDepth ?? 0} onChange={e => update({ detuneLfoDepth: parseFloat(e.target.value) })} aria-label="Detune LFO Depth" />
-                        </div>
+                        <Slider
+                          min="0" max="1" step="0.01"
+                          value={sound.detuneLfoDepth ?? 0}
+                          onChange={e => update({ detuneLfoDepth: parseFloat(e.target.value) })}
+                          aria-label="Detune LFO Depth"
+                          displayValue={formatPercentDisplay(sound.detuneLfoDepth ?? 0)}
+                        />
                       </div>
                     </>
                   )}
@@ -1012,14 +1120,6 @@ function formatLengthFullWords(minutes: number) {
   const hrs = Math.floor(roundedMinutes / 60);
   const mins = roundedMinutes % 60;
   return mins > 0 ? `${hrs} hour${hrs !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''}` : `${hrs} hour${hrs !== 1 ? 's' : ''}`;
-}
-
-function formatSeconds(seconds: number) {
-  const rounded = Math.round(seconds);
-  if (rounded < 60) return `${rounded} s`;
-  const m = Math.floor(rounded / 60);
-  const s = rounded % 60;
-  return s > 0 ? `${m}m ${s} s` : `${m} m`;
 }
 
 function MixDetailScreen() {
@@ -1119,31 +1219,26 @@ function MixDetailScreen() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
               <div className="control-row" style={{ marginTop: '0' }}>
                 <span className="control-label">Length</span>
-                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input
-                    type="range"
-                    min={Math.log10(5)}
-                    max={Math.log10(480)}
-                    step="0.01"
-                    value={Math.log10(mix.lengthMinutes)}
-                    onChange={e => updateSettings({ lengthMinutes: Math.pow(10, parseFloat(e.target.value)) })}
-                  />
-                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{formatLength(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}</span>
-                </div>
+                <Slider
+                  min={Math.log10(5)}
+                  max={Math.log10(480)}
+                  step="0.01"
+                  value={Math.log10(mix.lengthMinutes)}
+                  onChange={e => updateSettings({ lengthMinutes: Math.pow(10, parseFloat(e.target.value)) })}
+                  displayValue={formatLength(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}
+                />
               </div>
               <div className="control-row">
                 <span className="control-label">Timing</span>
-                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={mix.spread || 0}
-                    onChange={e => updateSettings({ spread: parseFloat(e.target.value) })}
-                    aria-label="Mix Timing"
-                  />
-                </div>
+                <Slider
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={mix.spread || 0}
+                  onChange={e => updateSettings({ spread: parseFloat(e.target.value) })}
+                  aria-label="Mix Timing"
+                  displayValue={formatPercentDisplay(mix.spread || 0)}
+                />
               </div>
               <div className="control-row">
                 <span className="control-label">Shuffle</span>
@@ -1161,24 +1256,30 @@ function MixDetailScreen() {
               </div>
               <div className="control-row">
                 <span className="control-label">Fade in</span>
-                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input type="range" min="0" max="600" step="5" value={Math.round(mix.fadeInMinutes * 60)} onChange={e => updateSettings({ fadeInMinutes: parseInt(e.target.value) / 60 })} />
-                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{formatSeconds(mix.fadeInMinutes * 60)}</span>
-                </div>
+                <Slider
+                  min="0" max="600" step="5"
+                  value={Math.round(mix.fadeInMinutes * 60)}
+                  onChange={e => updateSettings({ fadeInMinutes: parseInt(e.target.value) / 60 })}
+                  displayValue={formatSecondsDisplay(mix.fadeInMinutes * 60)}
+                />
               </div>
               <div className="control-row">
                 <span className="control-label">Fade out</span>
-                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input type="range" min="0" max="600" step="5" value={Math.round(mix.fadeOutMinutes * 60)} onChange={e => updateSettings({ fadeOutMinutes: parseInt(e.target.value) / 60 })} />
-                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{formatSeconds(mix.fadeOutMinutes * 60)}</span>
-                </div>
+                <Slider
+                  min="0" max="600" step="5"
+                  value={Math.round(mix.fadeOutMinutes * 60)}
+                  onChange={e => updateSettings({ fadeOutMinutes: parseInt(e.target.value) / 60 })}
+                  displayValue={formatSecondsDisplay(mix.fadeOutMinutes * 60)}
+                />
               </div>
               <div className="control-row">
                 <span className="control-label">X fade</span>
-                <div className="slider-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input type="range" min="0" max="600" step="5" value={Math.round(mix.crossFadeMinutes * 60)} onChange={e => updateSettings({ crossFadeMinutes: parseInt(e.target.value) / 60 })} />
-                  <span style={{ minWidth: '54px', fontSize: '0.9rem', opacity: 0.8 }}>{formatSeconds(mix.crossFadeMinutes * 60)}</span>
-                </div>
+                <Slider
+                  min="0" max="600" step="5"
+                  value={Math.round(mix.crossFadeMinutes * 60)}
+                  onChange={e => updateSettings({ crossFadeMinutes: parseInt(e.target.value) / 60 })}
+                  displayValue={formatSecondsDisplay(mix.crossFadeMinutes * 60)}
+                />
               </div>
             </div>
           )}

@@ -440,12 +440,27 @@ header {
     flex-grow: 1;
     display: flex;
     align-items: center;
+    position: relative;
+}
+
+.slider-value-display {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.85rem;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    user-select: none;
+    z-index: 3;
 }
 
 input[type="range"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 100%;
+    width: 86%;
     background: transparent;
     height: 48px;
     /* generous touch area */
