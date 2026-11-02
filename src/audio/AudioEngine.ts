@@ -6,6 +6,22 @@ export type SoundType = 'noise' | 'tone' | 'fm' | 'metal' | 'pluck' | 'kick';
 export type LFOModType = 'sine' | 'random';
 export type OscillatorType = 'sine' | 'square' | 'triangle' | 'sawtooth' | 'fatsine' | 'fatsquare' | 'fattriangle' | 'fatsawtooth' | 'pulse' | 'pwm';
 
+// Effects that are transparent when their amount is 0, and so can be removed from the
+// signal chain to save CPU. (Distortion is excluded: Tone's curve at amount 0 still
+// attenuates the signal, so bypassing it would change the level of existing tracks.)
+type BypassableEffect = 'chorus' | 'chebyshev' | 'delay' | 'reverb' | 'vibrato';
+
+interface EffectSlot {
+    node: Tone.ToneAudioNode;
+    bypassable: BypassableEffect | null; // null = always wired into the chain
+    wanted: boolean; // effect is currently set to a non-zero amount
+    wired: boolean; // effect is currently connected into the chain
+    bypassTimer: ReturnType<typeof setTimeout> | null;
+}
+
+// Wait for wet/depth ramps (0.1s) to reach 0 before unwiring, so bypassing is silent
+const BYPASS_DELAY_MS = 250;
+
 
 export class AudioEngine {
     public channel: Tone.Channel;
@@ -54,7 +70,12 @@ export class AudioEngine {
     private sequencePart: Tone.Part | null = null;
     private sequenceEventId: number | null = null;
     private isInitialized = false;
+    private isDisposed = false;
     private currentEnvelopeStr = "";
+
+    // Ordered effect chain between volLfoGain and panner. Bypassable effects start
+    // unwired because they are created with an amount of 0.
+    private effectSlots: EffectSlot[] = [];
 
     constructor(outputDestination: Tone.ToneAudioNode = Tone.getDestination()) {
         // Create effects
@@ -89,8 +110,24 @@ export class AudioEngine {
         this.panner = new Tone.Panner(0);
         this.panLfo.connect(this.panner.pan);
 
-        // Chain effects - note the panner is LAST before output
-        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain, this.chorus, this.chebyshev, this.distortion, this.delay, this.reverb, this.vibrato, this.panner, outputDestination);
+        // Chain effects - note the panner is LAST before output.
+        // Only always-on stages are connected here; bypassable effects (all at 0 by
+        // default) are wired in on demand by setEffectWanted().
+        const slot = (node: Tone.ToneAudioNode, bypassable: BypassableEffect | null): EffectSlot =>
+            ({ node, bypassable, wanted: false, wired: bypassable === null, bypassTimer: null });
+        this.effectSlots = [
+            slot(this.volLfoGain, null),
+            slot(this.chorus, 'chorus'),
+            slot(this.chebyshev, 'chebyshev'),
+            slot(this.distortion, null),
+            slot(this.delay, 'delay'),
+            slot(this.reverb, 'reverb'),
+            slot(this.vibrato, 'vibrato'),
+            slot(this.panner, null),
+        ];
+        this.channel.chain(this.filter, this.autoFilter, this.volLfoGain);
+        this.panner.connect(outputDestination);
+        this.rebuildEffectChain();
 
         // Setup Noise
         this.noiseFilter = new Tone.Filter({ type: 'allpass' });
@@ -113,6 +150,54 @@ export class AudioEngine {
         this.polySynth.connect(this.channel);
     }
 
+    private rebuildEffectChain() {
+        if (this.isDisposed) return;
+
+        // Disconnect outputs of all slots except panner (panner remains connected to outputDestination)
+        for (let i = 0; i < this.effectSlots.length - 1; i++) {
+            try {
+                this.effectSlots[i].node.disconnect();
+            } catch {
+                // Ignore if not connected
+            }
+        }
+
+        // Connect active slots in order
+        const activeSlots = this.effectSlots.filter(s => s.wired);
+        for (let i = 0; i < activeSlots.length - 1; i++) {
+            activeSlots[i].node.connect(activeSlots[i + 1].node);
+        }
+    }
+
+    private setEffectWanted(effect: BypassableEffect, wanted: boolean) {
+        const slot = this.effectSlots.find(s => s.bypassable === effect);
+        if (!slot) return;
+
+        slot.wanted = wanted;
+
+        if (wanted) {
+            if (slot.bypassTimer) {
+                clearTimeout(slot.bypassTimer);
+                slot.bypassTimer = null;
+            }
+            if (!slot.wired) {
+                slot.wired = true;
+                this.rebuildEffectChain();
+            }
+        } else {
+            if (!slot.wired) return;
+            if (!slot.bypassTimer) {
+                slot.bypassTimer = setTimeout(() => {
+                    slot.bypassTimer = null;
+                    if (!this.isDisposed && !slot.wanted && slot.wired) {
+                        slot.wired = false;
+                        this.rebuildEffectChain();
+                    }
+                }, BYPASS_DELAY_MS);
+            }
+        }
+    }
+
     private initPromise: Promise<void> | null = null;
 
     public async initialize() {
@@ -127,6 +212,13 @@ export class AudioEngine {
     }
 
     public dispose() {
+        this.isDisposed = true;
+        for (const slot of this.effectSlots) {
+            if (slot.bypassTimer) {
+                clearTimeout(slot.bypassTimer);
+                slot.bypassTimer = null;
+            }
+        }
         this.stop();
         this.noise.dispose();
         this.noiseFilter.dispose();
@@ -493,16 +585,22 @@ export class AudioEngine {
     }
 
     public setDetuneLFO(rate: number, depth: number, type: LFOModType = 'sine') {
+        const wanted = depth > 0.001;
+        this.setEffectWanted('vibrato', wanted);
         if (type === 'random') {
             // Random vibrato: set vibrato to a moderate fixed frequency
             // and periodically update depth with random values
             this.vibrato.set({ frequency: 4, depth: 0, wet: 1 });
             const intervalMs = Math.max(50, (rate / 4) * 1000);
             if (this.randomDetuneInterval) clearInterval(this.randomDetuneInterval);
-            this.randomDetuneInterval = setInterval(() => {
-                const randomDepth = Math.random() * Math.min(depth, 0.8);
-                this.vibrato.set({ depth: randomDepth });
-            }, intervalMs);
+            if (wanted) {
+                this.randomDetuneInterval = setInterval(() => {
+                    const randomDepth = Math.random() * Math.min(depth, 0.8);
+                    this.vibrato.set({ depth: randomDepth });
+                }, intervalMs);
+            } else {
+                this.randomDetuneInterval = null;
+            }
         } else {
             if (this.randomDetuneInterval) { clearInterval(this.randomDetuneInterval); this.randomDetuneInterval = null; }
             const freq = rate > 0 ? 1 / rate : 0.1;
@@ -514,20 +612,24 @@ export class AudioEngine {
 
 
     public setReverb(amount: number) {
+        this.setEffectWanted('reverb', amount > 0.001);
         this.reverb.wet.rampTo(amount, 0.1);
     }
 
     public setDelay(amount: number, time: number = 0.25, feedback: number = 0.5) {
+        this.setEffectWanted('delay', amount > 0.001);
         this.delay.wet.rampTo(amount, 0.1);
         this.delay.delayTime.rampTo(time, 0.1);
         this.delay.feedback.rampTo(feedback, 0.1);
     }
 
     public setChorus(amount: number) {
+        this.setEffectWanted('chorus', amount > 0.001);
         this.chorus.wet.rampTo(amount, 0.1);
     }
 
     public setChebyshev(amount: number) {
+        this.setEffectWanted('chebyshev', amount > 0.001);
         this.chebyshev.wet.rampTo(amount, 0.1);
     }
 
