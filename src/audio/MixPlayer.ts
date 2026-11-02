@@ -325,8 +325,19 @@ export class MixPlayer {
                     const remainingFadeIn = item.fadeInDuration - timeInItem;
                     audioManager.fadeTrack(item.mixItemId, 1, remainingFadeIn);
                     item.fadeState = 'fadingIn';
-                } else if (item.endTime - this._currentTime <= item.fadeOutDuration && item.fadeState !== 'fadingOut') {
-                    // Start fade out over the required duration
+                } else if (timeInItem >= item.fadeInDuration && item.fadeState === 'fadingIn') {
+                    // Fade-in just completed
+                    const remainingTime = item.endTime - this._currentTime;
+                    if (remainingTime <= item.fadeOutDuration) {
+                        // Fade regions overlap: immediately start fade out
+                        audioManager.fadeTrack(item.mixItemId, 0, remainingTime);
+                        item.fadeState = 'fadingOut';
+                    } else {
+                        audioManager.fadeTrack(item.mixItemId, 1, 0.1);
+                        item.fadeState = 'playing';
+                    }
+                } else if (item.endTime - this._currentTime <= item.fadeOutDuration && item.fadeState !== 'fadingOut' && item.fadeState !== 'fadingIn') {
+                    // Start fade out (only if not still fading in)
                     const remainingFadeOut = item.endTime - this._currentTime;
                     audioManager.fadeTrack(item.mixItemId, 0, remainingFadeOut);
                     item.fadeState = 'fadingOut';
@@ -348,10 +359,18 @@ export class MixPlayer {
         this.timerId = setTimeout(this.tick, 100);
     }
 
+    // Muted sounds are inaudible in a mix, but a running AudioEngine still costs full
+    // CPU (synth voices, reverb convolver, etc.). During a crossfade two tracks run at
+    // once, so a duplicated track with muted copies of heavy sounds could overload the
+    // audio render thread and stall playback. Only instantiate engines for audible sounds.
+    private getAudibleSounds(track: TrackState) {
+        return track.sounds.filter(sound => !sound.isMuted);
+    }
+
     private startTrackSync(item: MixScheduleItem) {
         const track = this.tracks.get(item.trackId);
         if (!track) return;
-        track.sounds.forEach(sound => {
+        this.getAudibleSounds(track).forEach(sound => {
             audioManager.syncSoundState(sound, true, item.mixItemId);
         });
         // Reset track channel volume if we are about to fade it
@@ -361,7 +380,9 @@ export class MixPlayer {
     private stopTrackSync(item: MixScheduleItem) {
         const track = this.tracks.get(item.trackId);
         if (!track) return;
-        track.sounds.forEach(sound => {
+        // Skipping muted sounds avoids creating engines just to stop them; any engine
+        // left over (e.g. a sound muted mid-playback) is disposed by cleanupUnusedEngines.
+        this.getAudibleSounds(track).forEach(sound => {
             audioManager.syncSoundState(sound, false, item.mixItemId);
         });
     }
@@ -372,7 +393,7 @@ export class MixPlayer {
             if (item.fadeState !== 'idle' && item.fadeState !== 'done') {
                 const track = this.tracks.get(item.trackId);
                 if (track) {
-                    track.sounds.forEach(sound => {
+                    this.getAudibleSounds(track).forEach(sound => {
                         activeSoundIds.push(`${item.mixItemId}-${sound.id}`);
                     });
                 }
