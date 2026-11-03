@@ -35,6 +35,7 @@ export class MixPlayer {
     private timerId: any = null;
     private ignoredOverlapItems = new Set<string>();
     public pendingSeekItemId: string | null = null;
+    private pausedItemIds = new Set<string>();
 
     private constructor() { }
 
@@ -198,6 +199,8 @@ export class MixPlayer {
     }
 
     public pause() {
+        const wasPlaying = this.isPlaying;
+        if (wasPlaying) this.pausedItemIds.clear();
         this.isPlaying = false;
         if (this.timerId !== null) {
             clearTimeout(this.timerId);
@@ -207,6 +210,7 @@ export class MixPlayer {
         // Stop all currently playing items to pause audio
         for (const item of this.schedule) {
             if (item.fadeState !== 'idle' && item.fadeState !== 'done') {
+                if (wasPlaying) this.pausedItemIds.add(item.mixItemId);
                 this.stopTrackSync(item);
                 item.fadeState = 'idle'; // force it to re-evaluate on resume
             }
@@ -217,7 +221,13 @@ export class MixPlayer {
     public stop() {
         this.pause();
         this._currentTime = 0;
+        this.pausedItemIds.clear();
         this.schedule.forEach(item => item.fadeState = 'idle');
+    }
+
+    /** True if the mix is paused part-way through this item (so play should resume it). */
+    public isTrackPaused(mixItemId: string): boolean {
+        return !this.isPlaying && this.pausedItemIds.has(mixItemId);
     }
 
     public seekToItem(mixItemId: string) {
@@ -227,6 +237,7 @@ export class MixPlayer {
             const item = this.schedule[targetIndex];
 
             this.ignoredOverlapItems.clear();
+            this.pausedItemIds.clear();
 
             this.schedule.forEach((i) => {
                 if (i.fadeState !== 'idle' && i.fadeState !== 'done') {
@@ -306,6 +317,7 @@ export class MixPlayer {
                 this.calculateSchedule();
             } else {
                 this.stop();
+                window.dispatchEvent(new CustomEvent('mix-ended', { detail: { mixId: this.mix.id } }));
                 return;
             }
         }
@@ -321,17 +333,18 @@ export class MixPlayer {
                 const timeInItem = this._currentTime - item.startTime;
 
                 if (item.fadeState === 'idle' || item.fadeState === 'done') {
-                    // Start it
-                    this.startTrackSync(item);
-
                     // CRITICAL FIX: If we are starting playback and we land smack in the middle 
                     // of a track's fade-out window, but we *didn't* play the track before this, 
                     // we should NOT play it at all. It's a dead overlap.
+                    // Checked BEFORE starting so we never build (and immediately discard) a full set
+                    // of audio engines for it, which is very expensive when switching tracks quickly.
                     if (timeInItem > item.fadeInDuration && (item.endTime - this._currentTime <= item.fadeOutDuration)) {
-                        this.stopTrackSync(item);
                         item.fadeState = 'done';
                         continue;
                     }
+
+                    // Start it
+                    this.startTrackSync(item);
 
                     // If we just jumped into the middle of a track's normal playtime, 
                     // skip the fade-in and go straight to full volume.
@@ -406,7 +419,7 @@ export class MixPlayer {
         // Skipping muted sounds avoids creating engines just to stop them; any engine
         // left over (e.g. a sound muted mid-playback) is disposed by cleanupUnusedEngines.
         this.getAudibleSounds(track).forEach(sound => {
-            audioManager.syncSoundState(sound, false, item.mixItemId);
+            audioManager.stopSound(sound.id, item.mixItemId);
         });
     }
 

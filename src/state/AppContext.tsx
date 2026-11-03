@@ -84,6 +84,7 @@ export interface AppState {
 
 export type Action =
     | { type: 'TOGGLE_PLAY' }
+    | { type: 'STOP_PLAYBACK' }
     | { type: 'SET_SCREEN'; payload: 'main' | 'load' | 'mixDetail' }
     | { type: 'SET_LIST_MODE'; payload: 'tracks' | 'mixes' }
     | { type: 'ADD_SOUND' }
@@ -210,6 +211,9 @@ const appReducer = (state: AppState, action: Action): AppState => {
     switch (action.type) {
         case 'TOGGLE_PLAY':
             newState.isPlaying = !state.isPlaying;
+            break;
+        case 'STOP_PLAYBACK':
+            newState.isPlaying = false;
             break;
         case 'SET_SCREEN':
             newState.currentScreen = action.payload;
@@ -646,8 +650,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 dispatch({ type: 'REROLL_MIX_WEIGHTS', payload: customEvent.detail.mixId });
             }
         };
+        const handleMixEnded = () => dispatch({ type: 'STOP_PLAYBACK' });
         window.addEventListener('mix-repeat', handleMixRepeat);
-        return () => window.removeEventListener('mix-repeat', handleMixRepeat);
+        window.addEventListener('mix-ended', handleMixEnded);
+        return () => {
+            window.removeEventListener('mix-repeat', handleMixRepeat);
+            window.removeEventListener('mix-ended', handleMixEnded);
+        };
     }, []);
 
     // Audio Manager Syncing

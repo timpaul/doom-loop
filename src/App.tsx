@@ -1203,6 +1203,21 @@ const ExportIcon = () => (
 
   const mix = state.savedMixes.find(m => m.id === id);
 
+  const isMixPlaying = !!mix && state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
+  const handleTopPlay = async () => {
+    if (!mix) return;
+    if (state.playbackMode === 'mix' && state.currentMixId === mix.id) {
+      // Pause, or resume from where it was paused
+      togglePlay();
+    } else {
+      // Something else (e.g. a track) is loaded/playing: stop it and start this mix from the beginning
+      await audioManager.initialize();
+      mixPlayer.stop();
+      mixPlayer.pendingSeekItemId = null;
+      dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
+    }
+  };
+
             const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
   useEffect(() => {
@@ -1247,10 +1262,10 @@ const ExportIcon = () => (
                   </button>
                   <button
                     className="play-button"
-                    onClick={togglePlay}
-                    aria-label={state.isPlaying && state.playbackMode === 'mix' ? "Pause" : "Play"}
+                    onClick={handleTopPlay}
+                    aria-label={isMixPlaying ? "Pause" : "Play"}
                   >
-                    {state.isPlaying && state.playbackMode === 'mix' ? <PauseIcon /> : <PlayIcon />}
+                    {isMixPlaying ? <PauseIcon /> : <PlayIcon />}
                   </button>
                 </div>
 
@@ -1352,7 +1367,8 @@ const ExportIcon = () => (
                     {mix.items.map((item, index) => {
                       const track = state.savedTracks.find(t => t.id === item.trackId);
                       if (!track) return null;
-                      const isTrackPlaying = state.isPlaying && mixPlayer.isTrackPlaying(item.id);
+                      const isMixLoaded = state.playbackMode === 'mix' && state.currentMixId === mix.id;
+ const isTrackPlaying = isMixLoaded && state.isPlaying && mixPlayer.isTrackPlaying(item.id);
 
                       const N = mix.items.length;
                       const totalLengthSec = mix.lengthMinutes * 60;
@@ -1384,11 +1400,13 @@ const ExportIcon = () => (
                               className={`track-play-btn ${isTrackPlaying ? 'active' : ''}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (isTrackPlaying) {
+                                if (isTrackPlaying || (isMixLoaded && mixPlayer.isTrackPaused(item.id))) {
+                                  // Playing -> pause; paused -> resume from where it was paused
                                   togglePlay();
                                 } else {
                                   mixPlayer.pendingSeekItemId = item.id;
-                                  if (!state.isPlaying || state.playbackMode !== 'mix' || state.currentMixId !== mix.id) {
+                                  if (!isMixLoaded) mixPlayer.stop(); // outside track playing: start fresh
+                                  if (!state.isPlaying || !isMixLoaded) {
                                     dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
                                   } else {
                                     mixPlayer.seekToItem(item.id);
@@ -2110,6 +2128,21 @@ const useAudioActions = () => {
 
   const mix = state.communityMixes.find(m => m.id === id);
 
+  const isMixPlaying = !!mix && state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
+  const handleTopPlay = async () => {
+    if (!mix) return;
+    if (state.playbackMode === 'mix' && state.currentMixId === mix.id) {
+      // Pause, or resume from where it was paused
+      togglePlay();
+    } else {
+      // Something else (e.g. a track) is loaded/playing: stop it and start this mix from the beginning
+      await audioManager.initialize();
+      mixPlayer.stop();
+      mixPlayer.pendingSeekItemId = null;
+      dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
+    }
+  };
+
   useEffect(() => {
     if (mix && state.currentMixId !== mix.id) {
                     dispatch({ type: 'LOAD_MIX', payload: mix.id });
@@ -2117,8 +2150,6 @@ const useAudioActions = () => {
   }, [mix, dispatch, state.currentMixId]);
 
                   if (!mix) return <NotFoundScreen type="Mix" />;
-
-                  const isMixPlaying = state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
 
                   return (
                   <div className="app-container community-mode">
@@ -2132,7 +2163,7 @@ const useAudioActions = () => {
                       </button>
                       <button
                         className="play-button"
-                        onClick={togglePlay}
+                        onClick={handleTopPlay}
                         aria-label={isMixPlaying ? "Pause" : "Play"}
                       >
                         {isMixPlaying ? <PauseIcon /> : <PlayIcon />}
@@ -2158,7 +2189,8 @@ const useAudioActions = () => {
                           const allTracks = [...state.savedTracks, ...state.communityTracks];
                           const track = allTracks.find(t => t.id === item.trackId);
                           if (!track) return null;
-                          const isTrackPlaying = state.isPlaying && mixPlayer.isTrackPlaying(item.id);
+                          const isMixLoaded = state.playbackMode === 'mix' && state.currentMixId === mix.id;
+ const isTrackPlaying = isMixLoaded && state.isPlaying && mixPlayer.isTrackPlaying(item.id);
 
                           const N = mix.items.length;
                           const totalLengthSec = mix.lengthMinutes * 60;
@@ -2185,11 +2217,13 @@ const useAudioActions = () => {
                                   className={`track-play-btn ${isTrackPlaying ? 'active' : ''}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (isTrackPlaying) {
+                                    if (isTrackPlaying || (isMixLoaded && mixPlayer.isTrackPaused(item.id))) {
+                                      // Playing -> pause; paused -> resume from where it was paused
                                       togglePlay();
                                     } else {
                                       mixPlayer.pendingSeekItemId = item.id;
-                                      if (!state.isPlaying || state.playbackMode !== 'mix' || state.currentMixId !== mix.id) {
+                                      if (!isMixLoaded) mixPlayer.stop(); // outside track playing: start fresh
+                                      if (!state.isPlaying || !isMixLoaded) {
                                         dispatch({ type: 'LOAD_AND_PLAY_MIX', payload: mix.id });
                                       } else {
                                         mixPlayer.seekToItem(item.id);

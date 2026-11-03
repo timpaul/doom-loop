@@ -71,6 +71,8 @@ export class AudioEngine {
     private sequenceEventId: number | null = null;
     private isInitialized = false;
     private isDisposed = false;
+    // Incremented by every play()/stop() so a play() still awaiting initialisation can tell it has been superseded.
+    private playToken = 0;
     private currentEnvelopeStr = "";
 
     // Ordered effect chain between volLfoGain and panner. Bypassable effects start
@@ -258,9 +260,13 @@ export class AudioEngine {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public async play(sourceType: SoundType, value: any) {
+        const token = ++this.playToken;
         if (!this.isInitialized) {
             await this.initialize();
         }
+        // Abandon if the engine was disposed/stopped/re-played while we were waiting; otherwise we would
+        // schedule Transport events on a dead engine that nothing ever clears (leak -> CPU overload).
+        if (this.isDisposed || token !== this.playToken) return;
 
         this.stop(); // Stop current playing
 
@@ -436,6 +442,7 @@ export class AudioEngine {
     }
 
     public stop() {
+        this.playToken++;
         if (this.sequencePart) {
             this.sequencePart.stop();
             this.sequencePart.dispose();
