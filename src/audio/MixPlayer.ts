@@ -247,6 +247,29 @@ export class MixPlayer {
         }
     }
 
+    // Current playback position, extrapolated between 100ms ticks for smooth UI updates.
+    private get livePosition(): number {
+        if (!this.isPlaying) return this._currentTime;
+        return this._currentTime + Math.max(0, Tone.now() - this.lastTickTime);
+    }
+
+    /** Fraction (0-1) of the way through the whole mix. */
+    public getMixProgress(): number {
+        if (!this.mix) return 0;
+        const total = this.mix.lengthMinutes * 60;
+        if (total <= 0) return 0;
+        return Math.min(1, Math.max(0, this.livePosition / total));
+    }
+
+    /** Fraction (0-1) of the way through a given mix item. */
+    public getItemProgress(mixItemId: string): number {
+        const item = this.schedule.find(i => i.mixItemId === mixItemId);
+        if (!item) return 0;
+        const len = item.endTime - item.startTime;
+        if (len <= 0) return 0;
+        return Math.min(1, Math.max(0, (this.livePosition - item.startTime) / len));
+    }
+
     public isTrackPlaying(mixItemId: string): boolean {
         if (!this.isPlaying) return false;
         const item = this.schedule.find(i => i.mixItemId === mixItemId);

@@ -657,6 +657,30 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
     transition: border-color 0.2s, background-color 0.2s;
 }
 
+.track-list-item {
+    position: relative;
+}
+
+/* Absolutely positioned so panel height is identical with or without it */
+.playback-progress {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: -1px;
+    height: 1px;
+    /*background-color: #1e1e1e;
+    border-radius: 3px;*/
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.playback-progress-fill {
+    height: 100%;
+    width: 0;
+    background-color: var(--accent-color);
+    /*background-color: #555555;*/
+}
+
 .track-list-item:hover {
     border-color: #444444;
     background-color: #131313;

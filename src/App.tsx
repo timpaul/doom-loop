@@ -78,6 +78,27 @@ const PauseIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
 )
 
+function PlaybackProgressBar({ mixItemId }: { mixItemId?: string }) {
+  const fillRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      const p = mixItemId ? mixPlayer.getItemProgress(mixItemId) : mixPlayer.getMixProgress();
+      if (fillRef.current) fillRef.current.style.width = `${p * 100}%`;
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    return () => cancelAnimationFrame(raf);
+  }, [mixItemId]);
+
+  return (
+    <div className="playback-progress" aria-hidden="true">
+      <div className="playback-progress-fill" ref={fillRef} />
+    </div>
+  );
+}
+
 const TrashIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 6h18" />
@@ -1399,6 +1420,7 @@ function MixDetailScreen() {
                     {itemTimeString}
                   </span>
                 </div>
+                {isTrackPlaying && <PlaybackProgressBar mixItemId={item.id} />}
               </div>
             )
           })}
@@ -1878,6 +1900,7 @@ function ListScreen({ listMode }: { listMode: 'tracks' | 'mixes' }) {
                           </span>
                         )}
                       </div>
+                      {isMixPlaying && <PlaybackProgressBar />}
                     </div>
                   );
                 })
@@ -2010,6 +2033,7 @@ function CommunityListScreen() {
                       Add to library
                     </button>
                   </div>
+                  {isMixPlaying && <PlaybackProgressBar />}
                 </div>
               );
             })
@@ -2183,6 +2207,7 @@ function CommunityMixDetailScreen() {
                     <span style={{ fontSize: '0.85rem', color: '#888888', fontVariantNumeric: 'tabular-nums' }}>{itemTimeString}</span>
                   </div>
                 </div>
+                {isTrackPlaying && <PlaybackProgressBar mixItemId={item.id} />}
               </div>
             );
           })}
