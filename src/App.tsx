@@ -78,29 +78,27 @@ const PauseIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
 )
 
-  function PlaybackProgressBar({ visible, mixItemId }: { visible: boolean; mixItemId?: string }) {
-    const fillRef = useRef<HTMLDivElement>(null);
+function PlaybackProgressBar({ visible, mixItemId }: { visible: boolean; mixItemId?: string }) {
+  const fillRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-      // When hidden, stop updating so the bar fades out at its last position
-      if (!visible) return;
-      let raf = 0;
-      const update = () => {
-        const p = mixItemId ? mixPlayer.getItemProgress(mixItemId) : mixPlayer.getMixProgress();
-        if (fillRef.current) fillRef.current.style.width = `${p * 100}%`;
-        raf = requestAnimationFrame(update);
-      };
-      update();
-      return () => cancelAnimationFrame(raf);
-    }, [mixItemId]);
+  useEffect(() => {
+    // When hidden, stop updating so the bar fades out at its last position
+    if (!visible) return;
+    let raf = 0;
+    const update = () => {
+      const p = mixItemId ? mixPlayer.getItemProgress(mixItemId) : mixPlayer.getMixProgress();
+      if (fillRef.current) fillRef.current.style.width = `${p * 100}%`;
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    return () => cancelAnimationFrame(raf);
   }, [visible, mixItemId]);
 
   return (
-    <div className="playback-progress" aria-hidden="true">
-      <div className={`playback-progress ${visible ? 'visible' : ''}`} aria-hidden="true">
-        <div className="playback-progress-fill" ref={fillRef} />
-      </div>
-      );
+    <div className={`playback-progress ${visible ? 'visible' : ''}`} aria-hidden="true">
+      <div className="playback-progress-fill" ref={fillRef} />
+    </div>
+  );
 }
 
 const TrashIcon = () => (
