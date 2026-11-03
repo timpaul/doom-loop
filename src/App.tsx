@@ -773,6 +773,16 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                           displayValue={formatPercentDisplay(sound.volLfoDepth ?? 0)}
                         />
                       </div>
+                      <div className="control-row">
+                        <span className="control-label">Phase</span>
+                        <Slider
+                          min="0" max="1" step="0.01"
+                          value={sound.volLfoPhaseOffset ?? 0}
+                          onChange={e => update({ volLfoPhaseOffset: parseFloat(e.target.value) })}
+                          aria-label="Volume LFO Phase Offset"
+                          displayValue={formatPercentDisplay(sound.volLfoPhaseOffset ?? 0)}
+                        />
+                      </div>
                     </>
                   )}
                 </div>
@@ -851,6 +861,16 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                           displayValue={formatPercentDisplay(sound.panLfoDepth || 0)}
                         />
                       </div>
+                      <div className="control-row">
+                        <span className="control-label">Phase</span>
+                        <Slider
+                          min="0" max="1" step="0.01"
+                          value={sound.panLfoPhaseOffset ?? 0}
+                          onChange={e => update({ panLfoPhaseOffset: parseFloat(e.target.value) })}
+                          aria-label="Pan LFO Phase Offset"
+                          displayValue={formatPercentDisplay(sound.panLfoPhaseOffset ?? 0)}
+                        />
+                      </div>
                     </>
                   )}
                 </div>
@@ -927,6 +947,16 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                           onChange={e => update({ autoFilterOctaves: parseFloat(e.target.value) })}
                           aria-label="Filter LFO Depth"
                           displayValue={formatOctavesDisplay(sound.autoFilterOctaves || 4)}
+                        />
+                      </div>
+                      <div className="control-row">
+                        <span className="control-label">Phase</span>
+                        <Slider
+                          min="0" max="1" step="0.01"
+                          value={sound.autoFilterPhaseOffset ?? 0}
+                          onChange={e => update({ autoFilterPhaseOffset: parseFloat(e.target.value) })}
+                          aria-label="Filter LFO Phase Offset"
+                          displayValue={formatPercentDisplay(sound.autoFilterPhaseOffset ?? 0)}
                         />
                       </div>
                     </>
@@ -1093,6 +1123,16 @@ function SoundPanel({ sound }: { sound: SoundState }) {
                           onChange={e => update({ detuneLfoDepth: parseFloat(e.target.value) })}
                           aria-label="Detune LFO Depth"
                           displayValue={formatPercentDisplay(sound.detuneLfoDepth ?? 0)}
+                        />
+                      </div>
+                      <div className="control-row">
+                        <span className="control-label">Phase</span>
+                        <Slider
+                          min="0" max="1" step="0.01"
+                          value={sound.detuneLfoPhaseOffset ?? 0}
+                          onChange={e => update({ detuneLfoPhaseOffset: parseFloat(e.target.value) })}
+                          aria-label="Detune LFO Phase Offset"
+                          displayValue={formatPercentDisplay(sound.detuneLfoPhaseOffset ?? 0)}
                         />
                       </div>
                     </>

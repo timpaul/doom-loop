@@ -481,7 +481,7 @@ export class AudioEngine {
         }
     }
 
-    public setAutoFilter(rate: number, baseFrequency: number, octaves: number, type: LFOModType = 'sine') {
+    public setAutoFilter(rate: number, baseFrequency: number, octaves: number, type: LFOModType = 'sine', phaseOffset: number = 0) {
         if (type === 'random') {
             // Mute the internal sine LFO of the AutoFilter and sweep its base frequency manually
             this.autoFilter.set({ depth: 0 });
@@ -517,10 +517,15 @@ export class AudioEngine {
             this.autoFilter.set({ depth: 1 });
             const freq = rate > 0 ? 1 / rate : 0.1;
             this.autoFilter.set({ frequency: freq, baseFrequency: baseFrequency, octaves: octaves, depth: 1 });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const internalLfo = (this.autoFilter as any)._lfo;
+            if (internalLfo) {
+                internalLfo.phase = (phaseOffset * 360) % 360;
+            }
         }
     }
 
-    public setVolLFO(rate: number, depth: number, type: LFOModType = 'sine') {
+    public setVolLFO(rate: number, depth: number, type: LFOModType = 'sine', phaseOffset: number = 0) {
         if (type === 'random') {
             // Sine LFO becomes unity passthrough
             this.volLfo.min = 1;
@@ -551,10 +556,11 @@ export class AudioEngine {
             this.volLfo.frequency.rampTo(freq, 0.1);
             this.volLfo.min = 1 - depth;
             this.volLfo.max = 1;
+            this.volLfo.phase = (phaseOffset * 360) % 360;
         }
     }
 
-    public setPanLFO(rate: number, depth: number, type: LFOModType = 'sine') {
+    public setPanLFO(rate: number, depth: number, type: LFOModType = 'sine', phaseOffset: number = 0) {
         if (type === 'random') {
             // Sine becomes zero
             this.panLfo.min = 0;
@@ -581,10 +587,11 @@ export class AudioEngine {
             this.panLfo.frequency.rampTo(freq, 0.1);
             this.panLfo.min = -depth;
             this.panLfo.max = depth;
+            this.panLfo.phase = (phaseOffset * 360) % 360;
         }
     }
 
-    public setDetuneLFO(rate: number, depth: number, type: LFOModType = 'sine') {
+    public setDetuneLFO(rate: number, depth: number, type: LFOModType = 'sine', phaseOffset: number = 0) {
         const wanted = depth > 0.001;
         this.setEffectWanted('vibrato', wanted);
         if (type === 'random') {
@@ -607,6 +614,12 @@ export class AudioEngine {
             // Clamp vibrato frequency to avoid sub-audio artifacts
             const vibratoFreq = Math.max(freq, 0.05);
             this.vibrato.set({ frequency: vibratoFreq, depth: depth, wet: 1 });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const internalLfo = (this.vibrato as any)._lfo;
+            if (internalLfo) {
+                // Vibrato default phase is -90 so resting position is at the center
+                internalLfo.phase = -90 + (phaseOffset * 360);
+            }
         }
     }
 

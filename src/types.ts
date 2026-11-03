@@ -51,19 +51,23 @@ export interface SoundState {
     volLfoScale: LFOScale;
     volLfoRate: number; // rate is duration in UI confusingly
     volLfoDepth: number;
+    volLfoPhaseOffset?: number; // 0 to 1 (0% to 100%, where 100% is 360 degrees)
     panLfoType?: LFOType;
     panLfoScale: LFOScale;
     panLfoRate: number;
     panLfoDepth: number;
+    panLfoPhaseOffset?: number;
     autoFilterType?: LFOType;
     autoFilterRate: number;
     autoFilterScale: LFOScale;
     autoFilterBaseFreq: number;
     autoFilterOctaves: number;
+    autoFilterPhaseOffset?: number;
     detuneLfoType?: LFOType;
     detuneLfoScale?: LFOScale;
     detuneLfoRate?: number;
     detuneLfoDepth?: number;
+    detuneLfoPhaseOffset?: number;
     reverbAmount: number;
     delayAmount: number;
     delayTime?: number;
@@ -155,19 +159,23 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     volLfoScale: 'minute',
     volLfoRate: 30,
     volLfoDepth: 0,
+    volLfoPhaseOffset: 0,
     panLfoType: 'sine',
     panLfoScale: 'minute',
     panLfoRate: 30,
     panLfoDepth: 0,
+    panLfoPhaseOffset: 0,
     autoFilterType: 'sine',
     autoFilterRate: 0,
     autoFilterScale: 'minute',
     autoFilterBaseFreq: 20000,
     autoFilterOctaves: 0,
+    autoFilterPhaseOffset: 0,
     detuneLfoType: 'sine',
     detuneLfoScale: 'minute',
     detuneLfoRate: 30,
     detuneLfoDepth: 0,
+    detuneLfoPhaseOffset: 0,
     reverbAmount: 0,
     delayAmount: 0,
     delayTime: 0.25,

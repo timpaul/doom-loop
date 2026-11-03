@@ -122,12 +122,14 @@ Each sound is either a noise generator or a tone synthesizer with sequencing, ef
   "volLfoScale": "minute",         // UI scale: "second", "minute", "hour"
   "volLfoRate": 30,                // LFO cycle duration in seconds
   "volLfoDepth": 0,                // 0–1
+  "volLfoPhaseOffset": 0,          // 0–1 (0% to 100%, 1 = 360° phase offset)
 
   // --- Pan LFO ---
   "panLfoType": "sine",
   "panLfoScale": "minute",
   "panLfoRate": 30,
   "panLfoDepth": 0,                // 0–1
+  "panLfoPhaseOffset": 0,          // 0–1 (0% to 100%, 1 = 360° phase offset)
 
   // --- Filter LFO (AutoFilter) ---
   "autoFilterType": "sine",        // "sine" or "random"
@@ -135,12 +137,14 @@ Each sound is either a noise generator or a tone synthesizer with sequencing, ef
   "autoFilterRate": 45,            // Cycle duration in seconds
   "autoFilterBaseFreq": 8000,      // Base frequency (Hz)
   "autoFilterOctaves": 1,          // Sweep range in octaves (0.1–10)
+  "autoFilterPhaseOffset": 0,      // 0–1 (0% to 100%, 1 = 360° phase offset)
 
   // --- Detune LFO (Vibrato) ---
   "detuneLfoType": "sine",
   "detuneLfoScale": "minute",
   "detuneLfoRate": 30,
   "detuneLfoDepth": 0,             // 0–1
+  "detuneLfoPhaseOffset": 0,       // 0–1 (0% to 100%, 1 = 360° phase offset)
 
   // --- Effects ---
   "reverbAmount": 0,               // 0–1 (wet/dry mix)

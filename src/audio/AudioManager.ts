@@ -72,10 +72,10 @@ class AudioManager {
         engine.setPan(sound.pan);
         engine.setFilter(sound.filterFreq, sound.filterQ);
         // Updated calls to use new LFO properties
-        engine.setVolLFO(sound.volLfoRate, sound.volLfoDepth, sound.volLfoType || 'sine');
-        engine.setPanLFO(sound.panLfoRate, sound.panLfoDepth, sound.panLfoType || 'sine');
-        engine.setAutoFilter(sound.autoFilterRate, sound.autoFilterBaseFreq, sound.autoFilterOctaves, sound.autoFilterType || 'sine');
-        engine.setDetuneLFO(sound.detuneLfoRate ?? 30, sound.detuneLfoDepth ?? 0, sound.detuneLfoType || 'sine');
+        engine.setVolLFO(sound.volLfoRate, sound.volLfoDepth, sound.volLfoType || 'sine', sound.volLfoPhaseOffset ?? 0);
+        engine.setPanLFO(sound.panLfoRate, sound.panLfoDepth, sound.panLfoType || 'sine', sound.panLfoPhaseOffset ?? 0);
+        engine.setAutoFilter(sound.autoFilterRate, sound.autoFilterBaseFreq, sound.autoFilterOctaves, sound.autoFilterType || 'sine', sound.autoFilterPhaseOffset ?? 0);
+        engine.setDetuneLFO(sound.detuneLfoRate ?? 30, sound.detuneLfoDepth ?? 0, sound.detuneLfoType || 'sine', sound.detuneLfoPhaseOffset ?? 0);
 
         engine.setReverb(sound.reverbAmount);
         engine.setDelay(sound.delayAmount, sound.delayTime ?? 0.25, sound.delayFeedback ?? 0.5);
