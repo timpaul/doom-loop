@@ -668,17 +668,21 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
     right: 10px;
     top: -1px;
     height: 1px;
-    /*background-color: #1e1e1e;
-    border-radius: 3px;*/
     overflow: hidden;
     pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease-out;
+}
+
+.playback-progress.visible {
+    opacity: 1;
+    transition: none;
 }
 
 .playback-progress-fill {
     height: 100%;
     width: 0;
-    background-color: var(--accent-color);
-    /*background-color: #555555;*/
+    background-image: linear-gradient(to right, rgba(255, 0, 0, 0), var(--accent-color));
 }
 
 .track-list-item:hover {
