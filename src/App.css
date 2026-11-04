@@ -744,7 +744,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
     bottom: calc(100% + 2px);
     left: 50%;
     transform: translateX(-50%) translateY(4px);
-    border-width: 6px;
+    border-width: 6px 6px 0 6px;
     border-style: solid;
     border-color: #57B4A6 transparent transparent transparent;
 }
