@@ -102,6 +102,8 @@ export interface MixState {
     fadeOutMinutes: number;
     crossFadeMinutes: number;
     spread?: number;
+    author?: string;
+    notes?: string;
 }
 
 export const DEFAULT_MIX: Omit<MixState, 'id' | 'name' | 'items'> = {

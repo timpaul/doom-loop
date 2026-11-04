@@ -1234,3 +1234,57 @@ body:has(.community-mode) {
 .community-list-item .track-play-icon-circle {
     background-color: #333;
 }
+/* Control label help tooltips */
+.control-label[tabindex] {
+    cursor: help;
+    outline: none;
+}
+
+.control-help-tip {
+    position: fixed;
+    width: 220px; /* keep in sync with TIP_WIDTH in ControlLabel.tsx */
+    padding: 6px 10px;
+    border-radius: 4px;
+    background-color: #57B4A6;
+    color: #000;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    pointer-events: none;
+    z-index: 200;
+    box-sizing: border-box;
+}
+
+.control-help-tip::after {
+    content: '';
+    position: absolute;
+    border-style: solid;
+    border-color: transparent;
+}
+
+.control-help-tip.left { transform: translate(-100%, -50%); }
+.control-help-tip.left::after {
+    left: 100%;
+    top: 50%;
+    margin-top: -6px;
+    border-width: 6px 0 6px 6px;
+    border-left-color: #57B4A6;
+}
+
+.control-help-tip.above { transform: translate(-50%, -100%); }
+.control-help-tip.above::after {
+    top: 100%;
+    left: calc(50% + var(--arrow-x, 0px));
+    margin-left: -6px;
+    border-width: 6px 6px 0 6px;
+    border-top-color: #57B4A6;
+}
+
+.control-help-tip.below { transform: translate(-50%, 0); }
+.control-help-tip.below::after {
+    bottom: 100%;
+    left: calc(50% + var(--arrow-x, 0px));
+    margin-left: -6px;
+    border-width: 0 6px 6px 6px;
+    border-bottom-color: #57B4A6;
+}

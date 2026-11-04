@@ -10,6 +10,7 @@ import type { SoundState, TrackState, LFOType, MixState } from './types'
 import type { NoiseColor, OscillatorType } from './audio/AudioEngine'
 import { aboutMarkdown } from './AboutContent'
 import { Slider } from './components/Slider'
+import { ControlLabel } from './components/ControlLabel'
 import { RateSlider } from './components/RateSlider'
 
 function formatPercentDisplay(val: number): string {
@@ -340,7 +341,7 @@ const ExportIcon = () => (
                       {!collapsedPanels['FM_SYNTH'] && (
                         <>
                           <div className="control-row">
-                            <span className="control-label">Ratio / Harm</span>
+                            <ControlLabel help="FM_SYNTH.Ratio / Harm">Ratio / Harm</ControlLabel>
                             <Slider
                               min="0.1" max="10" step="0.1"
                               value={sound.fmHarmonicity ?? 1}
@@ -349,7 +350,7 @@ const ExportIcon = () => (
                             />
                           </div>
                           <div className="control-row">
-                            <span className="control-label">Index</span>
+                            <ControlLabel help="FM_SYNTH.Index">Index</ControlLabel>
                             <Slider
                               min="0" max="100" step="1"
                               value={sound.fmModulationIndex ?? 10}
@@ -368,7 +369,7 @@ const ExportIcon = () => (
                       {!collapsedPanels['METAL'] && (
                         <>
                           <div className="control-row">
-                            <span className="control-label">Harmonicity</span>
+                            <ControlLabel help="METAL.Harmonicity">Harmonicity</ControlLabel>
                             <Slider
                               min="0.1" max="20" step="0.1"
                               value={sound.metalHarmonicity ?? 5.1}
@@ -377,7 +378,7 @@ const ExportIcon = () => (
                             />
                           </div>
                           <div className="control-row">
-                            <span className="control-label">Resonance</span>
+                            <ControlLabel help="METAL.Resonance">Resonance</ControlLabel>
                             <Slider
                               min="100" max="8000" step="100"
                               value={sound.metalResonance ?? 4000}
@@ -396,7 +397,7 @@ const ExportIcon = () => (
                       {!collapsedPanels['PLUCK'] && (
                         <>
                           <div className="control-row">
-                            <span className="control-label">Attack</span>
+                            <ControlLabel help="PLUCK.Attack">Attack</ControlLabel>
                             <Slider
                               min="0.01" max="0.5" step="0.01"
                               value={sound.pluckAttackNoise ?? 0.1}
@@ -405,7 +406,7 @@ const ExportIcon = () => (
                             />
                           </div>
                           <div className="control-row">
-                            <span className="control-label">Resonance</span>
+                            <ControlLabel help="PLUCK.Resonance">Resonance</ControlLabel>
                             <Slider
                               min="0" max="0.99" step="0.01"
                               value={sound.pluckResonance ?? 0.7}
@@ -414,7 +415,7 @@ const ExportIcon = () => (
                             />
                           </div>
                           <div className="control-row">
-                            <span className="control-label">Dampen</span>
+                            <ControlLabel help="PLUCK.Dampen">Dampen</ControlLabel>
                             <Slider
                               min="100" max="8000" step="100"
                               value={sound.pluckDampening ?? 4000}
@@ -433,7 +434,7 @@ const ExportIcon = () => (
                       {!collapsedPanels['KICK'] && (
                         <>
                           <div className="control-row">
-                            <span className="control-label">Pitch Decay</span>
+                            <ControlLabel help="KICK.Pitch Decay">Pitch Decay</ControlLabel>
                             <Slider
                               min="0.01" max="0.5" step="0.01"
                               value={sound.kickPitchDecay ?? 0.05}
@@ -442,7 +443,7 @@ const ExportIcon = () => (
                             />
                           </div>
                           <div className="control-row">
-                            <span className="control-label">Octaves</span>
+                            <ControlLabel help="KICK.Octaves">Octaves</ControlLabel>
                             <Slider
                               min="0.1" max="10" step="0.1"
                               value={sound.kickOctaves ?? 10}
@@ -460,7 +461,7 @@ const ExportIcon = () => (
                     {!collapsedPanels['SEQUENCER'] && sound.stepConfigs && sound.stepRatios && (
                       <>
                         <div className="control-row sequencer-ratios-row">
-                          <span className="control-label">Ratios</span>
+                          <ControlLabel help="SEQUENCER.Ratios">Ratios</ControlLabel>
                           <div className="ratios-container">
                             {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
                               <input
@@ -488,11 +489,11 @@ const ExportIcon = () => (
                           </div>
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Length</span>
+                          <ControlLabel help="SEQUENCER.Length">Length</ControlLabel>
                           <RateSlider value={sound.seqLengthRate} onChange={v => update({ seqLengthRate: v })} aria-label="Sequence Length" />
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Jitter</span>
+                          <ControlLabel help="SEQUENCER.Jitter">Jitter</ControlLabel>
                           <Slider
                             min="0"
                             max="1"
@@ -505,7 +506,7 @@ const ExportIcon = () => (
                         </div>
                         {sound.sourceType !== 'noise' && (
                           <div className="control-row">
-                            <span className="control-label">Play</span>
+                            <ControlLabel help="SEQUENCER.Play">Play</ControlLabel>
                             <div className="segmented-control" style={{ marginTop: 0 }}>
                               <button
                                 className={`segment-btn ${sound.playMode !== 'random' ? 'active' : ''}`}
@@ -532,7 +533,7 @@ const ExportIcon = () => (
                       {!collapsedPanels['TONES'] && (
                         <>
                           <div className="control-row">
-                            <span className="control-label">Step</span>
+                            <ControlLabel help="TONES.Step">Step</ControlLabel>
                             <div className="segmented-control step-sequencer-control" style={{ marginTop: 0 }}>
                               {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
                                 <button
@@ -546,7 +547,7 @@ const ExportIcon = () => (
                             </div>
                           </div>
                           <div className="control-row">
-                            <span className="control-label">Octave</span>
+                            <ControlLabel help="TONES.Octave">Octave</ControlLabel>
                             <Slider
                               min="1" max="5" step="1"
                               value={sound.stepConfigs?.[selectedStep]?.octave ?? 3}
@@ -562,7 +563,7 @@ const ExportIcon = () => (
                           </div>
 
                           <div className="control-row">
-                            <span className="control-label">Chord</span>
+                            <ControlLabel help="TONES.Chord">Chord</ControlLabel>
                             <div className="slider-wrapper">
                               <input
                                 type="text"
@@ -629,7 +630,7 @@ const ExportIcon = () => (
                       {!collapsedPanels['ENVELOPE'] && (
                         <>
                           <div className="control-row">
-                            <span className="control-label">Attack</span>
+                            <ControlLabel help="ENVELOPE.Attack">Attack</ControlLabel>
                             <Slider
                               min="0" max="1" step="0.01"
                               value={Math.pow(sound.envAttack / 10, 1 / 3) || 0}
@@ -639,7 +640,7 @@ const ExportIcon = () => (
                             />
                           </div>
                           <div className="control-row">
-                            <span className="control-label">Decay</span>
+                            <ControlLabel help="ENVELOPE.Decay">Decay</ControlLabel>
                             <Slider
                               min="0" max="1" step="0.01"
                               value={Math.pow(sound.envDecay / 10, 1 / 3) || 0}
@@ -649,7 +650,7 @@ const ExportIcon = () => (
                             />
                           </div>
                           <div className="control-row">
-                            <span className="control-label">Sustain</span>
+                            <ControlLabel help="ENVELOPE.Sustain">Sustain</ControlLabel>
                             <Slider
                               min="0" max="1" step="0.01"
                               value={sound.envSustain || 0}
@@ -659,7 +660,7 @@ const ExportIcon = () => (
                             />
                           </div>
                           <div className="control-row">
-                            <span className="control-label">Release</span>
+                            <ControlLabel help="ENVELOPE.Release">Release</ControlLabel>
                             <Slider
                               min="0" max="1" step="0.01"
                               value={Math.pow(sound.envRelease / 10, 1 / 3) || 0}
@@ -669,7 +670,7 @@ const ExportIcon = () => (
                             />
                           </div>
                           <div className="control-row" style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
-                            <span className="control-label">Length</span>
+                            <ControlLabel help="ENVELOPE.Length">Length</ControlLabel>
                             <Slider
                               min="0.1"
                               max="1"
@@ -704,7 +705,7 @@ const ExportIcon = () => (
                           {!collapsedPanels['VOLUME_LFO'] && (
                             <>
                               <div className="control-row">
-                                <span className="control-label">Type</span>
+                                <ControlLabel help="VOLUME_LFO.Type">Type</ControlLabel>
                                 <div className="segmented-control">
                                   {(['sine', 'random'] as LFOType[]).map(t => (
                                     <button key={t} className={`segment-btn ${(sound.volLfoType || 'sine') === t ? 'active' : ''}`}
@@ -715,11 +716,11 @@ const ExportIcon = () => (
                                 </div>
                               </div>
                               <div className="control-row" style={{ marginTop: '5px' }}>
-                                <span className="control-label">Cycle</span>
+                                <ControlLabel help="VOLUME_LFO.Cycle">Cycle</ControlLabel>
                                 <RateSlider value={sound.volLfoRate} onChange={v => update({ volLfoRate: v })} aria-label="Volume LFO Rate" />
                               </div>
                               <div className="control-row">
-                                <span className="control-label">Depth</span>
+                                <ControlLabel help="VOLUME_LFO.Depth">Depth</ControlLabel>
                                 <Slider
                                   min="0" max="1" step="0.01"
                                   value={sound.volLfoDepth ?? 0}
@@ -729,7 +730,7 @@ const ExportIcon = () => (
                                 />
                               </div>
                               <div className="control-row">
-                                <span className="control-label">Phase</span>
+                                <ControlLabel help="VOLUME_LFO.Phase">Phase</ControlLabel>
                                 <Slider
                                   min="0" max="1" step="0.01"
                                   value={sound.volLfoPhaseOffset ?? 0}
@@ -764,7 +765,7 @@ const ExportIcon = () => (
                           {!collapsedPanels['PAN_LFO'] && (
                             <>
                               <div className="control-row">
-                                <span className="control-label">Type</span>
+                                <ControlLabel help="PAN_LFO.Type">Type</ControlLabel>
                                 <div className="segmented-control">
                                   {(['sine', 'random'] as LFOType[]).map(t => (
                                     <button key={t} className={`segment-btn ${(sound.panLfoType || 'sine') === t ? 'active' : ''}`}
@@ -775,11 +776,11 @@ const ExportIcon = () => (
                                 </div>
                               </div>
                               <div className="control-row" style={{ marginTop: '5px' }}>
-                                <span className="control-label">Cycle</span>
+                                <ControlLabel help="PAN_LFO.Cycle">Cycle</ControlLabel>
                                 <RateSlider value={sound.panLfoRate || 1} onChange={v => update({ panLfoRate: v })} aria-label="Pan LFO Rate" />
                               </div>
                               <div className="control-row">
-                                <span className="control-label">Depth</span>
+                                <ControlLabel help="PAN_LFO.Depth">Depth</ControlLabel>
                                 <Slider
                                   min="0" max="1" step="0.01"
                                   value={sound.panLfoDepth || 0}
@@ -789,7 +790,7 @@ const ExportIcon = () => (
                                 />
                               </div>
                               <div className="control-row">
-                                <span className="control-label">Phase</span>
+                                <ControlLabel help="PAN_LFO.Phase">Phase</ControlLabel>
                                 <Slider
                                   min="0" max="1" step="0.01"
                                   value={sound.panLfoPhaseOffset ?? 0}
@@ -824,7 +825,7 @@ const ExportIcon = () => (
                           {!collapsedPanels['FILTER_LFO'] && (
                             <>
                               <div className="control-row">
-                                <span className="control-label">Type</span>
+                                <ControlLabel help="FILTER_LFO.Type">Type</ControlLabel>
                                 <div className="segmented-control">
                                   {(['sine', 'random'] as LFOType[]).map(t => (
                                     <button key={t} className={`segment-btn ${(sound.autoFilterType || 'sine') === t ? 'active' : ''}`}
@@ -835,11 +836,11 @@ const ExportIcon = () => (
                                 </div>
                               </div>
                               <div className="control-row" style={{ marginTop: '5px' }}>
-                                <span className="control-label">Cycle</span>
+                                <ControlLabel help="FILTER_LFO.Cycle">Cycle</ControlLabel>
                                 <RateSlider value={sound.autoFilterRate || 1} onChange={v => update({ autoFilterRate: v })} aria-label="Filter LFO Rate" />
                               </div>
                               <div className="control-row">
-                                <span className="control-label">Depth</span>
+                                <ControlLabel help="FILTER_LFO.Depth">Depth</ControlLabel>
                                 <Slider
                                   min="0.01" max="1" step="0.01"
                                   value={(sound.autoFilterOctaves || 4) / 10}
@@ -849,7 +850,7 @@ const ExportIcon = () => (
                                 />
                               </div>
                               <div className="control-row">
-                                <span className="control-label">Phase</span>
+                                <ControlLabel help="FILTER_LFO.Phase">Phase</ControlLabel>
                                 <Slider
                                   min="0" max="1" step="0.01"
                                   value={sound.autoFilterPhaseOffset ?? 0}
@@ -870,7 +871,7 @@ const ExportIcon = () => (
                     {!collapsedPanels['EFFECTS'] && (
                       <>
                         <div className="control-row">
-                          <span className="control-label">Reverb</span>
+                          <ControlLabel help="EFFECTS.Reverb">Reverb</ControlLabel>
                           <Slider
                             min="0" max="1" step="0.01"
                             value={sound.reverbAmount}
@@ -880,7 +881,7 @@ const ExportIcon = () => (
                           />
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Distortion</span>
+                          <ControlLabel help="EFFECTS.Distortion">Distortion</ControlLabel>
                           <Slider
                             min="0" max="1" step="0.01"
                             value={sound.distortionAmount ?? 0}
@@ -891,7 +892,7 @@ const ExportIcon = () => (
                         </div>
 
                         <div className="control-row">
-                          <span className="control-label">Chorus</span>
+                          <ControlLabel help="EFFECTS.Chorus">Chorus</ControlLabel>
                           <Slider
                             min="0" max="1" step="0.01"
                             value={sound.chorusAmount}
@@ -901,7 +902,7 @@ const ExportIcon = () => (
                           />
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Chebyshev</span>
+                          <ControlLabel help="EFFECTS.Chebyshev">Chebyshev</ControlLabel>
                           <Slider
                             min="0" max="1" step="0.01"
                             value={sound.chebyshevAmount ?? 0}
@@ -919,7 +920,7 @@ const ExportIcon = () => (
                     {!collapsedPanels['DELAY'] && (
                       <>
                         <div className="control-row">
-                          <span className="control-label">Amount</span>
+                          <ControlLabel help="DELAY.Amount">Amount</ControlLabel>
                           <Slider
                             min="0" max="1" step="0.01"
                             value={sound.delayAmount}
@@ -929,7 +930,7 @@ const ExportIcon = () => (
                           />
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Time</span>
+                          <ControlLabel help="DELAY.Time">Time</ControlLabel>
                           <Slider
                             min="0.1" max="5" step="0.01"
                             value={sound.delayTime ?? 0.25}
@@ -939,7 +940,7 @@ const ExportIcon = () => (
                           />
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Feedback</span>
+                          <ControlLabel help="DELAY.Feedback">Feedback</ControlLabel>
                           <Slider
                             min="0.1" max="0.9" step="0.01"
                             value={sound.delayFeedback ?? 0.5}
@@ -957,7 +958,7 @@ const ExportIcon = () => (
                     {!collapsedPanels['PITCH'] && (
                       <>
                         <div className="control-row">
-                          <span className="control-label">Detune</span>
+                          <ControlLabel help="PITCH.Detune">Detune</ControlLabel>
                           <Slider
                             min="-50" max="50" step="1"
                             value={sound.detune ?? 0}
@@ -972,7 +973,7 @@ const ExportIcon = () => (
                           {!collapsedPanels['DETUNE_LFO'] && (
                             <>
                               <div className="control-row">
-                                <span className="control-label">Type</span>
+                                <ControlLabel help="DETUNE_LFO.Type">Type</ControlLabel>
                                 <div className="segmented-control">
                                   {(['sine', 'random'] as LFOType[]).map(t => (
                                     <button key={t} className={`segment-btn ${(sound.detuneLfoType || 'sine') === t ? 'active' : ''}`}
@@ -983,11 +984,11 @@ const ExportIcon = () => (
                                 </div>
                               </div>
                               <div className="control-row" style={{ marginTop: '5px' }}>
-                                <span className="control-label">Cycle</span>
+                                <ControlLabel help="DETUNE_LFO.Cycle">Cycle</ControlLabel>
                                 <RateSlider value={sound.detuneLfoRate || 30} onChange={v => update({ detuneLfoRate: v })} aria-label="Detune LFO Rate" />
                               </div>
                               <div className="control-row">
-                                <span className="control-label">Depth</span>
+                                <ControlLabel help="DETUNE_LFO.Depth">Depth</ControlLabel>
                                 <Slider
                                   min="0" max="1" step="0.01"
                                   value={sound.detuneLfoDepth ?? 0}
@@ -997,7 +998,7 @@ const ExportIcon = () => (
                                 />
                               </div>
                               <div className="control-row">
-                                <span className="control-label">Phase</span>
+                                <ControlLabel help="DETUNE_LFO.Phase">Phase</ControlLabel>
                                 <Slider
                                   min="0" max="1" step="0.01"
                                   value={sound.detuneLfoPhaseOffset ?? 0}
@@ -1040,6 +1041,7 @@ const ExportIcon = () => (
             const navigate = useNavigate();
 
             const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+            const [isMixInfoExpanded, setIsMixInfoExpanded] = useState(false);
             const [isAddTrackOpen, setIsAddTrackOpen] = useState(false);
             const [selectedTracksToAdd, setSelectedTracksToAdd] = useState<string[]>([]);
             const [, setTick] = useState(0);
@@ -1144,7 +1146,7 @@ const ExportIcon = () => (
                     {isSettingsExpanded && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
                         <div className="control-row" style={{ marginTop: '0' }}>
-                          <span className="control-label">Length</span>
+                          <ControlLabel help="MIX.Length">Length</ControlLabel>
                           <Slider
                             min={Math.log10(5)}
                             max={Math.log10(480)}
@@ -1155,7 +1157,7 @@ const ExportIcon = () => (
                           />
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Jitter</span>
+                          <ControlLabel help="MIX.Jitter">Jitter</ControlLabel>
                           <Slider
                             min="0"
                             max="1"
@@ -1167,21 +1169,21 @@ const ExportIcon = () => (
                           />
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Shuffle</span>
+                          <ControlLabel help="MIX.Shuffle">Shuffle</ControlLabel>
                           <div className="segmented-control" style={{ marginTop: '0', width: '50%' }}>
                             <button className={`segment-btn ${!mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: false })}>Off</button>
                             <button className={`segment-btn ${mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: true })}>On</button>
                           </div>
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Repeat</span>
+                          <ControlLabel help="MIX.Repeat">Repeat</ControlLabel>
                           <div className="segmented-control" style={{ marginTop: '0', width: '50%' }}>
                             <button className={`segment-btn ${!mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: false })}>Off</button>
                             <button className={`segment-btn ${mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: true })}>On</button>
                           </div>
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Fade in</span>
+                          <ControlLabel help="MIX.Fade in">Fade in</ControlLabel>
                           <Slider
                             min="0" max="600" step="5"
                             value={Math.round(mix.fadeInMinutes * 60)}
@@ -1190,7 +1192,7 @@ const ExportIcon = () => (
                           />
                         </div>
                         <div className="control-row">
-                          <span className="control-label">Fade out</span>
+                          <ControlLabel help="MIX.Fade out">Fade out</ControlLabel>
                           <Slider
                             min="0" max="600" step="5"
                             value={Math.round(mix.fadeOutMinutes * 60)}
@@ -1199,13 +1201,43 @@ const ExportIcon = () => (
                           />
                         </div>
                         <div className="control-row">
-                          <span className="control-label">X fade</span>
+                          <ControlLabel help="MIX.X fade">X fade</ControlLabel>
                           <Slider
                             min="0" max="600" step="5"
                             value={Math.round(mix.crossFadeMinutes * 60)}
                             onChange={e => updateSettings({ crossFadeMinutes: parseInt(e.target.value) / 60 })}
                             displayValue={formatSecondsDisplay(mix.crossFadeMinutes * 60)}
                           />
+                        </div>
+                        <div className={`sub - panel ${!isMixInfoExpanded ? 'collapsed' : ''}`} style={{ marginTop: '4px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                          <h3 className="panel-title" onClick={() => setIsMixInfoExpanded(!isMixInfoExpanded)}>MIX INFO</h3>
+                          {isMixInfoExpanded && (
+                            <>
+                              <div className="control-row">
+                                <ControlLabel help="MIX.Author">Author</ControlLabel>
+                                <div className="slider-wrapper">
+                                  <input
+                                    type="text"
+                                    style={{ width: '100%', height: '36px', backgroundColor: '#111111', border: '1px solid transparent', borderRadius: '16px', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 500, padding: '0 14px', textAlign: 'left', transition: 'all 0.2s ease', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                                    value={mix.author || ''}
+                                    onChange={e => updateSettings({ author: e.target.value })}
+                                    aria-label="Mix Author"
+                                  />
+                                </div>
+                              </div>
+                              <div className="control-row" style={{ alignItems: 'flex-start' }}>
+                                <ControlLabel help="MIX.Notes" style={{ paddingTop: '10px' }}>Notes</ControlLabel>
+                                <div className="slider-wrapper">
+                                  <textarea
+                                    style={{ width: '100%', backgroundColor: '#111111', border: '1px solid transparent', borderRadius: '16px', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 500, padding: '10px 14px', textAlign: 'left', minHeight: '120px', resize: 'vertical', lineHeight: '1.5', transition: 'all 0.2s ease', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                                    value={mix.notes || ''}
+                                    onChange={e => updateSettings({ notes: e.target.value })}
+                                    aria-label="Mix Notes"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
