@@ -6,24 +6,11 @@ import './App.css'
 import { useAppState } from './state/AppContext'
 import { audioManager } from './audio/AudioManager'
 import { mixPlayer } from './audio/MixPlayer'
-import type { SoundState, TrackState, LFOScale, LFOType, MixState } from './types'
+import type { SoundState, TrackState, LFOType, MixState } from './types'
 import type { NoiseColor, OscillatorType } from './audio/AudioEngine'
 import { aboutMarkdown } from './AboutContent'
 import { Slider } from './components/Slider'
-
-function formatRateDisplay(rate: number, scale?: LFOScale): string {
-  if (scale === 'second' || !scale) {
-    if (rate <= 0) return '0 Hz';
-    const hz = 1 / rate;
-    if (hz >= 1) return `${+(hz.toFixed(1))}hz`;
-    return `${+(rate.toFixed(2))}s`;
-  } else if (scale === 'minute') {
-    return `${+(rate.toFixed(2))}m`;
-  } else {
-    if (rate < 3600) return `${+(rate / 60).toFixed(1)}m`;
-    return `${+(rate / 3600).toFixed(2)}h`;
-  }
-}
+import { RateSlider } from './components/RateSlider'
 
 function formatPercentDisplay(val: number): string {
   const p = Math.round((val || 0) * 100);
@@ -502,34 +489,7 @@ const ExportIcon = () => (
                         </div>
                         <div className="control-row">
                           <span className="control-label">Length</span>
-                          <div className="segmented-control" style={{ marginTop: 0 }}>
-                            {(['second', 'minute', 'hour'] as LFOScale[]).map(scale => (
-                              <button
-                                key={scale}
-                                className={`segment-btn ${sound.seqLengthScale === scale ? 'active' : ''}`}
-                                onClick={() => {
-                                  let newRate = sound.seqLengthRate;
-                                  if (scale === 'second') newRate = Math.min(Math.max(newRate, 0.01), 1);
-                                  else if (scale === 'minute') newRate = Math.min(Math.max(newRate, 1), 60);
-                                  else if (scale === 'hour') newRate = Math.min(Math.max(newRate, 60), 3600);
-                                  update({ seqLengthScale: scale, seqLengthRate: newRate });
-                                }}
-                              >
-                                {scale === 'second' ? 'Short' : scale === 'minute' ? 'Med' : 'Long'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="control-row">
-                          <span className="control-label">Rate</span>
-                          <Slider
-                            min={sound.seqLengthScale === 'hour' ? 60 : sound.seqLengthScale === 'minute' ? 1 : 0.01}
-                            max={sound.seqLengthScale === 'hour' ? 3600 : sound.seqLengthScale === 'minute' ? 60 : 1}
-                            step={sound.seqLengthScale === 'second' ? 0.01 : 1}
-                            value={sound.seqLengthRate}
-                            onChange={e => update({ seqLengthRate: parseFloat(e.target.value) })}
-                            displayValue={formatRateDisplay(sound.seqLengthRate, sound.seqLengthScale)}
-                          />
+                          <RateSlider value={sound.seqLengthRate} onChange={v => update({ seqLengthRate: v })} aria-label="Sequence Length" />
                         </div>
                         <div className="control-row">
                           <span className="control-label">Jitter</span>
@@ -754,37 +714,9 @@ const ExportIcon = () => (
                                   ))}
                                 </div>
                               </div>
-                              <div className="control-row">
-                                <span className="control-label">Speed</span>
-                                <div className="segmented-control">
-                                  {(['hour', 'minute', 'second'] as LFOScale[]).map(scale => (
-                                    <button
-                                      key={scale}
-                                      className={`segment-btn ${sound.volLfoScale === scale ? 'active' : ''}`}
-                                      onClick={() => {
-                                        let newDuration = sound.volLfoRate;
-                                        if (scale === 'second') newDuration = Math.min(Math.max(newDuration, 0.01), 1);
-                                        else if (scale === 'minute') newDuration = Math.min(Math.max(newDuration, 1), 60);
-                                        else if (scale === 'hour') newDuration = Math.min(Math.max(newDuration, 60), 3600);
-                                        update({ volLfoScale: scale, volLfoRate: newDuration });
-                                      }}
-                                    >
-                                      {scale === 'hour' ? 'Slow' : scale === 'minute' ? 'Med' : 'Fast'}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
                               <div className="control-row" style={{ marginTop: '5px' }}>
-                                <span className="control-label">Rate</span>
-                                <Slider
-                                  min={sound.volLfoScale === 'hour' ? 60 : sound.volLfoScale === 'minute' ? 1 : 0.01}
-                                  max={sound.volLfoScale === 'hour' ? 3600 : sound.volLfoScale === 'minute' ? 60 : 1}
-                                  step={sound.volLfoScale === 'second' ? 0.01 : 1}
-                                  value={sound.volLfoRate}
-                                  onChange={e => update({ volLfoRate: parseFloat(e.target.value) })}
-                                  aria-label="Volume LFO Rate"
-                                  displayValue={formatRateDisplay(sound.volLfoRate, sound.volLfoScale)}
-                                />
+                                <span className="control-label">Cycle</span>
+                                <RateSlider value={sound.volLfoRate} onChange={v => update({ volLfoRate: v })} aria-label="Volume LFO Rate" />
                               </div>
                               <div className="control-row">
                                 <span className="control-label">Depth</span>
@@ -842,37 +774,9 @@ const ExportIcon = () => (
                                   ))}
                                 </div>
                               </div>
-                              <div className="control-row">
-                                <span className="control-label">Speed</span>
-                                <div className="segmented-control">
-                                  {(['hour', 'minute', 'second'] as LFOScale[]).map(scale => (
-                                    <button
-                                      key={scale}
-                                      className={`segment-btn ${sound.panLfoScale === scale ? 'active' : ''}`}
-                                      onClick={() => {
-                                        let newDuration = sound.panLfoRate || 1;
-                                        if (scale === 'second') newDuration = Math.min(Math.max(newDuration, 0.01), 1);
-                                        else if (scale === 'minute') newDuration = Math.min(Math.max(newDuration, 1), 60);
-                                        else if (scale === 'hour') newDuration = Math.min(Math.max(newDuration, 60), 3600);
-                                        update({ panLfoScale: scale, panLfoRate: newDuration });
-                                      }}
-                                    >
-                                      {scale === 'hour' ? 'Slow' : scale === 'minute' ? 'Med' : 'Fast'}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
                               <div className="control-row" style={{ marginTop: '5px' }}>
-                                <span className="control-label">Rate</span>
-                                <Slider
-                                  min={sound.panLfoScale === 'hour' ? 60 : sound.panLfoScale === 'minute' ? 1 : 0.01}
-                                  max={sound.panLfoScale === 'hour' ? 3600 : sound.panLfoScale === 'minute' ? 60 : 1}
-                                  step={sound.panLfoScale === 'second' ? 0.01 : 1}
-                                  value={sound.panLfoRate || 1}
-                                  onChange={e => update({ panLfoRate: parseFloat(e.target.value) })}
-                                  aria-label="Pan LFO Rate"
-                                  displayValue={formatRateDisplay(sound.panLfoRate || 1, sound.panLfoScale)}
-                                />
+                                <span className="control-label">Cycle</span>
+                                <RateSlider value={sound.panLfoRate || 1} onChange={v => update({ panLfoRate: v })} aria-label="Pan LFO Rate" />
                               </div>
                               <div className="control-row">
                                 <span className="control-label">Depth</span>
@@ -930,46 +834,18 @@ const ExportIcon = () => (
                                   ))}
                                 </div>
                               </div>
-                              <div className="control-row">
-                                <span className="control-label">Speed</span>
-                                <div className="segmented-control">
-                                  {(['hour', 'minute', 'second'] as LFOScale[]).map(scale => (
-                                    <button
-                                      key={scale}
-                                      className={`segment-btn ${sound.autoFilterScale === scale ? 'active' : ''}`}
-                                      onClick={() => {
-                                        let newDuration = sound.autoFilterRate || 1;
-                                        if (scale === 'second') newDuration = Math.min(Math.max(newDuration, 0.01), 1);
-                                        else if (scale === 'minute') newDuration = Math.min(Math.max(newDuration, 1), 60);
-                                        else if (scale === 'hour') newDuration = Math.min(Math.max(newDuration, 60), 3600);
-                                        update({ autoFilterScale: scale, autoFilterRate: newDuration });
-                                      }}
-                                    >
-                                      {scale === 'hour' ? 'Slow' : scale === 'minute' ? 'Med' : 'Fast'}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
                               <div className="control-row" style={{ marginTop: '5px' }}>
-                                <span className="control-label">Rate</span>
-                                <Slider
-                                  min={sound.autoFilterScale === 'hour' ? 60 : sound.autoFilterScale === 'minute' ? 1 : 0.01}
-                                  max={sound.autoFilterScale === 'hour' ? 3600 : sound.autoFilterScale === 'minute' ? 60 : 1}
-                                  step={sound.autoFilterScale === 'second' ? 0.01 : 1}
-                                  value={sound.autoFilterRate || 1}
-                                  onChange={e => update({ autoFilterRate: parseFloat(e.target.value) })}
-                                  aria-label="Filter LFO Rate"
-                                  displayValue={formatRateDisplay(sound.autoFilterRate || 1, sound.autoFilterScale)}
-                                />
+                                <span className="control-label">Cycle</span>
+                                <RateSlider value={sound.autoFilterRate || 1} onChange={v => update({ autoFilterRate: v })} aria-label="Filter LFO Rate" />
                               </div>
                               <div className="control-row">
                                 <span className="control-label">Depth</span>
                                 <Slider
-                                  min="0.1" max="10" step="0.1"
-                                  value={sound.autoFilterOctaves || 4}
-                                  onChange={e => update({ autoFilterOctaves: parseFloat(e.target.value) })}
+                                  min="0.01" max="1" step="0.01"
+                                  value={(sound.autoFilterOctaves || 4) / 10}
+                                  onChange={e => update({ autoFilterOctaves: Math.round(parseFloat(e.target.value) * 100) / 10 })}
                                   aria-label="Filter LFO Depth"
-                                  displayValue={formatOctavesDisplay(sound.autoFilterOctaves || 4)}
+                                  displayValue={formatPercentDisplay((sound.autoFilterOctaves || 4) / 10)}
                                 />
                               </div>
                               <div className="control-row">
@@ -1106,37 +982,9 @@ const ExportIcon = () => (
                                   ))}
                                 </div>
                               </div>
-                              <div className="control-row">
-                                <span className="control-label">Speed</span>
-                                <div className="segmented-control">
-                                  {(['hour', 'minute', 'second'] as LFOScale[]).map(scale => (
-                                    <button
-                                      key={scale}
-                                      className={`segment-btn ${(sound.detuneLfoScale || 'minute') === scale ? 'active' : ''}`}
-                                      onClick={() => {
-                                        let newDuration = sound.detuneLfoRate || 30;
-                                        if (scale === 'second') newDuration = Math.min(Math.max(newDuration, 0.01), 1);
-                                        else if (scale === 'minute') newDuration = Math.min(Math.max(newDuration, 1), 60);
-                                        else if (scale === 'hour') newDuration = Math.min(Math.max(newDuration, 60), 3600);
-                                        update({ detuneLfoScale: scale, detuneLfoRate: newDuration });
-                                      }}
-                                    >
-                                      {scale === 'hour' ? 'Slow' : scale === 'minute' ? 'Med' : 'Fast'}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
                               <div className="control-row" style={{ marginTop: '5px' }}>
-                                <span className="control-label">Rate</span>
-                                <Slider
-                                  min={(sound.detuneLfoScale || 'minute') === 'hour' ? 60 : (sound.detuneLfoScale || 'minute') === 'minute' ? 1 : 0.01}
-                                  max={(sound.detuneLfoScale || 'minute') === 'hour' ? 3600 : (sound.detuneLfoScale || 'minute') === 'minute' ? 60 : 1}
-                                  step={(sound.detuneLfoScale || 'minute') === 'second' ? 0.01 : 1}
-                                  value={sound.detuneLfoRate || 30}
-                                  onChange={e => update({ detuneLfoRate: parseFloat(e.target.value) })}
-                                  aria-label="Detune LFO Rate"
-                                  displayValue={formatRateDisplay(sound.detuneLfoRate || 30, sound.detuneLfoScale || 'minute')}
-                                />
+                                <span className="control-label">Cycle</span>
+                                <RateSlider value={sound.detuneLfoRate || 30} onChange={v => update({ detuneLfoRate: v })} aria-label="Detune LFO Rate" />
                               </div>
                               <div className="control-row">
                                 <span className="control-label">Depth</span>
