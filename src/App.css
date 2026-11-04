@@ -445,22 +445,56 @@ header {
 
 .slider-value-display {
     position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 0.85rem;
-    font-weight: 400;
+    /* Centre over the thumb (56px wide) as it travels along the track */
+    left: calc(28px + var(--slider-frac, 0) * (100% - 56px));
+    bottom: calc(100% + 2px);
+    transform: translateX(-50%);
+    background-color: #57B4A6;
+    color: #000;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
     pointer-events: none;
     user-select: none;
-    z-index: 3;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+}
+
+.slider-value-display::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px 6px 0 6px;
+    border-style: solid;
+    border-color: #57B4A6 transparent transparent transparent;
+}
+
+.slider-wrapper:has(input[type="range"]:active) .slider-value-display,
+.slider-wrapper:has(input[type="range"]:focus-visible) .slider-value-display {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slider-wrapper:hover .slider-value-display {
+        opacity: 1;
+        visibility: visible;
+        transition-delay: 0s;
+    }
 }
 
 input[type="range"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 86%;
+    width: 100%;
     background: transparent;
     height: 48px;
     /* generous touch area */
