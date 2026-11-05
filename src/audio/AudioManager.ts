@@ -31,6 +31,7 @@ class AudioManager {
         await Tone.start();
         this.masterChannel.chain(this.masterLimiter, Tone.Destination);
         this.isInitialized = true;
+        AudioEngine.warmSharedReverb();
     }
 
     public async resumeContext() {

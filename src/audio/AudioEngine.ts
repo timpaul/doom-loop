@@ -149,6 +149,7 @@ export class AudioEngine {
             envelope: { attack: 0.5, decay: 0.1, sustain: 1, release: 2 },
             volume: -6
         });
+        this.polySynth.maxPolyphony = 8;
         this.polySynth.connect(this.channel);
     }
 
@@ -200,13 +201,57 @@ export class AudioEngine {
         }
     }
 
+    private static sharedReverbBuffer: AudioBuffer | null = null;
+    private static sharedReverbPromise: Promise<AudioBuffer | null> | null = null;
+
+    public static async warmSharedReverb(): Promise<void> {
+        if (AudioEngine.sharedReverbBuffer) return;
+        if (!AudioEngine.sharedReverbPromise) {
+            AudioEngine.sharedReverbPromise = (async () => {
+                try {
+                    const tempReverb = new Tone.Reverb({ decay: 4, wet: 0 });
+                    await tempReverb.ready;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const buf = (tempReverb as any)._convolver?.buffer as AudioBuffer | undefined;
+                    tempReverb.dispose();
+                    if (buf) {
+                        AudioEngine.sharedReverbBuffer = buf;
+                    }
+                    return AudioEngine.sharedReverbBuffer;
+                } catch {
+                    return null;
+                }
+            })();
+        }
+        await AudioEngine.sharedReverbPromise;
+    }
+
     private initPromise: Promise<void> | null = null;
 
     public async initialize() {
         if (this.isInitialized) return;
+        if (AudioEngine.sharedReverbBuffer) {
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (this.reverb as any)._convolver.buffer = AudioEngine.sharedReverbBuffer;
+            } catch {
+                // Ignore
+            }
+            this.isInitialized = true;
+            return;
+        }
+
         if (!this.initPromise) {
             this.initPromise = (async () => {
-                await this.reverb.generate();
+                await AudioEngine.warmSharedReverb();
+                if (!this.isDisposed && AudioEngine.sharedReverbBuffer) {
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        (this.reverb as any)._convolver.buffer = AudioEngine.sharedReverbBuffer;
+                    } catch {
+                        // Ignore
+                    }
+                }
                 this.isInitialized = true;
             })();
         }
@@ -259,14 +304,13 @@ export class AudioEngine {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public async play(sourceType: SoundType, value: any) {
-        const token = ++this.playToken;
+    public play(sourceType: SoundType, value: any) {
+        this.playToken++;
+        // Warm/attach reverb asynchronously without stalling note trigger
         if (!this.isInitialized) {
-            await this.initialize();
+            this.initialize();
         }
-        // Abandon if the engine was disposed/stopped/re-played while we were waiting; otherwise we would
-        // schedule Transport events on a dead engine that nothing ever clears (leak -> CPU overload).
-        if (this.isDisposed || token !== this.playToken) return;
+        if (this.isDisposed) return;
 
         this.stop(); // Stop current playing
 
@@ -500,7 +544,7 @@ export class AudioEngine {
             
             // Schedule random value changes
             const minFreq = Math.max(10, baseFrequency);
-            const intervalMs = Math.max(50, (rate / 4) * 1000); // pick new values several times per cycle
+            const intervalMs = Math.max(100, (rate / 4) * 1000); // pick new values several times per cycle
             const rampTime = intervalMs / 1000 * 0.8; // smooth ramp
             if (this.randomFilterInterval) clearInterval(this.randomFilterInterval);
             this.randomFilterInterval = setInterval(() => {
@@ -543,7 +587,7 @@ export class AudioEngine {
                 this.currentVolLfoType = 'random';
             }
             // Schedule random value changes
-            const intervalMs = Math.max(50, (rate / 4) * 1000);
+            const intervalMs = Math.max(100, (rate / 4) * 1000);
             const rampTime = intervalMs / 1000 * 0.8;
             if (this.randomVolInterval) clearInterval(this.randomVolInterval);
             this.randomVolInterval = setInterval(() => {
@@ -576,7 +620,7 @@ export class AudioEngine {
                 this.randomPanSignal.connect(this.panner.pan);
                 this.currentPanLfoType = 'random';
             }
-            const intervalMs = Math.max(50, (rate / 4) * 1000);
+            const intervalMs = Math.max(100, (rate / 4) * 1000);
             const rampTime = intervalMs / 1000 * 0.8;
             if (this.randomPanInterval) clearInterval(this.randomPanInterval);
             this.randomPanInterval = setInterval(() => {
@@ -605,7 +649,7 @@ export class AudioEngine {
             // Random vibrato: set vibrato to a moderate fixed frequency
             // and periodically update depth with random values
             this.vibrato.set({ frequency: 4, depth: 0, wet: 1 });
-            const intervalMs = Math.max(50, (rate / 4) * 1000);
+            const intervalMs = Math.max(100, (rate / 4) * 1000);
             if (this.randomDetuneInterval) clearInterval(this.randomDetuneInterval);
             if (wanted) {
                 this.randomDetuneInterval = setInterval(() => {
@@ -704,7 +748,8 @@ export class AudioEngine {
 
             let VoiceClass: any = Tone.Synth;
             const options: any = {
-                volume: -6
+                volume: -6,
+                maxPolyphony: 8
             };
             
             // Apply current envelope to new synth instantiation
@@ -748,6 +793,7 @@ export class AudioEngine {
             }
 
             this.polySynth = new Tone.PolySynth(VoiceClass, options);
+            this.polySynth.maxPolyphony = 8;
             this.polySynth.connect(this.channel);
             return true;
         } else {
