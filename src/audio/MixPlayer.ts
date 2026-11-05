@@ -385,6 +385,7 @@ export class MixPlayer {
             } else {
                 // Should not be playing
                 if (item.fadeState !== 'idle' && item.fadeState !== 'done') {
+                    audioManager.setTrackVolume(item.mixItemId, 0);
                     this.stopTrackSync(item);
                     item.fadeState = 'done';
                     this.cleanupUnusedEngines();
@@ -406,11 +407,11 @@ export class MixPlayer {
     private startTrackSync(item: MixScheduleItem) {
         const track = this.tracks.get(item.trackId);
         if (!track) return;
+        // Reset track channel volume before starting sounds so they don't blare at previous volume
+        audioManager.setTrackVolume(item.mixItemId, 0);
         this.getAudibleSounds(track).forEach(sound => {
             audioManager.syncSoundState(sound, true, item.mixItemId);
         });
-        // Reset track channel volume if we are about to fade it
-        audioManager.setTrackVolume(item.mixItemId, 0);
     }
 
     private stopTrackSync(item: MixScheduleItem) {

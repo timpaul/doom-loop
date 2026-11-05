@@ -10,11 +10,12 @@ class AudioManager {
     private engines: Map<string, AudioEngine> = new Map();
     private previousSources: Map<string, string> = new Map();
     private trackGains: Map<string, Tone.Gain> = new Map();
+    private pendingDisposalEngines: Map<string, { engine: AudioEngine; timer: ReturnType<typeof setTimeout> }> = new Map();
 
     private isInitialized = false;
 
     private constructor() {
-        this.masterChannel = new Tone.Volume(0);
+        this.masterChannel = new Tone.Volume(-4);
         this.masterLimiter = new Tone.Limiter(-0.3);
     }
 
@@ -52,6 +53,16 @@ class AudioManager {
 
     public getEngine(id: string, mixItemId?: string): AudioEngine {
         const engineId = mixItemId ? `${mixItemId}-${id}` : id;
+
+        // If there is an engine pending deferred disposal with this ID, cancel disposal and reuse it
+        const pending = this.pendingDisposalEngines.get(engineId);
+        if (pending) {
+            clearTimeout(pending.timer);
+            this.pendingDisposalEngines.delete(engineId);
+            this.engines.set(engineId, pending.engine);
+            return pending.engine;
+        }
+
         let engine = this.engines.get(engineId);
         if (!engine) {
             const dest = mixItemId ? this.getTrackChannel(mixItemId) : this.masterChannel;
@@ -186,32 +197,64 @@ class AudioManager {
         this.previousSources.delete(engineId);
     }
 
-    public cleanupEngines(activeIds: string[]) {
+    public cleanupEngines(activeIds: string[], delayMs = 1000) {
         const activeSet = new Set(activeIds);
         for (const [id, engine] of this.engines.entries()) {
             if (!activeSet.has(id)) {
-                engine.dispose();
                 this.engines.delete(id);
                 this.previousSources.delete(id);
+                engine.stop();
+
+                const existing = this.pendingDisposalEngines.get(id);
+                if (existing) {
+                    clearTimeout(existing.timer);
+                    existing.engine.dispose();
+                }
+
+                const timer = setTimeout(() => {
+                    engine.dispose();
+                    this.pendingDisposalEngines.delete(id);
+                }, delayMs);
+
+                this.pendingDisposalEngines.set(id, { engine, timer });
             }
         }
     }
 
     public removeEngine(id: string) {
+        const pending = this.pendingDisposalEngines.get(id);
+        if (pending) {
+            clearTimeout(pending.timer);
+            pending.engine.dispose();
+            this.pendingDisposalEngines.delete(id);
+        }
         const engine = this.engines.get(id);
         if (engine) {
-            engine.dispose();
             this.engines.delete(id);
             this.previousSources.delete(id);
+            engine.stop();
+            const timer = setTimeout(() => {
+                engine.dispose();
+                this.pendingDisposalEngines.delete(id);
+            }, 500);
+            this.pendingDisposalEngines.set(id, { engine, timer });
         }
     }
 
     public stopAll() {
+        for (const [, pending] of this.pendingDisposalEngines.entries()) {
+            pending.engine.stop();
+        }
         this.engines.forEach(engine => engine.stop());
         this.previousSources.clear();
     }
 
     public clearAll() {
+        for (const [, pending] of this.pendingDisposalEngines.entries()) {
+            clearTimeout(pending.timer);
+            pending.engine.dispose();
+        }
+        this.pendingDisposalEngines.clear();
         this.engines.forEach(engine => engine.dispose());
         this.engines.clear();
         this.previousSources.clear();
@@ -223,6 +266,13 @@ class AudioManager {
         const activeSet = new Set(activeMixItemIds);
         for (const [id, gainNode] of this.trackGains.entries()) {
             if (!activeSet.has(id)) {
+                for (const [engineId, pending] of this.pendingDisposalEngines.entries()) {
+                    if (engineId.startsWith(`${id}-`)) {
+                        clearTimeout(pending.timer);
+                        pending.engine.dispose();
+                        this.pendingDisposalEngines.delete(engineId);
+                    }
+                }
                 gainNode.dispose();
                 this.trackGains.delete(id);
             }
@@ -231,26 +281,19 @@ class AudioManager {
 
     public setTrackVolume(mixItemId: string, volume: number) {
         const gainNode = this.getTrackChannel(mixItemId);
-        gainNode.gain.cancelScheduledValues(Tone.now());
-        gainNode.gain.value = volume;
-        gainNode.gain.setValueAtTime(volume, Tone.now());
+        gainNode.gain.rampTo(volume, 0.02);
     }
 
     public fadeTrack(mixItemId: string, targetVolume: number, transitionTime: number) {
         const gainNode = this.getTrackChannel(mixItemId);
-        const now = Tone.now();
-        const currentVol = gainNode.gain.value;
-
-        gainNode.gain.cancelScheduledValues(now);
-        gainNode.gain.setValueAtTime(currentVol, now);
-        gainNode.gain.linearRampToValueAtTime(targetVolume, now + Math.max(0.01, transitionTime));
+        gainNode.gain.rampTo(targetVolume, Math.max(0.02, transitionTime));
     }
 
     public setMasterVolume(volume: number) {
         if (volume <= 0.01) {
             this.masterChannel.volume.rampTo(-Infinity, 0.1);
         } else {
-            const db = Tone.gainToDb(volume);
+            const db = Tone.gainToDb(volume) - 4;
             this.masterChannel.volume.rampTo(db, 0.1);
         }
     }
