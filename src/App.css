@@ -698,14 +698,16 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 /* Absolutely positioned so panel height is identical with or without it */
 .playback-progress {
     position: absolute;
-    left: 10px;
-    right: 10px;
-    top: -1px;
-    height: 1px;
+    left: 20px;
+    right: 20px;
+    top: 74px;
+    height: 3px;
     overflow: hidden;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.5s ease-out;
+    background: #333;
+    border-radius: 3px;
 }
 
 .playback-progress.visible {
