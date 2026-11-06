@@ -31,13 +31,13 @@ export const CONTROL_HELP: Record<string, string> = {
   'KICK.Octaves': 'How far above the base note the kick starts before dropping.',
 
   // Sequencer
-  'SEQUENCER.Ratios': 'Relative duration of each step; a 2 plays twice as long as a 1, and "-" is a rest.',
-  'SEQUENCER.Length': 'Total time taken to play through all the steps once.',
+  'SEQUENCER.Ratios': 'Relative duration of each step in the sequence. A 2 plays twice as long as a 1.',
+  'SEQUENCER.Length': 'Total time taken to play through all the steps once. From 100hz to 1hr.',
   'SEQUENCER.Jitter': 'Adds random variation to the timing of each step for a looser feel.',
-  'SEQUENCER.Play': 'Play every note of the chord together, or pick one at random each step.',
+  'SEQUENCER.Play': 'Play every note in a step at the same time, or pick one at random each step.',
 
   // Tones
-  'TONES.Step': 'Choose which sequencer step you are editing.',
+  'TONES.Step': 'Choose which step of the sequence you are editing.',
   'TONES.Octave': 'Octave that the selected step plays in.',
   'TONES.Chord': 'Notes played by the selected step, e.g. "C E G" or "Am7".',
 
@@ -46,7 +46,7 @@ export const CONTROL_HELP: Record<string, string> = {
   'ENVELOPE.Decay': 'Time for the note to fall from its peak to the sustain level.',
   'ENVELOPE.Sustain': 'Level the note holds at while it is playing.',
   'ENVELOPE.Release': 'Time for the note to fade out after it ends.',
-  'ENVELOPE.Length': 'How much of its step each note lasts for before being released.',
+  'ENVELOPE.Length': 'What proportion of its step each note lasts for before being released.',
 
   // LFOs
   'VOLUME_LFO.Type': LFO_HELP('volume').Type,
@@ -84,14 +84,14 @@ export const CONTROL_HELP: Record<string, string> = {
   'PITCH.Detune': 'Shifts the pitch up or down by a fixed amount.',
 
   // Mix settings
-  'MIX.Length': 'Total running time of the mix, including crossfades, shared evenly between its tracks.',
+  'MIX.Length': 'Total running time of the mix.',
   'MIX.Jitter': 'Randomly varies how long each track plays for.',
   'MIX.Shuffle': 'Play the tracks in a random order.',
   'MIX.Repeat': 'Start the mix again from the beginning when it finishes.',
-  'MIX.Fade in': 'Time for the mix to fade up from silence at the start.',
-  'MIX.Fade out': 'Time for the mix to fade to silence at the end.',
+  'MIX.Fade in': 'Time for the mix to fade in at the start. Up to 10 minutes',
+  'MIX.Fade out': 'Time for the mix to fade out at the end. Up to 10 minutes',
   'MIX.Author': 'Who made this mix.',
   'MIX.Notes': 'Any notes about the mix, such as how it was made or when to listen to it.',
-  'MIX.X fade': 'Overlap time where one track fades out as the next fades in.',
+  'MIX.X fade': 'Overlap time where one track fades out as the next fades in. Up to 10 minutes',
 };
 
