@@ -9,7 +9,7 @@ export type OscillatorType = 'sine' | 'square' | 'triangle' | 'sawtooth' | 'fats
 // Effects that are transparent when their amount is 0, and so can be removed from the
 // signal chain to save CPU. (Distortion is excluded: Tone's curve at amount 0 still
 // attenuates the signal, so bypassing it would change the level of existing tracks.)
-type BypassableEffect = 'chorus' | 'chebyshev' | 'delay' | 'reverb' | 'vibrato';
+type BypassableEffect = 'chorus' | 'chebyshev' | 'delay' | 'vibrato';
 
 interface EffectSlot {
     node: Tone.ToneAudioNode;
@@ -58,7 +58,8 @@ export class AudioEngine {
     private currentPanLfoType: LFOModType = 'sine';
     private currentFilterLfoType: LFOModType = 'sine';
 
-    private reverb: Tone.Reverb;
+    private dryGain: Tone.Gain;
+    private reverbSendGain: Tone.Gain;
     private delay: Tone.FeedbackDelay;
     private chorus: Tone.Chorus;
     private distortion: Tone.Distortion;
@@ -79,7 +80,7 @@ export class AudioEngine {
     // unwired because they are created with an amount of 0.
     private effectSlots: EffectSlot[] = [];
 
-    constructor(outputDestination: Tone.ToneAudioNode = Tone.getDestination()) {
+    constructor(outputDestination: Tone.ToneAudioNode = Tone.getDestination(), reverbDestination?: Tone.ToneAudioNode) {
         // Create effects
         this.filter = new Tone.Filter({ type: 'lowpass', frequency: 20000 }); // open by default so AutoFilter works
         this.autoFilter = new Tone.AutoFilter({ frequency: 1, depth: 1, baseFrequency: 100, octaves: 4, type: 'sine' }).start();
@@ -99,7 +100,8 @@ export class AudioEngine {
         this.randomPanSignal = new Tone.Signal(0);
         this.randomFilterSignal = new Tone.Signal(0);
 
-        this.reverb = new Tone.Reverb({ decay: 4, wet: 0 });
+        this.dryGain = new Tone.Gain(1);
+        this.reverbSendGain = new Tone.Gain(0);
         this.delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.5, wet: 0, maxDelay: 5 });
         this.chorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0 });
         this.distortion = new Tone.Distortion(0);
@@ -123,12 +125,16 @@ export class AudioEngine {
             slot(this.chebyshev, 'chebyshev'),
             slot(this.distortion, null),
             slot(this.delay, 'delay'),
-            slot(this.reverb, 'reverb'),
             slot(this.vibrato, 'vibrato'),
             slot(this.panner, null),
         ];
         this.channel.chain(this.filter, this.autoFilter, this.volLfoGain);
-        this.panner.connect(outputDestination);
+        this.panner.connect(this.dryGain);
+        this.dryGain.connect(outputDestination);
+        this.panner.connect(this.reverbSendGain);
+        if (reverbDestination) {
+            this.reverbSendGain.connect(reverbDestination);
+        }
         this.rebuildEffectChain();
 
         // Setup Noise
@@ -201,15 +207,15 @@ export class AudioEngine {
         }
     }
 
-    private static sharedReverbBuffer: AudioBuffer | null = null;
+    public static sharedReverbBuffer: AudioBuffer | null = null;
     private static sharedReverbPromise: Promise<AudioBuffer | null> | null = null;
 
-    public static async warmSharedReverb(): Promise<void> {
-        if (AudioEngine.sharedReverbBuffer) return;
+    public static async warmSharedReverb(): Promise<AudioBuffer | null> {
+        if (AudioEngine.sharedReverbBuffer) return AudioEngine.sharedReverbBuffer;
         if (!AudioEngine.sharedReverbPromise) {
             AudioEngine.sharedReverbPromise = (async () => {
                 try {
-                    const tempReverb = new Tone.Reverb({ decay: 4, wet: 0 });
+                    const tempReverb = new Tone.Reverb({ decay: 4, wet: 1 });
                     await tempReverb.ready;
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const buf = (tempReverb as any)._convolver?.buffer as AudioBuffer | undefined;
@@ -223,39 +229,31 @@ export class AudioEngine {
                 }
             })();
         }
-        await AudioEngine.sharedReverbPromise;
+        return AudioEngine.sharedReverbPromise;
     }
 
-    private initPromise: Promise<void> | null = null;
-
     public async initialize() {
-        if (this.isInitialized) return;
-        if (AudioEngine.sharedReverbBuffer) {
-            try {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (this.reverb as any)._convolver.buffer = AudioEngine.sharedReverbBuffer;
-            } catch {
-                // Ignore
-            }
-            this.isInitialized = true;
-            return;
-        }
+        this.isInitialized = true;
+    }
 
-        if (!this.initPromise) {
-            this.initPromise = (async () => {
-                await AudioEngine.warmSharedReverb();
-                if (!this.isDisposed && AudioEngine.sharedReverbBuffer) {
-                    try {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        (this.reverb as any)._convolver.buffer = AudioEngine.sharedReverbBuffer;
-                    } catch {
-                        // Ignore
-                    }
-                }
-                this.isInitialized = true;
-            })();
+    public setReverbDestination(reverbDestination: Tone.ToneAudioNode | null) {
+        try {
+            this.reverbSendGain.disconnect();
+        } catch {
+            // Ignore
         }
-        await this.initPromise;
+        if (reverbDestination) {
+            this.reverbSendGain.connect(reverbDestination);
+        }
+    }
+
+    public setOutputDestination(outputDestination: Tone.ToneAudioNode) {
+        try {
+            this.dryGain.disconnect();
+        } catch {
+            // Ignore
+        }
+        this.dryGain.connect(outputDestination);
     }
 
     public dispose() {
@@ -294,7 +292,8 @@ export class AudioEngine {
             this.sequenceEventId = null;
         }
 
-        this.reverb.dispose();
+        this.dryGain.dispose();
+        this.reverbSendGain.dispose();
         this.delay.dispose();
         this.chorus.dispose();
         this.distortion.dispose();
@@ -676,8 +675,15 @@ export class AudioEngine {
 
 
     public setReverb(amount: number) {
-        this.setEffectWanted('reverb', amount > 0.001);
-        this.reverb.wet.rampTo(amount, 0.1);
+        // Equal-power crossfade (matching Tone.CrossFade):
+        // dry = cos(amount * PI / 2), wet = sin(amount * PI / 2)
+        const clamped = Math.max(0, Math.min(1, amount));
+        const angle = clamped * (Math.PI / 2);
+        const dryVal = clamped >= 0.999 ? 0 : Math.cos(angle);
+        const wetVal = clamped <= 0.001 ? 0 : Math.sin(angle);
+
+        this.dryGain.gain.rampTo(dryVal, 0.1);
+        this.reverbSendGain.gain.rampTo(wetVal, 0.1);
     }
 
     public setDelay(amount: number, time: number = 0.25, feedback: number = 0.5) {

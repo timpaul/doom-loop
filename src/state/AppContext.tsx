@@ -272,11 +272,23 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'SET_TRACK_NAME':
             newState.currentTrackName = action.payload;
             break;
-        case 'UPDATE_TRACK_META':
-            newState.savedTracks = state.savedTracks.map(t =>
-                t.id === state.currentTrackId ? { ...t, ...action.payload } : t
-            );
+        case 'UPDATE_TRACK_META': {
+            const existingIdx = state.savedTracks.findIndex(t => t.id === state.currentTrackId);
+            if (existingIdx >= 0) {
+                newState.savedTracks = state.savedTracks.map(t =>
+                    t.id === state.currentTrackId ? { ...t, ...action.payload } : t
+                );
+            } else {
+                newState.savedTracks = [...state.savedTracks, {
+                    id: state.currentTrackId,
+                    name: state.currentTrackName,
+                    reverbDecay: 4,
+                    sounds: state.sounds,
+                    ...action.payload
+                }];
+            }
             break;
+        }
         case 'LOAD_TRACK':
             // Only stop playback if loading a fundamentally different track
             if (state.currentTrackId !== action.payload.id) {
@@ -349,6 +361,12 @@ const appReducer = (state: AppState, action: Action): AppState => {
             const duplicatedTrack: TrackState = {
                 id: `track-${Date.now()}`,
                 name: newName,
+                author: trackToDuplicate.author,
+                notes: trackToDuplicate.notes,
+                reverbDecay: trackToDuplicate.reverbDecay ?? 4,
+                reverbPreDelay: trackToDuplicate.reverbPreDelay ?? 0.01,
+                reverbLowCut: trackToDuplicate.reverbLowCut ?? 20,
+                reverbHighCut: trackToDuplicate.reverbHighCut ?? 20000,
                 sounds: trackToDuplicate.sounds.map((s, index) => ({
                     ...s,
                     id: `${Date.now()}-${index}`
@@ -374,6 +392,10 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     name: importData.name || `Imported Track ${state.savedTracks.length + 1}`,
                     author: importData.author,
                     notes: importData.notes,
+                    reverbDecay: typeof importData.reverbDecay === 'number' ? importData.reverbDecay : 4,
+                    reverbPreDelay: typeof importData.reverbPreDelay === 'number' ? importData.reverbPreDelay : 0.01,
+                    reverbLowCut: typeof importData.reverbLowCut === 'number' ? importData.reverbLowCut : 20,
+                    reverbHighCut: typeof importData.reverbHighCut === 'number' ? importData.reverbHighCut : 20000,
                     sounds: importedSounds
                 };
 
@@ -697,6 +719,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     if (modeChanged || prevTrackIdRef.current !== state.currentTrackId) {
                         audioManager.clearAll();
                     }
+
+                    const currentTrack = state.savedTracks.find(t => t.id === state.currentTrackId) || state.communityTracks.find(t => t.id === state.currentTrackId);
+                    audioManager.setTrackReverb({
+                        decay: currentTrack?.reverbDecay ?? 4,
+                        preDelay: currentTrack?.reverbPreDelay ?? 0.01,
+                        lowCut: currentTrack?.reverbLowCut ?? 20,
+                        highCut: currentTrack?.reverbHighCut ?? 20000
+                    });
 
                     state.sounds.forEach(sound => {
                         audioManager.syncSoundState(sound, true);

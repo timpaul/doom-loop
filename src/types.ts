@@ -82,6 +82,10 @@ export interface TrackState {
     name: string;
     author?: string;
     notes?: string;
+    reverbDecay?: number;
+    reverbPreDelay?: number;
+    reverbLowCut?: number;
+    reverbHighCut?: number;
     sounds: SoundState[];
 }
 

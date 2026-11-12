@@ -1442,7 +1442,9 @@ const useAudioActions = () => {
               const {id} = useParams<{ id: string }>();
               const navigate = useNavigate();
               const {togglePlay} = useAudioActions();
-              const [isMetaExpanded, setIsMetaExpanded] = useState(false);
+              const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+              const [isReverbExpanded, setIsReverbExpanded] = useState(false);
+              const [isInfoExpanded, setIsInfoExpanded] = useState(false);
 
   const currentTrack = state.savedTracks.find(t => t.id === id);
 
@@ -1492,49 +1494,114 @@ const useAudioActions = () => {
                 </header>
 
                 <main className="main-content">
-                  <section className={`panel-group ${!isMetaExpanded ? 'collapsed' : ''}`} >
-                    <h2 className="panel-title" onClick={() => setIsMetaExpanded(!isMetaExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
-                      TRACK INFO
+                  <section className={`panel-group ${!isSettingsExpanded ? 'collapsed' : ''}`} style={{ marginBottom: '24px' }}>
+                    <h2 className="panel-title" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
+                      TRACK SETTINGS
                       <div className="icon-btn" style={{ width: '20px', height: '20px', marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <ChevronRightIcon isExpanded={isMetaExpanded} />
+                        <ChevronRightIcon isExpanded={isSettingsExpanded} />
                       </div>
                     </h2>
-                    {isMetaExpanded && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-                        <div className="control-row" style={{ marginTop: '0' }}>
-                          <span className="control-label">Author</span>
-                          <div className="slider-wrapper">
-                            <input
-                              type="text"
-                              style={{
-                                width: '100%', height: '36px', backgroundColor: '#111111', border: '1px solid transparent',
-                                borderRadius: '16px', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 500,
-                                padding: '0 14px', textAlign: 'left', transition: 'all 0.2s ease', boxSizing: 'border-box',
-                                fontFamily: 'inherit'
-                              }}
-                              value={currentTrack?.author || ''}
-                              onChange={(e) => dispatch({ type: 'UPDATE_TRACK_META', payload: { author: e.target.value } })}
-                              placeholder=""
-                              aria-label="Track Author"
-                            />
-                          </div>
+                    {isSettingsExpanded && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                        <div className={`sub-panel ${!isReverbExpanded ? 'collapsed' : ''}`} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                          <h3 className="panel-title" onClick={() => setIsReverbExpanded(!isReverbExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer' }}>
+                            REVERB
+                            <div className="icon-btn" style={{ width: '20px', height: '20px', marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <ChevronRightIcon isExpanded={isReverbExpanded} />
+                            </div>
+                          </h3>
+                          {isReverbExpanded && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                              <div className="control-row" style={{ marginTop: '0' }}>
+                                <ControlLabel help="TRACK.Reverb decay">Decay</ControlLabel>
+                                <Slider
+                                  min="0.5" max="20" step="0.1"
+                                  value={currentTrack?.reverbDecay ?? 4}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { reverbDecay: parseFloat(e.target.value) } })}
+                                  aria-label="Reverb decay"
+                                  displayValue={`${(currentTrack?.reverbDecay ?? 4).toFixed(1)}s`}
+                                />
+                              </div>
+                              <div className="control-row">
+                                <ControlLabel help="TRACK.Reverb pre-delay">Pre-delay</ControlLabel>
+                                <Slider
+                                  min="0" max="200" step="1"
+                                  value={Math.round((currentTrack?.reverbPreDelay ?? 0.01) * 1000)}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { reverbPreDelay: parseFloat(e.target.value) / 1000 } })}
+                                  aria-label="Reverb pre-delay"
+                                  displayValue={`${Math.round((currentTrack?.reverbPreDelay ?? 0.01) * 1000)}ms`}
+                                />
+                              </div>
+                              <div className="control-row">
+                                <ControlLabel help="TRACK.Reverb low cut">Low cut</ControlLabel>
+                                <Slider
+                                  min="20" max="1000" step="10"
+                                  value={currentTrack?.reverbLowCut ?? 20}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { reverbLowCut: parseFloat(e.target.value) } })}
+                                  aria-label="Reverb low cut"
+                                  displayValue={(currentTrack?.reverbLowCut ?? 20) <= 20 ? 'Off' : `${Math.round(currentTrack?.reverbLowCut ?? 20)} Hz`}
+                                />
+                              </div>
+                              <div className="control-row">
+                                <ControlLabel help="TRACK.Reverb high cut">High cut</ControlLabel>
+                                <Slider
+                                  min="1000" max="20000" step="100"
+                                  value={currentTrack?.reverbHighCut ?? 20000}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { reverbHighCut: parseFloat(e.target.value) } })}
+                                  aria-label="Reverb high cut"
+                                  displayValue={(currentTrack?.reverbHighCut ?? 20000) >= 20000 ? 'Off' : `${((currentTrack?.reverbHighCut ?? 20000) / 1000).toFixed(1)} kHz`}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="control-row" style={{ marginTop: '0', alignItems: 'flex-start' }}>
-                          <span className="control-label" style={{ paddingTop: '10px' }}>Notes</span>
-                          <div className="slider-wrapper">
-                            <textarea
-                              style={{
-                                width: '100%', backgroundColor: '#111111', border: '1px solid transparent', borderRadius: '16px',
-                                color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 500, padding: '10px 14px',
-                                textAlign: 'left', minHeight: '120px', resize: 'vertical', lineHeight: '1.5',
-                                transition: 'all 0.2s ease', boxSizing: 'border-box', fontFamily: 'inherit'
-                              }}
-                              value={currentTrack?.notes || ''}
-                              onChange={(e) => dispatch({ type: 'UPDATE_TRACK_META', payload: { notes: e.target.value } })}
-                              placeholder=""
-                              aria-label="Track Notes"
-                            />
-                          </div>
+
+                        <div className={`sub-panel ${!isInfoExpanded ? 'collapsed' : ''}`} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                          <h3 className="panel-title" onClick={() => setIsInfoExpanded(!isInfoExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer' }}>
+                            TRACK INFO
+                            <div className="icon-btn" style={{ width: '20px', height: '20px', marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <ChevronRightIcon isExpanded={isInfoExpanded} />
+                            </div>
+                          </h3>
+                          {isInfoExpanded && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                              <div className="control-row" style={{ marginTop: '0' }}>
+                                <ControlLabel help="TRACK.Author">Author</ControlLabel>
+                                <div className="slider-wrapper">
+                                  <input
+                                    type="text"
+                                    style={{
+                                      width: '100%', height: '36px', backgroundColor: '#111111', border: '1px solid transparent',
+                                      borderRadius: '16px', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 500,
+                                      padding: '0 14px', textAlign: 'left', transition: 'all 0.2s ease', boxSizing: 'border-box',
+                                      fontFamily: 'inherit'
+                                    }}
+                                    value={currentTrack?.author || ''}
+                                    onChange={(e) => dispatch({ type: 'UPDATE_TRACK_META', payload: { author: e.target.value } })}
+                                    placeholder=""
+                                    aria-label="Track Author"
+                                  />
+                                </div>
+                              </div>
+                              <div className="control-row" style={{ alignItems: 'flex-start' }}>
+                                <ControlLabel help="TRACK.Notes" style={{ paddingTop: '10px' }}>Notes</ControlLabel>
+                                <div className="slider-wrapper">
+                                  <textarea
+                                    style={{
+                                      width: '100%', backgroundColor: '#111111', border: '1px solid transparent', borderRadius: '16px',
+                                      color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 500, padding: '10px 14px',
+                                      textAlign: 'left', minHeight: '120px', resize: 'vertical', lineHeight: '1.5',
+                                      transition: 'all 0.2s ease', boxSizing: 'border-box', fontFamily: 'inherit'
+                                    }}
+                                    value={currentTrack?.notes || ''}
+                                    onChange={(e) => dispatch({ type: 'UPDATE_TRACK_META', payload: { notes: e.target.value } })}
+                                    placeholder=""
+                                    aria-label="Track Notes"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

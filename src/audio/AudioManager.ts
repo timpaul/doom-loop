@@ -2,6 +2,107 @@ import * as Tone from 'tone';
 import { AudioEngine } from './AudioEngine';
 import type { SoundState } from '../types';
 
+export class TrackBus {
+    public dryGain: Tone.Gain;
+    public reverb: Tone.Reverb;
+    public lowCutFilter: Tone.Filter;
+    public highCutFilter: Tone.Filter;
+    public outputGain: Tone.Gain;
+    private currentDecay: number;
+    private currentPreDelay: number;
+    private regenerateTimer: ReturnType<typeof setTimeout> | null = null;
+    private isDisposed = false;
+
+    constructor(
+        destination: Tone.ToneAudioNode,
+        initialDecay = 4,
+        initialPreDelay = 0.01,
+        initialLowCut = 20,
+        initialHighCut = 20000,
+        initialVolume = 1
+    ) {
+        this.outputGain = new Tone.Gain(initialVolume);
+        this.outputGain.connect(destination);
+
+        this.dryGain = new Tone.Gain(1);
+        this.dryGain.connect(this.outputGain);
+
+        this.currentDecay = initialDecay;
+        this.currentPreDelay = initialPreDelay;
+        this.reverb = new Tone.Reverb({ decay: initialDecay, preDelay: initialPreDelay, wet: 1.0 });
+
+        if (AudioEngine.sharedReverbBuffer && Math.abs(initialDecay - 4) < 0.01 && Math.abs(initialPreDelay - 0.01) < 0.001) {
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (this.reverb as any)._convolver.buffer = AudioEngine.sharedReverbBuffer;
+            } catch {
+                // Ignore
+            }
+        } else if (!AudioEngine.sharedReverbBuffer && Math.abs(initialDecay - 4) < 0.01 && Math.abs(initialPreDelay - 0.01) < 0.001) {
+            AudioEngine.warmSharedReverb().then(buf => {
+                if (buf && !this.isDisposed && Math.abs(this.currentDecay - 4) < 0.01 && Math.abs(this.currentPreDelay - 0.01) < 0.001) {
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        (this.reverb as any)._convolver.buffer = buf;
+                    } catch {
+                        // Ignore
+                    }
+                }
+            });
+        }
+
+        this.lowCutFilter = new Tone.Filter({ type: 'highpass', frequency: initialLowCut });
+        this.highCutFilter = new Tone.Filter({ type: 'lowpass', frequency: initialHighCut });
+
+        this.reverb.chain(this.lowCutFilter, this.highCutFilter, this.outputGain);
+    }
+
+    public setReverbParams(decay: number, preDelay: number) {
+        const decayChanged = Math.abs(this.currentDecay - decay) >= 0.01;
+        const preDelayChanged = Math.abs(this.currentPreDelay - preDelay) >= 0.001;
+        if (!decayChanged && !preDelayChanged) return;
+
+        this.currentDecay = decay;
+        this.currentPreDelay = preDelay;
+
+        if (this.regenerateTimer) {
+            clearTimeout(this.regenerateTimer);
+        }
+        this.regenerateTimer = setTimeout(() => {
+            if (!this.isDisposed) {
+                this.reverb.decay = decay;
+                this.reverb.preDelay = preDelay;
+            }
+        }, 150);
+    }
+
+    public setDecay(decay: number) {
+        this.setReverbParams(decay, this.currentPreDelay);
+    }
+
+    public setFilters(lowCut: number, highCut: number) {
+        this.lowCutFilter.frequency.rampTo(Math.max(20, lowCut), 0.05);
+        this.highCutFilter.frequency.rampTo(Math.min(20000, highCut), 0.05);
+    }
+
+    public setVolume(volume: number, rampTime = 0.02) {
+        this.outputGain.gain.rampTo(volume, rampTime);
+    }
+
+    public dispose() {
+        this.isDisposed = true;
+        if (this.regenerateTimer) {
+            clearTimeout(this.regenerateTimer);
+            this.regenerateTimer = null;
+        }
+        this.reverb.dispose();
+        this.lowCutFilter.dispose();
+        this.highCutFilter.dispose();
+        this.dryGain.dispose();
+        this.outputGain.dispose();
+    }
+}
+
 class AudioManager {
     private static instance: AudioManager;
 
@@ -9,7 +110,8 @@ class AudioManager {
     private masterLimiter: Tone.Limiter;
     private engines: Map<string, AudioEngine> = new Map();
     private previousSources: Map<string, string> = new Map();
-    private trackGains: Map<string, Tone.Gain> = new Map();
+    private trackBuses: Map<string, TrackBus> = new Map();
+    private mainTrackBus: TrackBus | null = null;
     private pendingDisposalEngines: Map<string, { engine: AudioEngine; timer: ReturnType<typeof setTimeout> }> = new Map();
 
     private isInitialized = false;
@@ -44,12 +146,51 @@ class AudioManager {
         return null;
     }
 
-    public getTrackChannel(mixItemId: string): Tone.Gain {
-        if (!this.trackGains.has(mixItemId)) {
-            const gainNode = new Tone.Gain(0).connect(this.masterChannel);
-            this.trackGains.set(mixItemId, gainNode);
+    public getTrackBus(
+        mixItemId?: string,
+        decay = 4,
+        preDelay = 0.01,
+        lowCut = 20,
+        highCut = 20000
+    ): TrackBus {
+        if (mixItemId) {
+            let bus = this.trackBuses.get(mixItemId);
+            if (!bus) {
+                bus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, 0);
+                this.trackBuses.set(mixItemId, bus);
+            }
+            return bus;
         }
-        return this.trackGains.get(mixItemId)!;
+        if (!this.mainTrackBus) {
+            this.mainTrackBus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, 1);
+        }
+        return this.mainTrackBus;
+    }
+
+    public getTrackChannel(mixItemId: string): Tone.Gain {
+        return this.getTrackBus(mixItemId).outputGain;
+    }
+
+    public setTrackReverb(
+        config: { decay?: number; preDelay?: number; lowCut?: number; highCut?: number },
+        mixItemId?: string
+    ) {
+        const decay = config.decay ?? 4;
+        const preDelay = config.preDelay ?? 0.01;
+        const lowCut = config.lowCut ?? 20;
+        const highCut = config.highCut ?? 20000;
+
+        const bus = mixItemId ? this.trackBuses.get(mixItemId) : this.mainTrackBus;
+        if (bus) {
+            bus.setReverbParams(decay, preDelay);
+            bus.setFilters(lowCut, highCut);
+        } else {
+            this.getTrackBus(mixItemId, decay, preDelay, lowCut, highCut);
+        }
+    }
+
+    public setTrackDecay(decay: number, mixItemId?: string) {
+        this.setTrackReverb({ decay }, mixItemId);
     }
 
     public getEngine(id: string, mixItemId?: string): AudioEngine {
@@ -66,8 +207,8 @@ class AudioManager {
 
         let engine = this.engines.get(engineId);
         if (!engine) {
-            const dest = mixItemId ? this.getTrackChannel(mixItemId) : this.masterChannel;
-            engine = new AudioEngine(dest);
+            const bus = this.getTrackBus(mixItemId);
+            engine = new AudioEngine(bus.dryGain, bus.reverb);
             this.engines.set(engineId, engine);
             if (this.isInitialized) {
                 engine.initialize();
@@ -259,13 +400,17 @@ class AudioManager {
         this.engines.forEach(engine => engine.dispose());
         this.engines.clear();
         this.previousSources.clear();
-        this.trackGains.forEach(gainNode => gainNode.dispose());
-        this.trackGains.clear();
+        this.trackBuses.forEach(bus => bus.dispose());
+        this.trackBuses.clear();
+        if (this.mainTrackBus) {
+            this.mainTrackBus.dispose();
+            this.mainTrackBus = null;
+        }
     }
 
     public cleanupTrackGains(activeMixItemIds: string[]) {
         const activeSet = new Set(activeMixItemIds);
-        for (const [id, gainNode] of this.trackGains.entries()) {
+        for (const [id, bus] of this.trackBuses.entries()) {
             if (!activeSet.has(id)) {
                 for (const [engineId, pending] of this.pendingDisposalEngines.entries()) {
                     if (engineId.startsWith(`${id}-`)) {
@@ -274,20 +419,18 @@ class AudioManager {
                         this.pendingDisposalEngines.delete(engineId);
                     }
                 }
-                gainNode.dispose();
-                this.trackGains.delete(id);
+                bus.dispose();
+                this.trackBuses.delete(id);
             }
         }
     }
 
     public setTrackVolume(mixItemId: string, volume: number) {
-        const gainNode = this.getTrackChannel(mixItemId);
-        gainNode.gain.rampTo(volume, 0.02);
+        this.getTrackBus(mixItemId).setVolume(volume);
     }
 
     public fadeTrack(mixItemId: string, targetVolume: number, transitionTime: number) {
-        const gainNode = this.getTrackChannel(mixItemId);
-        gainNode.gain.rampTo(targetVolume, Math.max(0.02, transitionTime));
+        this.getTrackBus(mixItemId).setVolume(targetVolume, Math.max(0.02, transitionTime));
     }
 
     public setMasterVolume(volume: number) {

@@ -409,6 +409,12 @@ export class MixPlayer {
         if (!track) return;
         // Reset track channel volume before starting sounds so they don't blare at previous volume
         audioManager.setTrackVolume(item.mixItemId, 0);
+        audioManager.setTrackReverb({
+            decay: track.reverbDecay ?? 4,
+            preDelay: track.reverbPreDelay ?? 0.01,
+            lowCut: track.reverbLowCut ?? 20,
+            highCut: track.reverbHighCut ?? 20000
+        }, item.mixItemId);
         this.getAudibleSounds(track).forEach(sound => {
             audioManager.syncSoundState(sound, true, item.mixItemId);
         });

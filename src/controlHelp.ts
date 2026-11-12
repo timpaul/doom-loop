@@ -69,8 +69,16 @@ export const CONTROL_HELP: Record<string, string> = {
   'DETUNE_LFO.Depth': 'How far the pitch drifts sharp and flat.',
   'DETUNE_LFO.Phase': LFO_HELP('detune').Phase,
 
+  // Track settings
+  'TRACK.Reverb decay': 'How long the reverb tail takes to fade away.',
+  'TRACK.Reverb pre-delay': 'Delay before the reverb begins, separating the dry attack from the reverb space.',
+  'TRACK.Reverb low cut': 'Removes low frequencies from the reverb tail to eliminate muddiness.',
+  'TRACK.Reverb high cut': 'Rolls off high frequencies in the reverb tail for a darker, warmer sound.',
+  'TRACK.Author': 'Who made this track.',
+  'TRACK.Notes': 'Any notes about the track, such as how it was made or when to listen to it.',
+
   // Effects
-  'EFFECTS.Reverb': 'Amount of simulated room or hall ambience.',
+  'EFFECTS.Reverb': 'Amount of sound sent to the track reverb.',
   'EFFECTS.Distortion': 'Adds crunch and grit by clipping the signal.',
   'EFFECTS.Chorus': 'Thickens the sound by layering slightly detuned, delayed copies.',
   'EFFECTS.Chebyshev': 'Adds harmonics to the sound for a richer, more buzzy tone.',
