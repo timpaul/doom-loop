@@ -411,6 +411,7 @@ export class MixPlayer {
         audioManager.setTrackVolume(item.mixItemId, 0);
         audioManager.setTrackTranspose(track.transpose ?? 0, item.mixItemId);
         audioManager.setTrackSpatialize(track.spatialize ?? track.stereoWidth ?? 1, item.mixItemId);
+        audioManager.setTrackGlue(track.glue ?? 0, item.mixItemId);
         audioManager.setTrackReverb({
             decay: track.reverbDecay ?? 4,
             preDelay: track.reverbPreDelay ?? 0.01,

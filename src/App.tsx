@@ -1523,6 +1523,16 @@ const useAudioActions = () => {
                             displayValue={(currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1) === 0 ? '0% (Mono)' : `${Math.round((currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1) * 100)}%`}
                           />
                         </div>
+                        <div className="control-row">
+                          <ControlLabel help="TRACK.Glue">Glue</ControlLabel>
+                          <Slider
+                            min="0" max="1" step="0.01"
+                            value={currentTrack?.glue ?? 0}
+                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { glue: parseFloat(e.target.value) } })}
+                            aria-label="Glue compressor"
+                            displayValue={(currentTrack?.glue ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.glue ?? 0)}
+                          />
+                        </div>
 
                         <div className={`sub-panel ${!isReverbExpanded ? 'collapsed' : ''}`} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                           <h3 className="panel-title" onClick={() => setIsReverbExpanded(!isReverbExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer' }}>

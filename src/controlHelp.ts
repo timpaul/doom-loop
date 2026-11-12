@@ -72,6 +72,7 @@ export const CONTROL_HELP: Record<string, string> = {
   // Track settings
   'TRACK.Transpose': 'Shifts the pitch of all sounds in the track up or down by semitones.',
   'TRACK.Spatialize': 'Adjusts the spatial width from mono (0%) to normal (100%) or ultra-wide (200%).',
+  'TRACK.Glue': 'Binds sounds together with gentle bus compression, smoothing peaks and lifting quiet ambient details.',
   'TRACK.Reverb decay': 'How long the reverb tail takes to fade away.',
   'TRACK.Reverb pre-delay': 'Delay before the reverb begins, separating the dry attack from the reverb space.',
   'TRACK.Reverb low cut': 'Removes low frequencies from the reverb tail to eliminate muddiness.',
