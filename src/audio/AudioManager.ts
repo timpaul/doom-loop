@@ -20,15 +20,30 @@ export class TrackBus {
     public fogFilter: Tone.Filter;
     public outputGain: Tone.Gain;
 
+    public frippSendGain: Tone.Gain;
+    public frippReturnGain: Tone.Gain;
+    public frippDelayL: Tone.Delay;
+    public frippDelayR: Tone.Delay;
+    public frippFilterL: Tone.Filter;
+    public frippFilterR: Tone.Filter;
+    public frippFeedbackL: Tone.Gain;
+    public frippFeedbackR: Tone.Gain;
+    public frippCrossL: Tone.Gain;
+    public frippCrossR: Tone.Gain;
+    public frippSplit: Tone.Split;
+    public frippMerge: Tone.Merge;
+
     public transpose: number = 0;
     public spatialize: number = 1.0;
     public glue: number = 0;
     public drift: number = 0;
     public fog: number = 0;
+    public fripp: number = 0;
 
     private currentDecay: number;
     private currentPreDelay: number;
     private regenerateTimer: ReturnType<typeof setTimeout> | null = null;
+    private frippResetTimer: ReturnType<typeof setTimeout> | null = null;
     private isDisposed = false;
 
     constructor(
@@ -42,6 +57,7 @@ export class TrackBus {
         initialGlue = 0,
         initialDrift = 0,
         initialFog = 0,
+        initialFripp = 0,
         initialVolume = 1
     ) {
         this.outputGain = new Tone.Gain(initialVolume);
@@ -52,6 +68,7 @@ export class TrackBus {
         this.glue = initialGlue;
         this.drift = initialDrift;
         this.fog = initialFog;
+        this.fripp = initialFripp;
 
         this.midSideSplit = new Tone.MidSideSplit();
         this.midSideMerge = new Tone.MidSideMerge();
@@ -113,6 +130,57 @@ export class TrackBus {
 
         this.summingGain = new Tone.Gain(1);
         this.summingGain.connect(this.midSideSplit);
+
+        // Frippertronics dual sound-on-sound tape loop
+        this.frippSendGain = new Tone.Gain(0);
+        this.frippReturnGain = new Tone.Gain(0);
+
+        this.frippSplit = new Tone.Split();
+        this.frippMerge = new Tone.Merge();
+
+        // 3.2s on Left, 3.8s on Right for polymetric tape delay
+        this.frippDelayL = new Tone.Delay({ delayTime: 3.2, maxDelay: 10 });
+        this.frippDelayR = new Tone.Delay({ delayTime: 3.8, maxDelay: 10 });
+
+        // Tape head lowpass filtering (4.5 kHz) so each repeat gently warms and softens
+        this.frippFilterL = new Tone.Filter({ type: 'lowpass', frequency: 4500, rolloff: -12, Q: 0.5 });
+        this.frippFilterR = new Tone.Filter({ type: 'lowpass', frequency: 4500, rolloff: -12, Q: 0.5 });
+
+        // Direct feedback and cross-channel bleed
+        this.frippFeedbackL = new Tone.Gain(0.72);
+        this.frippFeedbackR = new Tone.Gain(0.72);
+        this.frippCrossL = new Tone.Gain(0.08);
+        this.frippCrossR = new Tone.Gain(0.08);
+
+        // Send: summingGain -> frippSendGain -> frippSplit
+        this.summingGain.connect(this.frippSendGain);
+        this.frippSendGain.connect(this.frippSplit);
+
+        // Left tape loop
+        this.frippSplit.connect(this.frippDelayL, 0);
+        this.frippDelayL.connect(this.frippFilterL);
+        this.frippFilterL.connect(this.frippFeedbackL);
+        this.frippFeedbackL.connect(this.frippDelayL);
+        this.frippFilterL.connect(this.frippCrossL);
+        this.frippCrossL.connect(this.frippDelayR);
+        this.frippFilterL.connect(this.frippMerge, 0, 0);
+
+        // Right tape loop
+        this.frippSplit.connect(this.frippDelayR, 1);
+        this.frippDelayR.connect(this.frippFilterR);
+        this.frippFilterR.connect(this.frippFeedbackR);
+        this.frippFeedbackR.connect(this.frippDelayR);
+        this.frippFilterR.connect(this.frippCrossR);
+        this.frippCrossR.connect(this.frippDelayL);
+        this.frippFilterR.connect(this.frippMerge, 0, 1);
+
+        // Return: frippMerge -> frippReturnGain -> midSideSplit
+        this.frippMerge.connect(this.frippReturnGain);
+        this.frippReturnGain.connect(this.midSideSplit);
+
+        if (initialFripp > 0) {
+            this.applyFripp(initialFripp, 0);
+        }
 
         this.dryGain = new Tone.Gain(1);
         this.dryGain.connect(this.summingGain);
@@ -222,6 +290,98 @@ export class TrackBus {
         }
     }
 
+    public setFripp(fripp: number) {
+        this.fripp = Math.max(0, Math.min(1, fripp));
+        if (this.frippResetTimer) {
+            clearTimeout(this.frippResetTimer);
+            this.frippResetTimer = null;
+            this.clearFripp();
+        }
+        this.applyFripp(this.fripp, 0.05);
+    }
+
+    private applyFripp(f: number, rampTime = 0.05) {
+        const level = Math.sin(f * Math.PI / 2) * 0.85;
+        const mainFeedback = 0.65 + f * 0.14;
+        const crossFeedback = 0.05 + f * 0.04;
+
+        if (rampTime > 0) {
+            this.frippSendGain.gain.rampTo(level, rampTime);
+            this.frippReturnGain.gain.rampTo(level, rampTime);
+            this.frippFeedbackL.gain.rampTo(mainFeedback, rampTime);
+            this.frippFeedbackR.gain.rampTo(mainFeedback, rampTime);
+            this.frippCrossL.gain.rampTo(crossFeedback, rampTime);
+            this.frippCrossR.gain.rampTo(crossFeedback, rampTime);
+        } else {
+            this.frippSendGain.gain.value = level;
+            this.frippReturnGain.gain.value = level;
+            this.frippFeedbackL.gain.value = mainFeedback;
+            this.frippFeedbackR.gain.value = mainFeedback;
+            this.frippCrossL.gain.value = crossFeedback;
+            this.frippCrossR.gain.value = crossFeedback;
+        }
+    }
+
+    public stop() {
+        if (this.isDisposed) return;
+        const now = Tone.now();
+        this.frippReturnGain.gain.cancelScheduledValues(now);
+        this.frippReturnGain.gain.rampTo(0, 0.05);
+        this.frippSendGain.gain.cancelScheduledValues(now);
+        this.frippSendGain.gain.rampTo(0, 0.05);
+        this.frippFeedbackL.gain.cancelScheduledValues(now);
+        this.frippFeedbackL.gain.rampTo(0, 0.05);
+        this.frippFeedbackR.gain.cancelScheduledValues(now);
+        this.frippFeedbackR.gain.rampTo(0, 0.05);
+        this.frippCrossL.gain.cancelScheduledValues(now);
+        this.frippCrossL.gain.rampTo(0, 0.05);
+        this.frippCrossR.gain.cancelScheduledValues(now);
+        this.frippCrossR.gain.rampTo(0, 0.05);
+
+        if (this.frippResetTimer) {
+            clearTimeout(this.frippResetTimer);
+        }
+        this.frippResetTimer = setTimeout(() => {
+            this.frippResetTimer = null;
+            if (!this.isDisposed) {
+                this.clearFripp();
+            }
+        }, 60);
+    }
+
+    private clearFripp() {
+        if (this.isDisposed) return;
+        try {
+            this.frippSplit.disconnect();
+            this.frippFeedbackL.disconnect();
+            this.frippCrossR.disconnect();
+            this.frippFeedbackR.disconnect();
+            this.frippCrossL.disconnect();
+
+            this.frippDelayL.disconnect();
+            this.frippDelayR.disconnect();
+            this.frippDelayL.dispose();
+            this.frippDelayR.dispose();
+        } catch {
+            // Ignore disconnection errors if nodes are already torn down
+        }
+
+        this.frippDelayL = new Tone.Delay({ delayTime: 3.2, maxDelay: 10 });
+        this.frippDelayR = new Tone.Delay({ delayTime: 3.8, maxDelay: 10 });
+
+        // Left tape loop
+        this.frippSplit.connect(this.frippDelayL, 0);
+        this.frippDelayL.connect(this.frippFilterL);
+        this.frippFeedbackL.connect(this.frippDelayL);
+        this.frippCrossR.connect(this.frippDelayL);
+
+        // Right tape loop
+        this.frippSplit.connect(this.frippDelayR, 1);
+        this.frippDelayR.connect(this.frippFilterR);
+        this.frippFeedbackR.connect(this.frippDelayR);
+        this.frippCrossL.connect(this.frippDelayR);
+    }
+
     public setReverbParams(decay: number, preDelay: number) {
         const decayChanged = Math.abs(this.currentDecay - decay) >= 0.01;
         const preDelayChanged = Math.abs(this.currentPreDelay - preDelay) >= 0.001;
@@ -260,6 +420,10 @@ export class TrackBus {
             clearTimeout(this.regenerateTimer);
             this.regenerateTimer = null;
         }
+        if (this.frippResetTimer) {
+            clearTimeout(this.frippResetTimer);
+            this.frippResetTimer = null;
+        }
         this.reverb.dispose();
         this.lowCutFilter.dispose();
         this.highCutFilter.dispose();
@@ -274,6 +438,18 @@ export class TrackBus {
         this.makeupGain.dispose();
         this.vibrato.dispose();
         this.fogFilter.dispose();
+        this.frippSendGain.dispose();
+        this.frippReturnGain.dispose();
+        this.frippSplit.dispose();
+        this.frippMerge.dispose();
+        this.frippDelayL.dispose();
+        this.frippDelayR.dispose();
+        this.frippFilterL.dispose();
+        this.frippFilterR.dispose();
+        this.frippFeedbackL.dispose();
+        this.frippFeedbackR.dispose();
+        this.frippCrossL.dispose();
+        this.frippCrossR.dispose();
         this.dryGain.dispose();
         this.outputGain.dispose();
     }
@@ -333,18 +509,19 @@ class AudioManager {
         transpose = 0,
         glue = 0,
         drift = 0,
-        fog = 0
+        fog = 0,
+        fripp = 0
     ): TrackBus {
         if (mixItemId) {
             let bus = this.trackBuses.get(mixItemId);
             if (!bus) {
-                bus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, glue, drift, fog, 0);
+                bus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, glue, drift, fog, fripp, 0);
                 this.trackBuses.set(mixItemId, bus);
             }
             return bus;
         }
         if (!this.mainTrackBus) {
-            this.mainTrackBus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, glue, drift, fog, 1);
+            this.mainTrackBus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, glue, drift, fog, fripp, 1);
         }
         return this.mainTrackBus;
     }
@@ -427,6 +604,15 @@ class AudioManager {
             bus.setFog(fog);
         } else {
             this.getTrackBus(mixItemId).setFog(fog);
+        }
+    }
+
+    public setTrackFripp(fripp: number, mixItemId?: string) {
+        const bus = mixItemId ? this.trackBuses.get(mixItemId) : this.mainTrackBus;
+        if (bus) {
+            bus.setFripp(fripp);
+        } else {
+            this.getTrackBus(mixItemId).setFripp(fripp);
         }
     }
 
@@ -629,12 +815,23 @@ class AudioManager {
         }
     }
 
+    public stopTrack(mixItemId?: string) {
+        const bus = mixItemId ? this.trackBuses.get(mixItemId) : this.mainTrackBus;
+        if (bus) {
+            bus.stop();
+        }
+    }
+
     public stopAll() {
         for (const [, pending] of this.pendingDisposalEngines.entries()) {
             pending.engine.stop();
         }
         this.engines.forEach(engine => engine.stop());
         this.previousSources.clear();
+        if (this.mainTrackBus) {
+            this.mainTrackBus.stop();
+        }
+        this.trackBuses.forEach(bus => bus.stop());
     }
 
     public clearAll() {

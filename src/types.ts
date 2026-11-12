@@ -88,6 +88,7 @@ export interface TrackState {
     glue?: number;
     fog?: number;
     drift?: number;
+    fripp?: number;
     reverbDecay?: number;
     reverbPreDelay?: number;
     reverbLowCut?: number;

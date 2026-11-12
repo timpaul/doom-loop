@@ -414,6 +414,7 @@ export class MixPlayer {
         audioManager.setTrackGlue(track.glue ?? 0, item.mixItemId);
         audioManager.setTrackDrift(track.drift ?? 0, item.mixItemId);
         audioManager.setTrackFog(track.fog ?? 0, item.mixItemId);
+        audioManager.setTrackFripp(track.fripp ?? 0, item.mixItemId);
         audioManager.setTrackReverb({
             decay: track.reverbDecay ?? 4,
             preDelay: track.reverbPreDelay ?? 0.01,
@@ -433,6 +434,7 @@ export class MixPlayer {
         this.getAudibleSounds(track).forEach(sound => {
             audioManager.stopSound(sound.id, item.mixItemId);
         });
+        audioManager.stopTrack(item.mixItemId);
     }
 
     private cleanupUnusedEngines() {

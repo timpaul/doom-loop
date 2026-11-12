@@ -287,6 +287,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     glue: 0,
                     drift: 0,
                     fog: 0,
+                    fripp: 0,
                     reverbDecay: 4,
                     sounds: state.sounds,
                     ...action.payload
@@ -373,6 +374,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 glue: trackToDuplicate.glue ?? 0,
                 drift: trackToDuplicate.drift ?? 0,
                 fog: trackToDuplicate.fog ?? 0,
+                fripp: trackToDuplicate.fripp ?? 0,
                 reverbDecay: trackToDuplicate.reverbDecay ?? 4,
                 reverbPreDelay: trackToDuplicate.reverbPreDelay ?? 0.01,
                 reverbLowCut: trackToDuplicate.reverbLowCut ?? 20,
@@ -407,6 +409,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     glue: typeof importData.glue === 'number' ? importData.glue : 0,
                     drift: typeof importData.drift === 'number' ? importData.drift : 0,
                     fog: typeof importData.fog === 'number' ? importData.fog : 0,
+                    fripp: typeof importData.fripp === 'number' ? importData.fripp : 0,
                     reverbDecay: typeof importData.reverbDecay === 'number' ? importData.reverbDecay : 4,
                     reverbPreDelay: typeof importData.reverbPreDelay === 'number' ? importData.reverbPreDelay : 0.01,
                     reverbLowCut: typeof importData.reverbLowCut === 'number' ? importData.reverbLowCut : 20,
@@ -741,6 +744,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     audioManager.setTrackGlue(currentTrack?.glue ?? 0);
                     audioManager.setTrackDrift(currentTrack?.drift ?? 0);
                     audioManager.setTrackFog(currentTrack?.fog ?? 0);
+                    audioManager.setTrackFripp(currentTrack?.fripp ?? 0);
                     audioManager.setTrackReverb({
                         decay: currentTrack?.reverbDecay ?? 4,
                         preDelay: currentTrack?.reverbPreDelay ?? 0.01,
