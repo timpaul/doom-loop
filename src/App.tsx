@@ -1533,6 +1533,16 @@ const useAudioActions = () => {
                             displayValue={(currentTrack?.glue ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.glue ?? 0)}
                           />
                         </div>
+                        <div className="control-row">
+                          <ControlLabel help="TRACK.Fog">Fog</ControlLabel>
+                          <Slider
+                            min="0" max="1" step="0.01"
+                            value={currentTrack?.fog ?? 0}
+                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { fog: parseFloat(e.target.value) } })}
+                            aria-label="Fog filter"
+                            displayValue={(currentTrack?.fog ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.fog ?? 0)}
+                          />
+                        </div>
 
                         <div className={`sub-panel ${!isReverbExpanded ? 'collapsed' : ''}`} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                           <h3 className="panel-title" onClick={() => setIsReverbExpanded(!isReverbExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer' }}>
