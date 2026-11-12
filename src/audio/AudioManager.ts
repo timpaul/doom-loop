@@ -7,7 +7,16 @@ export class TrackBus {
     public reverb: Tone.Reverb;
     public lowCutFilter: Tone.Filter;
     public highCutFilter: Tone.Filter;
+    public summingGain: Tone.Gain;
+    public midSideSplit: Tone.MidSideSplit;
+    public midSideMerge: Tone.MidSideMerge;
+    public midGain: Tone.Gain;
+    public sideGain: Tone.Gain;
     public outputGain: Tone.Gain;
+
+    public transpose: number = 0;
+    public stereoWidth: number = 1.0;
+
     private currentDecay: number;
     private currentPreDelay: number;
     private regenerateTimer: ReturnType<typeof setTimeout> | null = null;
@@ -19,13 +28,32 @@ export class TrackBus {
         initialPreDelay = 0.01,
         initialLowCut = 20,
         initialHighCut = 20000,
+        initialStereoWidth = 1.0,
+        initialTranspose = 0,
         initialVolume = 1
     ) {
         this.outputGain = new Tone.Gain(initialVolume);
         this.outputGain.connect(destination);
 
+        this.transpose = initialTranspose;
+        this.stereoWidth = initialStereoWidth;
+
+        this.midSideSplit = new Tone.MidSideSplit();
+        this.midSideMerge = new Tone.MidSideMerge();
+        this.midGain = new Tone.Gain(1.0);
+        this.sideGain = new Tone.Gain(Math.max(0, initialStereoWidth));
+
+        this.midSideSplit.mid.connect(this.midGain);
+        this.midSideSplit.side.connect(this.sideGain);
+        this.midGain.connect(this.midSideMerge.mid);
+        this.sideGain.connect(this.midSideMerge.side);
+        this.midSideMerge.connect(this.outputGain);
+
+        this.summingGain = new Tone.Gain(1);
+        this.summingGain.connect(this.midSideSplit);
+
         this.dryGain = new Tone.Gain(1);
-        this.dryGain.connect(this.outputGain);
+        this.dryGain.connect(this.summingGain);
 
         this.currentDecay = initialDecay;
         this.currentPreDelay = initialPreDelay;
@@ -54,7 +82,12 @@ export class TrackBus {
         this.lowCutFilter = new Tone.Filter({ type: 'highpass', frequency: initialLowCut });
         this.highCutFilter = new Tone.Filter({ type: 'lowpass', frequency: initialHighCut });
 
-        this.reverb.chain(this.lowCutFilter, this.highCutFilter, this.outputGain);
+        this.reverb.chain(this.lowCutFilter, this.highCutFilter, this.summingGain);
+    }
+
+    public setStereoWidth(widthFactor: number) {
+        this.stereoWidth = widthFactor;
+        this.sideGain.gain.rampTo(Math.max(0, widthFactor), 0.05);
     }
 
     public setReverbParams(decay: number, preDelay: number) {
@@ -98,6 +131,11 @@ export class TrackBus {
         this.reverb.dispose();
         this.lowCutFilter.dispose();
         this.highCutFilter.dispose();
+        this.summingGain.dispose();
+        this.midSideSplit.dispose();
+        this.midSideMerge.dispose();
+        this.midGain.dispose();
+        this.sideGain.dispose();
         this.dryGain.dispose();
         this.outputGain.dispose();
     }
@@ -109,6 +147,7 @@ class AudioManager {
     public masterChannel: Tone.Volume;
     private masterLimiter: Tone.Limiter;
     private engines: Map<string, AudioEngine> = new Map();
+    private soundStates: Map<string, SoundState> = new Map();
     private previousSources: Map<string, string> = new Map();
     private trackBuses: Map<string, TrackBus> = new Map();
     private mainTrackBus: TrackBus | null = null;
@@ -151,18 +190,20 @@ class AudioManager {
         decay = 4,
         preDelay = 0.01,
         lowCut = 20,
-        highCut = 20000
+        highCut = 20000,
+        stereoWidth = 1.0,
+        transpose = 0
     ): TrackBus {
         if (mixItemId) {
             let bus = this.trackBuses.get(mixItemId);
             if (!bus) {
-                bus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, 0);
+                bus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, stereoWidth, transpose, 0);
                 this.trackBuses.set(mixItemId, bus);
             }
             return bus;
         }
         if (!this.mainTrackBus) {
-            this.mainTrackBus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, 1);
+            this.mainTrackBus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, stereoWidth, transpose, 1);
         }
         return this.mainTrackBus;
     }
@@ -193,6 +234,34 @@ class AudioManager {
         this.setTrackReverb({ decay }, mixItemId);
     }
 
+    public setTrackTranspose(transpose: number, mixItemId?: string) {
+        const bus = mixItemId ? this.trackBuses.get(mixItemId) : this.mainTrackBus;
+        if (bus) {
+            bus.transpose = transpose;
+        } else {
+            this.getTrackBus(mixItemId).transpose = transpose;
+        }
+
+        const prefix = mixItemId ? `${mixItemId}-` : '';
+        for (const [engineId, engine] of this.engines.entries()) {
+            const matchesTrack = mixItemId ? engineId.startsWith(prefix) : !engineId.includes('-');
+            if (matchesTrack) {
+                const sound = this.soundStates.get(engineId);
+                const soundDetune = sound?.detune ?? 0;
+                engine.setDetune(soundDetune + transpose * 100);
+            }
+        }
+    }
+
+    public setTrackStereoWidth(width: number, mixItemId?: string) {
+        const bus = mixItemId ? this.trackBuses.get(mixItemId) : this.mainTrackBus;
+        if (bus) {
+            bus.setStereoWidth(width);
+        } else {
+            this.getTrackBus(mixItemId).setStereoWidth(width);
+        }
+    }
+
     public getEngine(id: string, mixItemId?: string): AudioEngine {
         const engineId = mixItemId ? `${mixItemId}-${id}` : id;
 
@@ -220,6 +289,8 @@ class AudioManager {
     public syncSoundState(sound: SoundState, isPlaying: boolean, mixItemId?: string) {
         const engineId = mixItemId ? `${mixItemId}-${sound.id}` : sound.id;
         const engine = this.getEngine(sound.id, mixItemId);
+        this.soundStates.set(engineId, sound);
+        const bus = this.getTrackBus(mixItemId);
 
         engine.setVolume(sound.isMuted ? 0 : sound.volume);
         engine.setPan(sound.pan);
@@ -235,8 +306,9 @@ class AudioManager {
         engine.setChorus(sound.chorusAmount);
         engine.setDistortion(sound.distortionAmount ?? 0);
         engine.setChebyshev(sound.chebyshevAmount ?? 0);
-        engine.setDetune(sound.detune ?? 0);
         const synthRecreated = engine.setSynthConfig(sound);
+        const totalDetune = (sound.detune ?? 0) + (bus.transpose * 100);
+        engine.setDetune(totalDetune);
         engine.setEnvelope({
             attack: sound.envAttack,
             decay: sound.envDecay,
@@ -341,6 +413,11 @@ class AudioManager {
 
     public cleanupEngines(activeIds: string[], delayMs = 1000) {
         const activeSet = new Set(activeIds);
+        for (const [id] of this.soundStates.entries()) {
+            if (!activeSet.has(id)) {
+                this.soundStates.delete(id);
+            }
+        }
         for (const [id, engine] of this.engines.entries()) {
             if (!activeSet.has(id)) {
                 this.engines.delete(id);
@@ -364,6 +441,7 @@ class AudioManager {
     }
 
     public removeEngine(id: string) {
+        this.soundStates.delete(id);
         const pending = this.pendingDisposalEngines.get(id);
         if (pending) {
             clearTimeout(pending.timer);
@@ -399,6 +477,7 @@ class AudioManager {
         this.pendingDisposalEngines.clear();
         this.engines.forEach(engine => engine.dispose());
         this.engines.clear();
+        this.soundStates.clear();
         this.previousSources.clear();
         this.trackBuses.forEach(bus => bus.dispose());
         this.trackBuses.clear();

@@ -409,6 +409,8 @@ export class MixPlayer {
         if (!track) return;
         // Reset track channel volume before starting sounds so they don't blare at previous volume
         audioManager.setTrackVolume(item.mixItemId, 0);
+        audioManager.setTrackTranspose(track.transpose ?? 0, item.mixItemId);
+        audioManager.setTrackStereoWidth(track.stereoWidth ?? 1, item.mixItemId);
         audioManager.setTrackReverb({
             decay: track.reverbDecay ?? 4,
             preDelay: track.reverbPreDelay ?? 0.01,

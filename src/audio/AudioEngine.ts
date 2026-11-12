@@ -713,8 +713,13 @@ export class AudioEngine {
         // this.channel.pan.rampTo(pan, 0.1);
     }
 
+    private currentDetune = 0;
+
     public setDetune(cents: number) {
-        this.polySynth.set({ detune: cents });
+        this.currentDetune = cents;
+        if (this.polySynth) {
+            this.polySynth.set({ detune: cents });
+        }
     }
 
     public setEnvelope(envelope: { attack: number, decay: number, sustain: number, release: number }) {
@@ -799,6 +804,7 @@ export class AudioEngine {
             }
 
             this.polySynth = new Tone.PolySynth(VoiceClass, options);
+            this.polySynth.set({ detune: this.currentDetune });
             this.polySynth.maxPolyphony = 8;
             this.polySynth.connect(this.channel);
             return true;

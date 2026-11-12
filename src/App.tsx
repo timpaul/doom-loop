@@ -1503,6 +1503,27 @@ const useAudioActions = () => {
                     </h2>
                     {isSettingsExpanded && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                        <div className="control-row" style={{ marginTop: '0' }}>
+                          <ControlLabel help="TRACK.Transpose">Transpose</ControlLabel>
+                          <Slider
+                            min="-12" max="12" step="1"
+                            value={currentTrack?.transpose ?? 0}
+                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { transpose: parseInt(e.target.value, 10) } })}
+                            aria-label="Transpose"
+                            displayValue={(currentTrack?.transpose ?? 0) > 0 ? `+${currentTrack?.transpose} st` : `${currentTrack?.transpose ?? 0} st`}
+                          />
+                        </div>
+                        <div className="control-row">
+                          <ControlLabel help="TRACK.Stereo width">Stereo width</ControlLabel>
+                          <Slider
+                            min="0" max="2" step="0.05"
+                            value={currentTrack?.stereoWidth ?? 1}
+                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { stereoWidth: parseFloat(e.target.value) } })}
+                            aria-label="Stereo width"
+                            displayValue={(currentTrack?.stereoWidth ?? 1) === 0 ? '0% (Mono)' : `${Math.round((currentTrack?.stereoWidth ?? 1) * 100)}%`}
+                          />
+                        </div>
+
                         <div className={`sub-panel ${!isReverbExpanded ? 'collapsed' : ''}`} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                           <h3 className="panel-title" onClick={() => setIsReverbExpanded(!isReverbExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer' }}>
                             REVERB
