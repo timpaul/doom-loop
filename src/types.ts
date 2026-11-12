@@ -83,6 +83,7 @@ export interface TrackState {
     author?: string;
     notes?: string;
     transpose?: number;
+    spatialize?: number;
     stereoWidth?: number;
     reverbDecay?: number;
     reverbPreDelay?: number;

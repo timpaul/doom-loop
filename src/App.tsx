@@ -1514,13 +1514,13 @@ const useAudioActions = () => {
                           />
                         </div>
                         <div className="control-row">
-                          <ControlLabel help="TRACK.Stereo width">Stereo width</ControlLabel>
+                          <ControlLabel help="TRACK.Spatialize">Spatialize</ControlLabel>
                           <Slider
                             min="0" max="2" step="0.05"
-                            value={currentTrack?.stereoWidth ?? 1}
-                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { stereoWidth: parseFloat(e.target.value) } })}
-                            aria-label="Stereo width"
-                            displayValue={(currentTrack?.stereoWidth ?? 1) === 0 ? '0% (Mono)' : `${Math.round((currentTrack?.stereoWidth ?? 1) * 100)}%`}
+                            value={currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1}
+                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { spatialize: parseFloat(e.target.value) } })}
+                            aria-label="Spatialize"
+                            displayValue={(currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1) === 0 ? '0% (Mono)' : `${Math.round((currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1) * 100)}%`}
                           />
                         </div>
 

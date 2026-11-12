@@ -283,7 +283,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     id: state.currentTrackId,
                     name: state.currentTrackName,
                     transpose: 0,
-                    stereoWidth: 1,
+                    spatialize: 1,
                     reverbDecay: 4,
                     sounds: state.sounds,
                     ...action.payload
@@ -366,7 +366,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 author: trackToDuplicate.author,
                 notes: trackToDuplicate.notes,
                 transpose: trackToDuplicate.transpose ?? 0,
-                stereoWidth: trackToDuplicate.stereoWidth ?? 1,
+                spatialize: trackToDuplicate.spatialize ?? trackToDuplicate.stereoWidth ?? 1,
                 reverbDecay: trackToDuplicate.reverbDecay ?? 4,
                 reverbPreDelay: trackToDuplicate.reverbPreDelay ?? 0.01,
                 reverbLowCut: trackToDuplicate.reverbLowCut ?? 20,
@@ -397,7 +397,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     author: importData.author,
                     notes: importData.notes,
                     transpose: typeof importData.transpose === 'number' ? importData.transpose : 0,
-                    stereoWidth: typeof importData.stereoWidth === 'number' ? importData.stereoWidth : 1,
+                    spatialize: typeof importData.spatialize === 'number' ? importData.spatialize : (typeof importData.stereoWidth === 'number' ? importData.stereoWidth : 1),
                     reverbDecay: typeof importData.reverbDecay === 'number' ? importData.reverbDecay : 4,
                     reverbPreDelay: typeof importData.reverbPreDelay === 'number' ? importData.reverbPreDelay : 0.01,
                     reverbLowCut: typeof importData.reverbLowCut === 'number' ? importData.reverbLowCut : 20,
@@ -728,7 +728,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
                     const currentTrack = state.savedTracks.find(t => t.id === state.currentTrackId) || state.communityTracks.find(t => t.id === state.currentTrackId);
                     audioManager.setTrackTranspose(currentTrack?.transpose ?? 0);
-                    audioManager.setTrackStereoWidth(currentTrack?.stereoWidth ?? 1);
+                    audioManager.setTrackSpatialize(currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1);
                     audioManager.setTrackReverb({
                         decay: currentTrack?.reverbDecay ?? 4,
                         preDelay: currentTrack?.reverbPreDelay ?? 0.01,

@@ -15,7 +15,7 @@ export class TrackBus {
     public outputGain: Tone.Gain;
 
     public transpose: number = 0;
-    public stereoWidth: number = 1.0;
+    public spatialize: number = 1.0;
 
     private currentDecay: number;
     private currentPreDelay: number;
@@ -28,7 +28,7 @@ export class TrackBus {
         initialPreDelay = 0.01,
         initialLowCut = 20,
         initialHighCut = 20000,
-        initialStereoWidth = 1.0,
+        initialSpatialize = 1.0,
         initialTranspose = 0,
         initialVolume = 1
     ) {
@@ -36,12 +36,12 @@ export class TrackBus {
         this.outputGain.connect(destination);
 
         this.transpose = initialTranspose;
-        this.stereoWidth = initialStereoWidth;
+        this.spatialize = initialSpatialize;
 
         this.midSideSplit = new Tone.MidSideSplit();
         this.midSideMerge = new Tone.MidSideMerge();
         this.midGain = new Tone.Gain(1.0);
-        this.sideGain = new Tone.Gain(Math.max(0, initialStereoWidth));
+        this.sideGain = new Tone.Gain(Math.max(0, initialSpatialize));
 
         this.midSideSplit.mid.connect(this.midGain);
         this.midSideSplit.side.connect(this.sideGain);
@@ -85,9 +85,9 @@ export class TrackBus {
         this.reverb.chain(this.lowCutFilter, this.highCutFilter, this.summingGain);
     }
 
-    public setStereoWidth(widthFactor: number) {
-        this.stereoWidth = widthFactor;
-        this.sideGain.gain.rampTo(Math.max(0, widthFactor), 0.05);
+    public setSpatialize(factor: number) {
+        this.spatialize = factor;
+        this.sideGain.gain.rampTo(Math.max(0, factor), 0.05);
     }
 
     public setReverbParams(decay: number, preDelay: number) {
@@ -191,19 +191,19 @@ class AudioManager {
         preDelay = 0.01,
         lowCut = 20,
         highCut = 20000,
-        stereoWidth = 1.0,
+        spatialize = 1.0,
         transpose = 0
     ): TrackBus {
         if (mixItemId) {
             let bus = this.trackBuses.get(mixItemId);
             if (!bus) {
-                bus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, stereoWidth, transpose, 0);
+                bus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, 0);
                 this.trackBuses.set(mixItemId, bus);
             }
             return bus;
         }
         if (!this.mainTrackBus) {
-            this.mainTrackBus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, stereoWidth, transpose, 1);
+            this.mainTrackBus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, 1);
         }
         return this.mainTrackBus;
     }
@@ -253,12 +253,12 @@ class AudioManager {
         }
     }
 
-    public setTrackStereoWidth(width: number, mixItemId?: string) {
+    public setTrackSpatialize(spatialize: number, mixItemId?: string) {
         const bus = mixItemId ? this.trackBuses.get(mixItemId) : this.mainTrackBus;
         if (bus) {
-            bus.setStereoWidth(width);
+            bus.setSpatialize(spatialize);
         } else {
-            this.getTrackBus(mixItemId).setStereoWidth(width);
+            this.getTrackBus(mixItemId).setSpatialize(spatialize);
         }
     }
 
