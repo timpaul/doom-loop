@@ -87,6 +87,7 @@ export interface TrackState {
     stereoWidth?: number;
     glue?: number;
     fog?: number;
+    drift?: number;
     reverbDecay?: number;
     reverbPreDelay?: number;
     reverbLowCut?: number;

@@ -74,6 +74,7 @@ export const CONTROL_HELP: Record<string, string> = {
   'TRACK.Spatialize': 'Adjusts the spatial width from mono (0%) to normal (100%) or ultra-wide (200%).',
   'TRACK.Glue': 'Binds sounds together with gentle bus compression, smoothing peaks and lifting quiet ambient details.',
   'TRACK.Fog': 'Rolls off high frequencies to soften the track and sink it into a warm, distant mist.',
+  'TRACK.Drift': 'Introduces gentle, tape-style pitch drift (wow & flutter) for vintage analog warmth.',
   'TRACK.Reverb decay': 'How long the reverb tail takes to fade away.',
   'TRACK.Reverb pre-delay': 'Delay before the reverb begins, separating the dry attack from the reverb space.',
   'TRACK.Reverb low cut': 'Removes low frequencies from the reverb tail to eliminate muddiness.',

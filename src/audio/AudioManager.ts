@@ -16,12 +16,14 @@ export class TrackBus {
     public glueWetGain: Tone.Gain;
     public compressor: Tone.Compressor;
     public makeupGain: Tone.Gain;
+    public vibrato: Tone.Vibrato;
     public fogFilter: Tone.Filter;
     public outputGain: Tone.Gain;
 
     public transpose: number = 0;
     public spatialize: number = 1.0;
     public glue: number = 0;
+    public drift: number = 0;
     public fog: number = 0;
 
     private currentDecay: number;
@@ -38,6 +40,7 @@ export class TrackBus {
         initialSpatialize = 1.0,
         initialTranspose = 0,
         initialGlue = 0,
+        initialDrift = 0,
         initialFog = 0,
         initialVolume = 1
     ) {
@@ -47,6 +50,7 @@ export class TrackBus {
         this.transpose = initialTranspose;
         this.spatialize = initialSpatialize;
         this.glue = initialGlue;
+        this.drift = initialDrift;
         this.fog = initialFog;
 
         this.midSideSplit = new Tone.MidSideSplit();
@@ -70,26 +74,38 @@ export class TrackBus {
         this.glueBypassGain = new Tone.Gain(initialGlue === 0 ? 1 : Math.cos(initialGlue * Math.PI / 2));
         this.glueWetGain = new Tone.Gain(initialGlue === 0 ? 0 : Math.sin(initialGlue * Math.PI / 2));
 
+        this.vibrato = new Tone.Vibrato({
+            frequency: 0.35,
+            depth: 0,
+            maxDelay: 0.008,
+            type: 'sine'
+        });
+        this.vibrato.wet.value = initialDrift === 0 ? 0 : 1.0;
+
         this.fogFilter = new Tone.Filter({
             type: 'lowpass',
             frequency: 20000,
             rolloff: -12,
             Q: 0.5
         });
+        this.vibrato.connect(this.fogFilter);
         this.fogFilter.connect(this.outputGain);
 
-        // Dry bypass path -> Fog
+        // Dry bypass path -> Vibrato
         this.midSideMerge.connect(this.glueBypassGain);
-        this.glueBypassGain.connect(this.fogFilter);
+        this.glueBypassGain.connect(this.vibrato);
 
-        // Wet compressed path -> Fog
+        // Wet compressed path -> Vibrato
         this.midSideMerge.connect(this.compressor);
         this.compressor.connect(this.makeupGain);
         this.makeupGain.connect(this.glueWetGain);
-        this.glueWetGain.connect(this.fogFilter);
+        this.glueWetGain.connect(this.vibrato);
 
         if (initialGlue > 0) {
             this.applyGlue(initialGlue, 0);
+        }
+        if (initialDrift > 0) {
+            this.applyDrift(initialDrift, 0);
         }
         if (initialFog > 0) {
             this.applyFog(initialFog, 0);
@@ -163,6 +179,32 @@ export class TrackBus {
         }
     }
 
+    public setDrift(drift: number) {
+        this.drift = Math.max(0, Math.min(1, drift));
+        this.applyDrift(this.drift, 0.05);
+    }
+
+    private applyDrift(d: number, rampTime = 0.05) {
+        if (d === 0) {
+            if (rampTime > 0) {
+                this.vibrato.wet.rampTo(0, rampTime);
+                this.vibrato.depth.rampTo(0, rampTime);
+            } else {
+                this.vibrato.wet.value = 0;
+                this.vibrato.depth.value = 0;
+            }
+        } else {
+            const targetDepth = d * 0.7;
+            if (rampTime > 0) {
+                this.vibrato.wet.rampTo(1.0, rampTime);
+                this.vibrato.depth.rampTo(targetDepth, rampTime);
+            } else {
+                this.vibrato.wet.value = 1.0;
+                this.vibrato.depth.value = targetDepth;
+            }
+        }
+    }
+
     public setFog(fog: number) {
         this.fog = Math.max(0, Math.min(1, fog));
         this.applyFog(this.fog, 0.05);
@@ -230,6 +272,7 @@ export class TrackBus {
         this.glueWetGain.dispose();
         this.compressor.dispose();
         this.makeupGain.dispose();
+        this.vibrato.dispose();
         this.fogFilter.dispose();
         this.dryGain.dispose();
         this.outputGain.dispose();
@@ -289,18 +332,19 @@ class AudioManager {
         spatialize = 1.0,
         transpose = 0,
         glue = 0,
+        drift = 0,
         fog = 0
     ): TrackBus {
         if (mixItemId) {
             let bus = this.trackBuses.get(mixItemId);
             if (!bus) {
-                bus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, glue, fog, 0);
+                bus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, glue, drift, fog, 0);
                 this.trackBuses.set(mixItemId, bus);
             }
             return bus;
         }
         if (!this.mainTrackBus) {
-            this.mainTrackBus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, glue, fog, 1);
+            this.mainTrackBus = new TrackBus(this.masterChannel, decay, preDelay, lowCut, highCut, spatialize, transpose, glue, drift, fog, 1);
         }
         return this.mainTrackBus;
     }
@@ -365,6 +409,15 @@ class AudioManager {
             bus.setGlue(glue);
         } else {
             this.getTrackBus(mixItemId).setGlue(glue);
+        }
+    }
+
+    public setTrackDrift(drift: number, mixItemId?: string) {
+        const bus = mixItemId ? this.trackBuses.get(mixItemId) : this.mainTrackBus;
+        if (bus) {
+            bus.setDrift(drift);
+        } else {
+            this.getTrackBus(mixItemId).setDrift(drift);
         }
     }
 
