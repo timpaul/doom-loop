@@ -2,7 +2,7 @@
   "type": "doom-loop-mix",
   "mix": {
     "id": "mix-1793552639886",
-    "name": "Little J - 1",
+    "name": "Little J",
     "items": [
       {
         "id": "item-1793553612386-3u9fe6",
@@ -550,9 +550,9 @@
           "stepConfigs": [
             {
               "activeNotes": [
-                "C",
                 "F#",
-                "G"
+                "G",
+                "C"
               ],
               "octave": 4
             },
@@ -678,14 +678,25 @@
           "reverbAmount": 0.69,
           "delayAmount": 0.27,
           "delayTime": 0.25,
-          "delayFeedback": 0.5,
-          "chorusAmount": 0.43,
+          "delayFeedback": 0.2,
+          "chorusAmount": 0,
           "distortionAmount": 0.06,
           "chebyshevAmount": 0,
           "id": "5",
           "name": "Shaker"
         }
-      ]
+      ],
+      "reverbHighCut": 20000,
+      "reverbLowCut": 20,
+      "reverbPreDelay": 0.01,
+      "reverbDecay": 4,
+      "stereoWidth": 1,
+      "transpose": 0,
+      "spatialize": 2,
+      "glue": 0.3,
+      "fog": 0,
+      "drift": 0.3,
+      "fripp": 0.3
     },
     {
       "id": "track-1793552624314-115",
@@ -1407,7 +1418,10 @@
           "id": "1793456723538-4",
           "name": "Bass"
         }
-      ]
+      ],
+      "glue": 0.3,
+      "drift": 0.3,
+      "fripp": 0.3
     },
     {
       "id": "track-1793552629563-856",
@@ -2273,7 +2287,11 @@
           "id": "6",
           "name": "Hiss"
         }
-      ]
+      ],
+      "glue": 0.3,
+      "fog": 0,
+      "drift": 0.3,
+      "fripp": 0.3
     },
     {
       "id": "track-1793552635680-724",
@@ -3139,7 +3157,10 @@
           "id": "1793456520431-5",
           "name": "Hiss"
         }
-      ]
+      ],
+      "glue": 0.3,
+      "drift": 0.3,
+      "fripp": 0.3
     }
   ]
 }
