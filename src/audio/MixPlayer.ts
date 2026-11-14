@@ -422,7 +422,10 @@ export class MixPlayer {
             highCut: track.reverbHighCut ?? 20000
         }, item.mixItemId);
         this.getAudibleSounds(track).forEach(sound => {
-            audioManager.syncSoundState(sound, true, item.mixItemId);
+            const prob = sound.probability ?? 1.0;
+            const isProbMuted = prob < 1.0 && (prob <= 0 || Math.random() >= prob);
+            const effectiveSound = isProbMuted ? { ...sound, isMuted: true } : sound;
+            audioManager.syncSoundState(effectiveSound, true, item.mixItemId);
         });
     }
 

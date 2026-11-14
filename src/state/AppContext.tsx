@@ -664,6 +664,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const prevMixIdRef = useRef(state.currentMixId);
     const prevPlaybackModeRef = useRef(state.playbackMode);
     const prevIsPlayingRef = useRef(state.isPlaying);
+    const probMutedSoundIdsRef = useRef<Set<string>>(new Set());
 
     // LocalStorage Syncing
     useEffect(() => { localStorage.setItem('noisemaker_listMode', state.listMode); }, [state.listMode]);
@@ -752,8 +753,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         highCut: currentTrack?.reverbHighCut ?? 20000
                     });
 
+                    const isFreshPlay = !prevIsPlayingRef.current || modeChanged || prevTrackIdRef.current !== state.currentTrackId;
+
+                    if (isFreshPlay) {
+                        const newMutes = new Set<string>();
+                        state.sounds.forEach(sound => {
+                            const prob = sound.probability ?? 1.0;
+                            if (prob < 1.0 && (prob <= 0 || Math.random() >= prob)) {
+                                newMutes.add(sound.id);
+                            }
+                        });
+                        probMutedSoundIdsRef.current = newMutes;
+                    }
+
                     state.sounds.forEach(sound => {
-                        audioManager.syncSoundState(sound, true);
+                        const prob = sound.probability ?? 1.0;
+                        const isProbMuted = prob <= 0 ? true : (prob >= 1.0 ? false : probMutedSoundIdsRef.current.has(sound.id));
+                        const effectiveIsMuted = sound.isMuted || isProbMuted;
+                        const effectiveSound = effectiveIsMuted !== sound.isMuted ? { ...sound, isMuted: effectiveIsMuted } : sound;
+                        audioManager.syncSoundState(effectiveSound, true);
                     });
                     audioManager.cleanupEngines(state.sounds.map(s => s.id));
                 }
@@ -768,6 +786,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             audioManager.stopAll();
             mixPlayer.pause();
             prevIsPlayingRef.current = false;
+            probMutedSoundIdsRef.current.clear();
         }
     }, [state.isPlaying, state.playbackMode, state.currentTrackId, state.currentMixId, state.sounds, state.savedTracks, state.savedMixes, state.communityTracks, state.communityMixes]);
 

@@ -42,6 +42,7 @@ export interface SoundState {
     envRelease: number;
     noteLengthRatio?: number;
     volume: number;
+    probability?: number;
     pan: number;
     filterMinFreq: number;
     filterMaxFreq: number;
@@ -163,6 +164,7 @@ export const DEFAULT_SOUND: Omit<SoundState, 'id' | 'name'> = {
     envRelease: 2.0,
     noteLengthRatio: 1.0,
     volume: 0.25,
+    probability: 1.0,
     pan: 0,
     filterMinFreq: 20,
     filterMaxFreq: 20000,
@@ -225,13 +227,15 @@ export function migrateSound(sound: any): SoundState {
                 octave: defaultOctave,
                 detune: defaultDetune
             })),
-            stepRatios: [1, null, null, null, null, null, null, null]
+            stepRatios: [1, null, null, null, null, null, null, null],
+            probability: typeof sound.probability === 'number' ? sound.probability : 1.0
         };
     }
 
     // Modern format migration
     return {
         ...base,
-        ...sound
+        ...sound,
+        probability: typeof sound.probability === 'number' ? sound.probability : 1.0
     };
 }

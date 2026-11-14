@@ -48,6 +48,10 @@ export const CONTROL_HELP: Record<string, string> = {
   'ENVELOPE.Release': 'Time for the note to fade out after it ends.',
   'ENVELOPE.Length': 'What proportion of its step each note lasts for before being released.',
 
+  // Volume
+  'VOLUME.Level': 'Output level of the sound.',
+  'VOLUME.Probability': 'Chance that the sound will play each time the track starts.',
+
   // LFOs
   'VOLUME_LFO.Type': LFO_HELP('volume').Type,
   'VOLUME_LFO.Cycle': LFO_HELP('volume').Cycle,

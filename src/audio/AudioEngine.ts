@@ -22,6 +22,55 @@ interface EffectSlot {
 // Wait for wet/depth ramps (0.1s) to reach 0 before unwiring, so bypassing is silent
 const BYPASS_DELAY_MS = 250;
 
+/**
+ * MetalSynth uses 6 FMOscillators. By default, Tone.MetalSynth calls osc.start() and osc.stop()
+ * on every single note trigger, which churns WebAudio OscillatorNodes and breaks PolySynth voice pooling
+ * and garbage collection (causing runaway node allocation, note drops, and infinite loops in Tone.Timeline).
+ * ContinuousMetalSynth keeps its 6 oscillators running continuously while active, and gates them cleanly
+ * via its internal amplitude/filter envelope, eliminating all audio node churn and voice lifecycle hangs.
+ */
+class ContinuousMetalSynth extends Tone.MetalSynth {
+    private oscillatorsStarted = false;
+
+    public startOscillators() {
+        if (!this.oscillatorsStarted) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (this as any)._oscillators.forEach((osc: any) => {
+                try {
+                    osc.start();
+                } catch {
+                    // Ignore if already started
+                }
+            });
+            this.oscillatorsStarted = true;
+        }
+    }
+
+    public stopOscillators() {
+        if (this.oscillatorsStarted) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (this as any)._oscillators.forEach((osc: any) => {
+                try {
+                    osc.stop();
+                } catch {
+                    // Ignore if already stopped
+                }
+            });
+            this.oscillatorsStarted = false;
+        }
+    }
+
+    protected _triggerEnvelopeAttack(time: number, velocity: number = 1): this {
+        this.startOscillators();
+        this.envelope.triggerAttack(time, velocity);
+        return this;
+    }
+
+    protected _triggerEnvelopeRelease(time: number): this {
+        this.envelope.triggerRelease(time);
+        return this;
+    }
+}
 
 export class AudioEngine {
     public channel: Tone.Channel;
@@ -31,6 +80,7 @@ export class AudioEngine {
     private noiseFilter: Tone.Filter; // For custom noise colors
     private noiseEnv: Tone.AmplitudeEnvelope;
     private polySynth: Tone.PolySynth;
+    private metalVoices: ContinuousMetalSynth[] = [];
 
     // Effects
     private filter: Tone.Filter;
@@ -269,6 +319,12 @@ export class AudioEngine {
         this.noiseFilter.dispose();
         this.noiseEnv.dispose();
         this.polySynth.dispose();
+        this.metalVoices.forEach(voice => {
+            voice.stopOscillators();
+            voice.disconnect();
+            voice.dispose();
+        });
+        this.metalVoices = [];
         this.filter.dispose();
         this.autoFilter.dispose();
         this.volLfoGain.dispose();
@@ -378,23 +434,115 @@ export class AudioEngine {
                         // Catch up timing
                         const currentTransportTime = Tone.Transport.seconds;
                         const currentLoopTime = loopLength > 0 ? (currentTransportTime % loopLength) : 0;
-                        const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
+                        if (currentLoopTime > 0.05) {
+                            const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
 
-                        if (activeEvent) {
-                            const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
-                            const timeIntoEvent = currentLoopTime - activeEvent.time;
-                            if (timeIntoEvent < playDuration) {
-                                const remainingPlayDuration = playDuration - timeIntoEvent;
-                                this.noiseEnv.triggerAttackRelease(remainingPlayDuration, Tone.now());
+                            if (activeEvent) {
+                                const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
+                                const timeIntoEvent = currentLoopTime - activeEvent.time;
+                                if (timeIntoEvent < playDuration) {
+                                    const remainingPlayDuration = playDuration - timeIntoEvent;
+                                    this.noiseEnv.triggerAttackRelease(remainingPlayDuration, Tone.now());
+                                }
                             }
-                        }
                         }
                     }
                 }
-            } else {
-                this.noiseEnv.triggerAttack();
             }
-        } else if (sourceType === 'tone' || sourceType === 'fm' || sourceType === 'metal' || sourceType === 'pluck' || sourceType === 'kick') {
+        } else {
+            this.noiseEnv.triggerAttack();
+        }
+        } else if (sourceType === 'metal') {
+            // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
+            const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+
+            this.setEnvelope(envelope);
+
+            if (this.metalVoices.length > 0 && events.length > 0) {
+                if (isContinuous) {
+                    if (playMode === 'random' && events[0].notes.length > 0) {
+                        const randomNote = events[0].notes[Math.floor(Math.random() * events[0].notes.length)];
+                        this.metalVoices[0].triggerAttack(randomNote, Tone.now());
+                    } else {
+                        events[0].notes.slice(0, this.metalVoices.length).forEach((note, i) => {
+                            this.metalVoices[i].triggerAttack(note, Tone.now());
+                        });
+                    }
+                } else {
+                    if (slack > 0) {
+                        let stepIndex = 0;
+                        const scheduleNextStep = (time: number) => {
+                            if (!events || events.length === 0 || this.metalVoices.length === 0) return;
+                            const event = events[stepIndex];
+                            
+                            if (event.notes && event.notes.length > 0) {
+                                const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
+                                if (playMode === 'random') {
+                                    const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
+                                    this.metalVoices[0].triggerAttackRelease(randomNote, playDuration, time);
+                                } else {
+                                    event.notes.slice(0, this.metalVoices.length).forEach((note, i) => {
+                                        this.metalVoices[i].triggerAttackRelease(note, playDuration, time);
+                                    });
+                                }
+                            }
+                            
+                            const randomFactor = Math.pow(2, (Math.random() * 2 - 1) * slack);
+                            const nextDuration = event.duration * randomFactor;
+                            stepIndex = (stepIndex + 1) % events.length;
+                            this.sequenceEventId = Tone.Transport.scheduleOnce(scheduleNextStep, "+" + nextDuration);
+                        };
+
+                        if (Tone.Transport.state !== 'started') Tone.Transport.start();
+                        this.sequenceEventId = Tone.Transport.scheduleOnce(scheduleNextStep, "+" + 0.05);
+                    } else {
+                        this.sequencePart = new Tone.Part((time, event) => {
+                            if (event.notes.length > 0 && this.metalVoices.length > 0) {
+                                const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
+                                if (playMode === 'random') {
+                                    const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
+                                    this.metalVoices[0].triggerAttackRelease(randomNote, playDuration, time);
+                                } else {
+                                    event.notes.slice(0, this.metalVoices.length).forEach((note, i) => {
+                                        this.metalVoices[i].triggerAttackRelease(note, playDuration, time);
+                                    });
+                                }
+                            }
+                        }, events).start(0);
+
+                        this.sequencePart.loop = true;
+                        this.sequencePart.loopEnd = loopLength;
+
+                        if (Tone.Transport.state !== 'started') {
+                            Tone.Transport.start();
+                        } else {
+                            const currentTransportTime = Tone.Transport.seconds;
+                            const currentLoopTime = loopLength > 0 ? (currentTransportTime % loopLength) : 0;
+
+                            if (currentLoopTime > 0.05) {
+                                const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
+                                if (activeEvent && activeEvent.notes && activeEvent.notes.length > 0 && this.metalVoices.length > 0) {
+                                    const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
+                                    const timeIntoEvent = currentLoopTime - activeEvent.time;
+
+                                    if (timeIntoEvent < playDuration) {
+                                        const remainingPlayDuration = playDuration - timeIntoEvent;
+                                        if (playMode === 'random') {
+                                            const randomNote = activeEvent.notes[Math.floor(Math.random() * activeEvent.notes.length)];
+                                            this.metalVoices[0].triggerAttackRelease(randomNote, remainingPlayDuration, Tone.now());
+                                        } else {
+                                            activeEvent.notes.slice(0, this.metalVoices.length).forEach((note, i) => {
+                                                this.metalVoices[i].triggerAttackRelease(note, remainingPlayDuration, Tone.now());
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (sourceType === 'tone' || sourceType === 'fm' || sourceType === 'pluck' || sourceType === 'kick') {
             // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
             const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
 
@@ -461,28 +609,30 @@ export class AudioEngine {
                         const currentTransportTime = Tone.Transport.seconds;
                         const currentLoopTime = loopLength > 0 ? (currentTransportTime % loopLength) : 0;
 
-                        const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
-                        if (activeEvent && activeEvent.notes.length > 0) {
-                            const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
-                            const timeIntoEvent = currentLoopTime - activeEvent.time;
+                        if (currentLoopTime > 0.05) {
+                            const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
+                            if (activeEvent && activeEvent.notes.length > 0) {
+                                const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
+                                const timeIntoEvent = currentLoopTime - activeEvent.time;
 
-                            // Only trigger retrospectively if the note is still supposed to be *active* early in its duration
-                            if (timeIntoEvent < playDuration) {
-                                const remainingPlayDuration = playDuration - timeIntoEvent;
-                                if (playMode === 'random') {
-                                    const randomNote = activeEvent.notes[Math.floor(Math.random() * activeEvent.notes.length)];
-                                    this.polySynth.triggerAttackRelease([randomNote], remainingPlayDuration, Tone.now());
-                                } else {
-                                    this.polySynth.triggerAttackRelease(activeEvent.notes, remainingPlayDuration, Tone.now());
+                                // Only trigger retrospectively if the note is still supposed to be *active* early in its duration
+                                if (timeIntoEvent < playDuration) {
+                                    const remainingPlayDuration = playDuration - timeIntoEvent;
+                                    if (playMode === 'random') {
+                                        const randomNote = activeEvent.notes[Math.floor(Math.random() * activeEvent.notes.length)];
+                                        this.polySynth.triggerAttackRelease([randomNote], remainingPlayDuration, Tone.now());
+                                    } else {
+                                        this.polySynth.triggerAttackRelease(activeEvent.notes, remainingPlayDuration, Tone.now());
+                                    }
                                 }
                             }
-                        }
                         }
                     }
                 }
             }
         }
     }
+}
 
     public stop() {
         this.playToken++;
@@ -504,6 +654,8 @@ export class AudioEngine {
             setTimeout(() => {
                 if (this.currentSource !== 'noise') this.noise.stop();
             }, releaseTime * 1000);
+        } else if (this.currentSource === 'metal') {
+            this.metalVoices.forEach(voice => voice.stopOscillators());
         } else if (this.currentSource !== null) {
             this.polySynth.releaseAll();
         }
@@ -720,6 +872,7 @@ export class AudioEngine {
         if (this.polySynth) {
             this.polySynth.set({ detune: cents });
         }
+        this.metalVoices.forEach(voice => voice.set({ detune: cents }));
     }
 
     public setEnvelope(envelope: { attack: number, decay: number, sustain: number, release: number }) {
@@ -727,7 +880,11 @@ export class AudioEngine {
         if (this.currentEnvelopeStr === envStr) return;
 
         this.currentEnvelopeStr = envStr;
-        if (this.currentSynthVoice === 'tone' || this.currentSynthVoice === 'fm' || this.currentSynthVoice === 'metal') {
+        if (this.currentSynthVoice === 'metal') {
+            // For MetalSynth, keep sustain at 0 so it behaves as a crisp percussive strike that decays to silence
+            const metalEnv = { ...envelope, sustain: 0 };
+            this.metalVoices.forEach(voice => voice.set({ envelope: metalEnv }));
+        } else if (this.currentSynthVoice === 'tone' || this.currentSynthVoice === 'fm') {
             this.polySynth.set({ envelope });
         }
         this.noiseEnv.set(envelope);
@@ -739,6 +896,65 @@ export class AudioEngine {
         const sourceType = sound.sourceType as SoundType;
         const oscType = sound.oscillatorType as OscillatorType || 'sine';
         
+        if (sourceType === 'metal') {
+            let shouldRecreate = false;
+            if (this.currentSynthVoice !== 'metal' || this.metalVoices.length === 0) {
+                shouldRecreate = true;
+                this.currentSynthVoice = 'metal';
+            }
+
+            if (shouldRecreate) {
+                this.metalVoices.forEach(voice => {
+                    voice.stopOscillators();
+                    voice.disconnect();
+                    voice.dispose();
+                });
+                this.metalVoices = [];
+
+                const options: any = {
+                    volume: -6,
+                    harmonicity: sound.metalHarmonicity ?? 5.1,
+                    resonance: sound.metalResonance ?? 4000
+                };
+                if (this.currentEnvelopeStr) {
+                    try {
+                        options.envelope = JSON.parse(this.currentEnvelopeStr);
+                    } catch {}
+                } else {
+                    options.envelope = { attack: 0.5, decay: 0.1, sustain: 0, release: 2 };
+                }
+                // MetalSynth is inherently percussive (decay to zero): clamp sustain to 0
+                options.envelope = { ...options.envelope, sustain: 0 };
+
+                const METAL_VOICE_COUNT = 4;
+                for (let i = 0; i < METAL_VOICE_COUNT; i++) {
+                    const voice = new ContinuousMetalSynth(options);
+                    voice.set({ detune: this.currentDetune });
+                    voice.connect(this.channel);
+                    this.metalVoices.push(voice);
+                }
+                return true;
+            } else {
+                this.metalVoices.forEach(voice => {
+                    voice.set({
+                        harmonicity: sound.metalHarmonicity ?? 5.1,
+                        resonance: sound.metalResonance ?? 4000
+                    });
+                });
+                return false;
+            }
+        }
+
+        // Clean up metalVoices if switching away from metal
+        if (this.metalVoices.length > 0) {
+            this.metalVoices.forEach(voice => {
+                voice.stopOscillators();
+                voice.disconnect();
+                voice.dispose();
+            });
+            this.metalVoices = [];
+        }
+
         let shouldRecreate = false;
         if (this.currentSynthVoice !== sourceType) {
             shouldRecreate = true;
@@ -779,10 +995,6 @@ export class AudioEngine {
                 VoiceClass = Tone.FMSynth;
                 options.harmonicity = sound.fmHarmonicity ?? 1;
                 options.modulationIndex = sound.fmModulationIndex ?? 10;
-            } else if (sourceType === 'metal') {
-                VoiceClass = Tone.MetalSynth;
-                options.harmonicity = sound.metalHarmonicity ?? 5.1;
-                options.resonance = sound.metalResonance ?? 4000;
             } else if (sourceType === 'pluck') {
                 VoiceClass = Tone.MonoSynth;
                 options.oscillator = { type: 'square' };
@@ -815,11 +1027,6 @@ export class AudioEngine {
                 typedSynth.set({ 
                     harmonicity: sound.fmHarmonicity ?? 1,
                     modulationIndex: sound.fmModulationIndex ?? 10,
-                });
-            } else if (sourceType === 'metal') {
-                typedSynth.set({
-                    harmonicity: sound.metalHarmonicity ?? 5.1,
-                    resonance: sound.metalResonance ?? 4000,
                 });
             } else if (sourceType === 'pluck') {
                 typedSynth.set({

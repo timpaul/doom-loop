@@ -691,16 +691,27 @@ const ExportIcon = () => (
                     {!collapsedPanels['VOLUME'] && (
                       <>
                         <div className="control-row">
+                          <ControlLabel help="VOLUME.Level">Level</ControlLabel>
                           <Slider
                             min="0" max="1" step="0.01"
                             value={sound.volume}
                             onChange={e => update({ volume: parseFloat(e.target.value) })}
-                            aria-label="Volume"
+                            aria-label="Volume Level"
                             displayValue={formatPercentDisplay(sound.volume)}
                           />
                         </div>
+                        <div className="control-row">
+                          <ControlLabel help="VOLUME.Probability">Probability</ControlLabel>
+                          <Slider
+                            min="0" max="1" step="0.01"
+                            value={sound.probability ?? 1.0}
+                            onChange={e => update({ probability: parseFloat(e.target.value) })}
+                            aria-label="Probability"
+                            displayValue={formatPercentDisplay(sound.probability ?? 1.0)}
+                          />
+                        </div>
 
-                        <div className={`sub - panel ${collapsedPanels['VOLUME_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                        <div className={`sub-panel ${collapsedPanels['VOLUME_LFO'] ? 'collapsed' : ''}`} style={{ marginTop: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                           <h3 className="panel-title" onClick={() => togglePanel('VOLUME_LFO')} >LFO</h3>
                           {!collapsedPanels['VOLUME_LFO'] && (
                             <>
