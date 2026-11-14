@@ -72,6 +72,31 @@ class ContinuousMetalSynth extends Tone.MetalSynth {
     }
 }
 
+/**
+ * Enables voice stealing on a Tone.PolySynth.
+ * Tone.js PolySynth by default does not implement voice stealing: when maxPolyphony is reached,
+ * it drops notes and prints "Max polyphony exceeded. Note dropped."
+ * This helper intercepts _getNextAvailableVoice to steal the oldest releasing voice
+ * (or oldest active voice) so that rapid notes or chords with long release tails never drop.
+ */
+function enableVoiceStealing(polySynth: Tone.PolySynth) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const synth = polySynth as any;
+    const origGetNext = synth._getNextAvailableVoice.bind(synth);
+    synth._getNextAvailableVoice = () => {
+        const voice = origGetNext();
+        if (voice) return voice;
+        if (synth._activeVoices && synth._activeVoices.length > 0) {
+            // Prefer stealing a voice that is already released (ringing out in release tail)
+            let idx = synth._activeVoices.findIndex((v: any) => v.released);
+            if (idx === -1) idx = 0; // fallback to oldest active note
+            const stolen = synth._activeVoices.splice(idx, 1)[0];
+            return stolen.voice;
+        }
+        return undefined;
+    };
+}
+
 export class AudioEngine {
     public channel: Tone.Channel;
 
@@ -205,7 +230,8 @@ export class AudioEngine {
             envelope: { attack: 0.5, decay: 0.1, sustain: 1, release: 2 },
             volume: -6
         });
-        this.polySynth.maxPolyphony = 8;
+        this.polySynth.maxPolyphony = 32;
+        enableVoiceStealing(this.polySynth);
         this.polySynth.connect(this.channel);
     }
 
@@ -976,7 +1002,7 @@ export class AudioEngine {
             let VoiceClass: any = Tone.Synth;
             const options: any = {
                 volume: -6,
-                maxPolyphony: 8
+                maxPolyphony: 32
             };
             
             // Apply current envelope to new synth instantiation
@@ -1017,7 +1043,8 @@ export class AudioEngine {
 
             this.polySynth = new Tone.PolySynth(VoiceClass, options);
             this.polySynth.set({ detune: this.currentDetune });
-            this.polySynth.maxPolyphony = 8;
+            this.polySynth.maxPolyphony = 32;
+            enableVoiceStealing(this.polySynth);
             this.polySynth.connect(this.channel);
             return true;
         } else {
