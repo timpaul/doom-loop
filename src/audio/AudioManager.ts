@@ -757,6 +757,14 @@ class AudioManager {
         }
     }
 
+    public setOnSequenceEnd(soundId: string, callback: (() => void) | null, mixItemId?: string) {
+        const engineId = mixItemId ? `${mixItemId}-${soundId}` : soundId;
+        const engine = this.engines.get(engineId);
+        if (engine) {
+            engine.onSequenceEnd = callback;
+        }
+    }
+
     /** Stops a mix sound's engine if it exists, without creating (and initialising) one just to stop it. */
     public stopSound(soundId: string, mixItemId: string) {
         const engineId = `${mixItemId}-${soundId}`;

@@ -32,6 +32,7 @@ export interface SoundState {
     slack?: number;
     playMode: PlayMode;
     isMuted?: boolean;
+    groupId?: string;
     // Legacy properties maintained for backwards compatibility loading
     activeNotes?: string[];
     octave?: number;
@@ -78,6 +79,15 @@ export interface SoundState {
     chebyshevAmount: number;
 }
 
+export type GroupPlayMode = 'random' | 'all';
+
+export interface SoundGroupState {
+    id: string;
+    isMuted?: boolean;
+    playMode?: GroupPlayMode;
+    switchProbability?: number;
+}
+
 export interface TrackState {
     id: string;
     name: string;
@@ -95,6 +105,54 @@ export interface TrackState {
     reverbLowCut?: number;
     reverbHighCut?: number;
     sounds: SoundState[];
+    soundGroups?: SoundGroupState[];
+}
+
+export type TrackItem =
+    | { type: 'sound'; sound: SoundState }
+    | { type: 'group'; group: SoundGroupState; sounds: SoundState[] };
+
+export function getTrackItems(sounds: SoundState[], soundGroups: SoundGroupState[] = []): TrackItem[] {
+    const groupMap = new Map<string, SoundGroupState>();
+    soundGroups.forEach(g => groupMap.set(g.id, g));
+
+    const items: TrackItem[] = [];
+    const groupItemsMap = new Map<string, { type: 'group'; group: SoundGroupState; sounds: SoundState[] }>();
+
+    for (const sound of sounds) {
+        if (!sound.groupId) {
+            items.push({ type: 'sound', sound });
+        } else {
+            let groupItem = groupItemsMap.get(sound.groupId);
+            if (!groupItem) {
+                const group = groupMap.get(sound.groupId) || { id: sound.groupId, isMuted: false };
+                groupItem = { type: 'group', group, sounds: [] };
+                groupItemsMap.set(sound.groupId, groupItem);
+                items.push(groupItem);
+            }
+            groupItem.sounds.push(sound);
+        }
+    }
+
+    return items;
+}
+
+export function flattenTrackItems(items: TrackItem[]): { sounds: SoundState[]; soundGroups: SoundGroupState[] } {
+    const sounds: SoundState[] = [];
+    const soundGroups: SoundGroupState[] = [];
+
+    for (const item of items) {
+        if (item.type === 'sound') {
+            sounds.push({ ...item.sound, groupId: undefined });
+        } else if (item.type === 'group' && item.sounds.length > 0) {
+            soundGroups.push(item.group);
+            for (const s of item.sounds) {
+                sounds.push({ ...s, groupId: item.group.id });
+            }
+        }
+    }
+
+    return { sounds, soundGroups };
 }
 
 export interface MixItem {

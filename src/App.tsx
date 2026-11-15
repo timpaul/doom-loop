@@ -6,7 +6,8 @@ import './App.css'
 import { useAppState } from './state/AppContext'
 import { audioManager } from './audio/AudioManager'
 import { mixPlayer } from './audio/MixPlayer'
-import type { SoundState, TrackState, LFOType, MixState } from './types'
+import type { SoundState, TrackState, LFOType, MixState, SoundGroupState } from './types'
+import { getTrackItems } from './types'
 import type { NoiseColor, OscillatorType } from './audio/AudioEngine'
 import { aboutMarkdown } from './AboutContent'
 import { Slider } from './components/Slider'
@@ -116,6 +117,13 @@ const ExportIcon = () => (
       </svg>
       )
 
+const UngroupIcon = () => (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+      </svg>
+      )
+
       const ChevronRightIcon = ({isExpanded}: {isExpanded ?: boolean}) => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
         <polyline points="9 18 15 12 9 6"></polyline>
@@ -126,22 +134,23 @@ const ExportIcon = () => (
 
       function SoundPanel({
         sound,
-        index,
         isDragging,
         dropPosition,
+        isGroupTarget,
         onDragStart,
         onDragOver,
         onDrop,
         onDragEnd
       }: {
         sound: SoundState;
-        index: number;
+        index?: number;
         isDragging: boolean;
         dropPosition: 'above' | 'below' | null;
-        onDragStart: (e: React.DragEvent, index: number) => void;
-        onDragOver: (e: React.DragEvent, index: number) => void;
+        isGroupTarget?: boolean;
+        onDragStart: (e: React.DragEvent) => void;
+        onDragOver: (e: React.DragEvent) => void;
         onDrop: (e: React.DragEvent) => void;
-        onDragEnd: () => void;
+        onDragEnd: (e: React.DragEvent) => void;
       }) {
   const {state, dispatch} = useAppState();
       const isExpanded = state.expandedId === sound.id;
@@ -175,16 +184,13 @@ const ExportIcon = () => (
     if (sound.sourceType === 'tone' && notes && notes.length > 0) {
       const detected = Chord.detect(notes);
       if (detected.length > 0) {
-            // Tonal returns multiple options, pick the primary one
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setChordInput(detected[0]);
+        // Tonal returns multiple options, pick the primary one
+        setChordInput(detected[0]);
       } else {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setChordInput('');
+        setChordInput('');
       }
     } else {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setChordInput('');
+      setChordInput('');
     }
   }, [sound.stepConfigs, selectedStep, sound.sourceType]);
 
@@ -234,16 +240,36 @@ const ExportIcon = () => (
             update({autoFilterBaseFreq: newFreq });
   };
 
+            const [canDrag, setCanDrag] = useState(false);
+
             return (
             <div
-              className={`noise-panel ${isExpanded ? 'expanded' : 'collapsed'} ${dropPosition ? `drop-indicator-${dropPosition}` : ''}`.trim()}
-              draggable
-              onDragStart={(e) => onDragStart(e, index)}
-              onDragOver={(e) => onDragOver(e, index)}
+              className={`noise-panel ${isExpanded ? 'expanded' : 'collapsed'} ${dropPosition ? `drop-indicator-${dropPosition}` : ''} ${isGroupTarget ? 'drop-group-target' : ''}`.trim()}
+              draggable={canDrag}
+              onMouseDown={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('input, button, textarea, select, .slider-wrapper, .noise-controls, .chord-input, .step-sequencer-control')) {
+                  setCanDrag(false);
+                  e.currentTarget.setAttribute('draggable', 'false');
+                } else {
+                  setCanDrag(true);
+                  e.currentTarget.setAttribute('draggable', 'true');
+                }
+              }}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
               onDrop={onDrop}
-              onDragEnd={onDragEnd}
+              onDragEnd={(e) => {
+                setCanDrag(false);
+                onDragEnd(e);
+              }}
               style={{ opacity: isDragging ? 0.5 : 1 }}
             >
+              {isGroupTarget && (
+                <div className="group-hover-tooltip" aria-hidden="true">
+                  Group these sounds
+                </div>
+              )}
               <div className="noise-header">
                 <button className="icon-btn expand-btn" onClick={onToggleExpand} aria-label="Toggle Panel">
                   <ChevronRightIcon isExpanded={isExpanded} />
@@ -264,11 +290,18 @@ const ExportIcon = () => (
                       <TrashIcon />
                     </button>
                   </div>
-                  <button
-                    className={`mute-toggle-btn ${!sound.isMuted ? 'active' : ''}`}
-                    onClick={() => update({ isMuted: !sound.isMuted })}
-                    aria-label={sound.isMuted ? "Unmute Sound" : "Mute Sound"}
-                  />
+                  {(() => {
+                    const isTrackPlaying = state.isPlaying && state.playbackMode === 'track';
+                    const group = sound.groupId ? state.soundGroups?.find(g => g.id === sound.groupId) : undefined;
+                    const isStandby = Boolean(group && isTrackPlaying && !group.isMuted && group.playMode !== 'all' && !sound.isMuted && state.activeGroupSoundIds?.[sound.groupId!] !== sound.id);
+                    return (
+                      <button
+                        className={`mute-toggle-btn ${sound.isMuted ? '' : (isStandby ? 'standby' : 'active')}`}
+                        onClick={() => update({ isMuted: !sound.isMuted })}
+                        aria-label={sound.isMuted ? "Unmute Sound" : (isStandby ? "Mute Sound (Standby)" : "Mute Sound")}
+                      />
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1056,6 +1089,156 @@ const ExportIcon = () => (
             )
 }
 
+function SoundGroupPanel({
+  group,
+  isExpanded,
+  onToggleExpand,
+  onUngroup,
+  onToggleMute,
+  onUpdateGroup,
+  isDragging,
+  dropPosition,
+  onGroupDragStart,
+  onGroupDragOver,
+  onGroupDrop,
+  onGroupDragEnd,
+  children
+}: {
+  group: SoundGroupState;
+  sounds: SoundState[];
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onUngroup: () => void;
+  onToggleMute: () => void;
+  onUpdateGroup: (updates: Partial<SoundGroupState>) => void;
+  isDragging: boolean;
+  dropPosition: 'above' | 'below' | null;
+  onGroupDragStart: (e: React.DragEvent) => void;
+  onGroupDragOver: (e: React.DragEvent) => void;
+  onGroupDrop: (e: React.DragEvent) => void;
+  onGroupDragEnd: (e: React.DragEvent) => void;
+  children: React.ReactNode;
+}) {
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+  const [canDrag, setCanDrag] = useState(false);
+  const playMode = group.playMode ?? 'random';
+  const switchProb = group.switchProbability ?? 0;
+
+  return (
+    <div
+      className={`sound-group-panel ${!isExpanded ? 'collapsed' : ''} ${dropPosition ? `drop-indicator-${dropPosition}` : ''}`.trim()}
+      draggable={canDrag}
+      onMouseDown={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('input, button, textarea, select, .slider-wrapper, .group-settings-panel, .noise-panel')) {
+          setCanDrag(false);
+          e.currentTarget.setAttribute('draggable', 'false');
+        } else {
+          setCanDrag(true);
+          e.currentTarget.setAttribute('draggable', 'true');
+        }
+      }}
+      onDragStart={onGroupDragStart}
+      onDragOver={onGroupDragOver}
+      onDrop={onGroupDrop}
+      onDragEnd={(e) => {
+        setCanDrag(false);
+        e.currentTarget.setAttribute('draggable', 'false');
+        onGroupDragEnd(e);
+      }}
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+    >
+      <div className="sound-group-header" onClick={onToggleExpand}>
+        <div className="sound-group-title">
+          <ControlLabel help="GROUP.Group">
+            GROUP
+          </ControlLabel>
+        </div>
+        <div className="sound-group-header-actions" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="icon-btn ungroup-btn"
+            data-tooltip="Ungroup"
+            onClick={onUngroup}
+            aria-label="Ungroup sounds"
+          >
+            <UngroupIcon />
+          </button>
+          <button
+            className="icon-btn group-expand-btn"
+            onClick={onToggleExpand}
+            aria-label={isExpanded ? "Collapse group" : "Expand group"}
+          >
+            <ChevronRightIcon isExpanded={isExpanded} />
+          </button>
+          <button
+            className={`mute-toggle-btn ${!group.isMuted ? 'active' : ''}`}
+            onClick={onToggleMute}
+            aria-label={group.isMuted ? "Unmute Sound Group" : "Mute Sound Group"}
+          />
+        </div>
+      </div>
+      {isExpanded && (
+        <div className="sound-group-content">
+          {children}
+          <section
+            className={`panel-group group-settings-panel ${!isSettingsExpanded ? 'collapsed' : ''}`}
+            draggable={false}
+          >
+            <h2
+              className="panel-title"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsSettingsExpanded(!isSettingsExpanded);
+              }}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}
+            >
+              GROUP SETTINGS
+              <div className="icon-btn" style={{ width: '20px', height: '20px', marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ChevronRightIcon isExpanded={isSettingsExpanded} />
+              </div>
+            </h2>
+            {isSettingsExpanded && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }} onClick={(e) => e.stopPropagation()}>
+                <div className="control-row" style={{ marginTop: 0 }}>
+                  <ControlLabel help="GROUP.Play">Play</ControlLabel>
+                  <div className="segmented-control" style={{ marginTop: 0 }}>
+                    <button
+                      className={`segment-btn ${playMode === 'all' ? 'active' : ''}`}
+                      onClick={() => onUpdateGroup({ playMode: 'all' })}
+                    >
+                      All sounds
+                    </button>
+                    <button
+                      className={`segment-btn ${playMode !== 'all' ? 'active' : ''}`}
+                      onClick={() => onUpdateGroup({ playMode: 'random' })}
+                    >
+                      Random sound
+                    </button>
+                  </div>
+                </div>
+                {playMode !== 'all' && (
+                  <div className="control-row">
+                    <ControlLabel help="GROUP.Switch">Switch</ControlLabel>
+                    <Slider
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={switchProb}
+                      onChange={e => onUpdateGroup({ switchProbability: parseFloat(e.target.value) })}
+                      aria-label="Group Switch"
+                      displayValue={formatPercentDisplay(switchProb)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
             function formatLength(minutes: number) {
   if (minutes < 60) return `${Math.round(minutes)} m`;
             const hrs = Math.floor(minutes / 60);
@@ -1612,77 +1795,274 @@ const useAudioActions = () => {
 
   const currentTrack = state.savedTracks.find(t => t.id === id);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const draggedIdxRef = useRef<number | null>(null);
-  const targetSlotRef = useRef<number | null>(null);
-  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
-  const [targetSlot, setTargetSlot] = useState<number | null>(null);
+  const trackItems = getTrackItems(state.sounds, state.soundGroups);
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(new Set());
 
-  const onDragStart = (e: React.DragEvent, index: number) => {
+  const toggleGroupCollapse = (groupId: string) => {
+    setCollapsedGroupIds(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  interface DraggedSound {
+    type: 'sound';
+    soundId: string;
+    groupId?: string;
+  }
+
+  interface DraggedGroup {
+    type: 'group';
+    groupId: string;
+  }
+
+  type DraggedEntity = DraggedSound | DraggedGroup;
+
+  type DropTargetState =
+    | { kind: 'group-sound'; targetSoundId: string }
+    | { kind: 'top-item'; itemIndex: number; position: 'above' | 'below' }
+    | { kind: 'group-sound-slot'; groupId: string; soundIndexInGroup: number; position: 'above' | 'below' }
+    | { kind: 'empty-group'; groupId: string }
+    | null;
+
+  const draggedEntityRef = useRef<DraggedEntity | null>(null);
+  const [draggedEntity, setDraggedEntity] = useState<DraggedEntity | null>(null);
+
+  const dropTargetRef = useRef<DropTargetState>(null);
+  const [dropTarget, setDropTarget] = useState<DropTargetState>(null);
+
+  const onSoundDragStart = (e: React.DragEvent, sound: SoundState) => {
     const target = e.target as HTMLElement;
-    if (target.closest('input, button, textarea, select, .noise-controls, .slider-wrapper')) {
+    if (target.closest('input, button, textarea, select, .noise-controls, .slider-wrapper, .chord-input, .step-sequencer-control')) {
       e.preventDefault();
       return;
     }
-    draggedIdxRef.current = index;
-    setDraggedIdx(index);
+    e.stopPropagation();
+    const entity: DraggedEntity = { type: 'sound', soundId: sound.id, groupId: sound.groupId };
+    draggedEntityRef.current = entity;
+    setDraggedEntity(entity);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', sound.id);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    const sourceIdx = draggedIdxRef.current;
-    if (sourceIdx === null) return;
+  const onGroupDragStart = (e: React.DragEvent, group: SoundGroupState) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('input, button, textarea, select, .noise-panel, .noise-controls, .slider-wrapper, .group-settings-panel')) {
+      e.preventDefault();
+      return;
+    }
+    const entity: DraggedEntity = { type: 'group', groupId: group.id };
+    draggedEntityRef.current = entity;
+    setDraggedEntity(entity);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', group.id);
+  };
+
+  const handleStandaloneSoundDragOver = (e: React.DragEvent, sound: SoundState, itemIndex: number) => {
+    const dragged = draggedEntityRef.current;
+    if (!dragged) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+
+    if (dragged.type === 'sound') {
+      if (dragged.soundId === sound.id) {
+        if (dropTargetRef.current !== null) {
+          dropTargetRef.current = null;
+          setDropTarget(null);
+        }
+        return;
+      }
+      const rect = e.currentTarget.getBoundingClientRect();
+      const yRatio = (e.clientY - rect.top) / rect.height;
+
+      let target: DropTargetState;
+      if (yRatio >= 0.2 && yRatio <= 0.8) {
+        target = { kind: 'group-sound', targetSoundId: sound.id };
+      } else if (yRatio < 0.2) {
+        target = { kind: 'top-item', itemIndex, position: 'above' };
+      } else {
+        target = { kind: 'top-item', itemIndex, position: 'below' };
+      }
+
+      dropTargetRef.current = target;
+      setDropTarget(target);
+    } else if (dragged.type === 'group') {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const position = e.clientY < midY ? 'above' : 'below';
+      const target: DropTargetState = { kind: 'top-item', itemIndex, position };
+      dropTargetRef.current = target;
+      setDropTarget(target);
+    }
+  };
+
+  const handleGroupSoundDragOver = (e: React.DragEvent, sound: SoundState, groupId: string, soundIndexInGroup: number) => {
+    const dragged = draggedEntityRef.current;
+    if (!dragged) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+
+    if (dragged.type === 'sound') {
+      if (dragged.soundId === sound.id) {
+        if (dropTargetRef.current !== null) {
+          dropTargetRef.current = null;
+          setDropTarget(null);
+        }
+        return;
+      }
+      const rect = e.currentTarget.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const position = e.clientY < midY ? 'above' : 'below';
+      const target: DropTargetState = { kind: 'group-sound-slot', groupId, soundIndexInGroup, position };
+      dropTargetRef.current = target;
+      setDropTarget(target);
+    } else if (dragged.type === 'group') {
+      const groupItemIndex = trackItems.findIndex(it => it.type === 'group' && it.group.id === groupId);
+      if (groupItemIndex !== -1 && dragged.groupId !== groupId) {
+        const groupPanel = e.currentTarget.closest('.sound-group-panel');
+        const rect = groupPanel ? groupPanel.getBoundingClientRect() : e.currentTarget.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const position = e.clientY < midY ? 'above' : 'below';
+        const target: DropTargetState = { kind: 'top-item', itemIndex: groupItemIndex, position };
+        dropTargetRef.current = target;
+        setDropTarget(target);
+      }
+    }
+  };
+
+  const handleGroupPanelDragOver = (e: React.DragEvent, group: SoundGroupState, itemIndex: number) => {
+    const dragged = draggedEntityRef.current;
+    if (!dragged) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const yRatio = (e.clientY - rect.top) / rect.height;
+
+    if (dragged.type === 'group') {
+      if (dragged.groupId === group.id) {
+        if (dropTargetRef.current !== null) {
+          dropTargetRef.current = null;
+          setDropTarget(null);
+        }
+        return;
+      }
+      const position = yRatio < 0.5 ? 'above' : 'below';
+      const target: DropTargetState = { kind: 'top-item', itemIndex, position };
+      dropTargetRef.current = target;
+      setDropTarget(target);
+    } else if (dragged.type === 'sound') {
+      if (yRatio < 0.15) {
+        const target: DropTargetState = { kind: 'top-item', itemIndex, position: 'above' };
+        dropTargetRef.current = target;
+        setDropTarget(target);
+      } else if (yRatio > 0.85) {
+        const target: DropTargetState = { kind: 'top-item', itemIndex, position: 'below' };
+        dropTargetRef.current = target;
+        setDropTarget(target);
+      } else {
+        const target: DropTargetState = { kind: 'empty-group', groupId: group.id };
+        dropTargetRef.current = target;
+        setDropTarget(target);
+      }
+    }
+  };
+
+  const handleContainerDragOver = (e: React.DragEvent) => {
+    const dragged = draggedEntityRef.current;
+    if (!dragged) return;
 
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
 
-    const panels = containerRef.current?.querySelectorAll<HTMLElement>('.noise-panel');
-    if (!panels || panels.length === 0) return;
-
-    const mouseY = e.clientY;
-    let chosenSlot = panels.length;
-
-    for (let i = 0; i < panels.length; i++) {
-      const rect = panels[i].getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (mouseY < midY) {
-        chosenSlot = i;
-        break;
-      }
-    }
-
-    if (targetSlotRef.current !== chosenSlot) {
-      targetSlotRef.current = chosenSlot;
-      setTargetSlot(chosenSlot);
+    if (trackItems.length > 0) {
+      const target: DropTargetState = { kind: 'top-item', itemIndex: trackItems.length - 1, position: 'below' };
+      dropTargetRef.current = target;
+      setDropTarget(target);
     }
   };
 
   const handleDrop = (e: React.DragEvent) => {
-    const sourceIndex = draggedIdxRef.current;
-    const slot = targetSlotRef.current;
-    if (sourceIndex === null) return;
-
     e.preventDefault();
     e.stopPropagation();
 
-    if (slot !== null) {
-      if (slot !== sourceIndex && slot !== sourceIndex + 1) {
-        const destIndex = slot > sourceIndex ? slot - 1 : slot;
-        dispatch({ type: 'REORDER_SOUNDS', payload: { sourceIndex, destIndex } });
+    const dragged = draggedEntityRef.current;
+    const target = dropTargetRef.current;
+
+    draggedEntityRef.current = null;
+    dropTargetRef.current = null;
+    setDraggedEntity(null);
+    setDropTarget(null);
+
+    if (!dragged || !target) return;
+
+    if (target.kind === 'group-sound') {
+      if (dragged.type === 'sound' && dragged.soundId !== target.targetSoundId) {
+        dispatch({
+          type: 'GROUP_SOUNDS',
+          payload: { sourceSoundId: dragged.soundId, targetSoundId: target.targetSoundId }
+        });
       }
+      return;
     }
 
-    draggedIdxRef.current = null;
-    targetSlotRef.current = null;
-    setDraggedIdx(null);
-    setTargetSlot(null);
+    if (target.kind === 'group-sound-slot') {
+      if (dragged.type === 'sound') {
+        const insertIndex = target.position === 'below' ? target.soundIndexInGroup + 1 : target.soundIndexInGroup;
+        dispatch({
+          type: 'MOVE_SOUND_TO_GROUP',
+          payload: { soundId: dragged.soundId, targetGroupId: target.groupId, insertIndex }
+        });
+      }
+      return;
+    }
+
+    if (target.kind === 'empty-group') {
+      if (dragged.type === 'sound') {
+        const groupItem = trackItems.find(it => it.type === 'group' && it.group.id === target.groupId);
+        const insertIndex = groupItem && groupItem.type === 'group' ? groupItem.sounds.length : 0;
+        dispatch({
+          type: 'MOVE_SOUND_TO_GROUP',
+          payload: { soundId: dragged.soundId, targetGroupId: target.groupId, insertIndex }
+        });
+      }
+      return;
+    }
+
+    if (target.kind === 'top-item') {
+      const targetSlot = target.position === 'below' ? target.itemIndex + 1 : target.itemIndex;
+      if (dragged.type === 'sound') {
+        dispatch({
+          type: 'MOVE_SOUND_TO_TOP_LEVEL',
+          payload: { soundId: dragged.soundId, targetIndex: targetSlot }
+        });
+      } else if (dragged.type === 'group') {
+        dispatch({
+          type: 'REORDER_TOP_LEVEL_GROUP',
+          payload: { groupId: dragged.groupId, targetIndex: targetSlot }
+        });
+      }
+    }
   };
 
   const handleDragEnd = () => {
-    draggedIdxRef.current = null;
-    targetSlotRef.current = null;
-    setDraggedIdx(null);
-    setTargetSlot(null);
+    draggedEntityRef.current = null;
+    dropTargetRef.current = null;
+    setDraggedEntity(null);
+    setDropTarget(null);
   };
 
   useEffect(() => {
@@ -1700,7 +2080,7 @@ const useAudioActions = () => {
               return (
               <div
                 className="app-container"
-                onDragOver={handleDragOver}
+                onDragOver={handleContainerDragOver}
                 onDrop={handleDrop}
               >
                 <div className="top-play-area">
@@ -1736,7 +2116,7 @@ const useAudioActions = () => {
 
                 <main
                   className="main-content"
-                  onDragOver={handleDragOver}
+                  onDragOver={handleContainerDragOver}
                   onDrop={handleDrop}
                 >
                   <section className={`panel-group ${!isSettingsExpanded ? 'collapsed' : ''}`} style={{ marginBottom: '24px' }}>
@@ -1916,27 +2296,81 @@ const useAudioActions = () => {
                   <div
                     ref={containerRef}
                     className="sounds-list-container"
-                    onDragOver={handleDragOver}
+                    onDragOver={handleContainerDragOver}
                     onDrop={handleDrop}
                   >
-                    {state.sounds.map((sound, index) => {
-                      const isAbove = draggedIdx !== null && targetSlot === index && targetSlot !== draggedIdx && targetSlot !== draggedIdx + 1;
-                      const isBelow = draggedIdx !== null && targetSlot === state.sounds.length && index === state.sounds.length - 1 && targetSlot !== draggedIdx && targetSlot !== draggedIdx + 1;
-                      const dropPosition: 'above' | 'below' | null = isAbove ? 'above' : (isBelow ? 'below' : null);
+                    {trackItems.map((item, itemIndex) => {
+                      if (item.type === 'sound') {
+                        const sound = item.sound;
+                        const isGroupTarget = dropTarget?.kind === 'group-sound' && dropTarget.targetSoundId === sound.id;
+                        const isAbove = dropTarget?.kind === 'top-item' && dropTarget.itemIndex === itemIndex && dropTarget.position === 'above';
+                        const isBelow = dropTarget?.kind === 'top-item' && dropTarget.itemIndex === itemIndex && dropTarget.position === 'below';
+                        const dropPosition: 'above' | 'below' | null = isAbove ? 'above' : (isBelow ? 'below' : null);
+                        const isDragging = draggedEntity?.type === 'sound' && draggedEntity.soundId === sound.id;
 
-                      return (
-                        <SoundPanel
-                          key={sound.id}
-                          sound={sound}
-                          index={index}
-                          isDragging={draggedIdx === index}
-                          dropPosition={dropPosition}
-                          onDragStart={onDragStart}
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          onDragEnd={handleDragEnd}
-                        />
-                      );
+                        return (
+                          <SoundPanel
+                            key={sound.id}
+                            sound={sound}
+                            index={itemIndex}
+                            isDragging={isDragging}
+                            dropPosition={dropPosition}
+                            isGroupTarget={isGroupTarget}
+                            onDragStart={(e) => onSoundDragStart(e, sound)}
+                            onDragOver={(e) => handleStandaloneSoundDragOver(e, sound, itemIndex)}
+                            onDrop={handleDrop}
+                            onDragEnd={handleDragEnd}
+                          />
+                        );
+                      } else {
+                        const group = item.group;
+                        const isGroupExpanded = !collapsedGroupIds.has(group.id);
+                        const isAbove = dropTarget?.kind === 'top-item' && dropTarget.itemIndex === itemIndex && dropTarget.position === 'above';
+                        const isBelow = dropTarget?.kind === 'top-item' && dropTarget.itemIndex === itemIndex && dropTarget.position === 'below';
+                        const dropPosition: 'above' | 'below' | null = isAbove ? 'above' : (isBelow ? 'below' : null);
+                        const isDragging = draggedEntity?.type === 'group' && draggedEntity.groupId === group.id;
+
+                        return (
+                          <SoundGroupPanel
+                            key={group.id}
+                            group={group}
+                            sounds={item.sounds}
+                            isExpanded={isGroupExpanded}
+                            onToggleExpand={() => toggleGroupCollapse(group.id)}
+                            onUngroup={() => dispatch({ type: 'UNGROUP_SOUNDS', payload: group.id })}
+                            onToggleMute={() => dispatch({ type: 'TOGGLE_MUTE_SOUND_GROUP', payload: group.id })}
+                            onUpdateGroup={(updates) => dispatch({ type: 'UPDATE_SOUND_GROUP', payload: { groupId: group.id, updates } })}
+                            isDragging={isDragging}
+                            dropPosition={dropPosition}
+                            onGroupDragStart={(e) => onGroupDragStart(e, group)}
+                            onGroupDragOver={(e) => handleGroupPanelDragOver(e, group, itemIndex)}
+                            onGroupDrop={handleDrop}
+                            onGroupDragEnd={handleDragEnd}
+                          >
+                            {item.sounds.map((sound, sIdx) => {
+                              const isSoundAbove = dropTarget?.kind === 'group-sound-slot' && dropTarget.groupId === group.id && dropTarget.soundIndexInGroup === sIdx && dropTarget.position === 'above';
+                              const isSoundBelow = dropTarget?.kind === 'group-sound-slot' && dropTarget.groupId === group.id && dropTarget.soundIndexInGroup === sIdx && dropTarget.position === 'below';
+                              const soundDropPosition: 'above' | 'below' | null = isSoundAbove ? 'above' : (isSoundBelow ? 'below' : null);
+                              const isSoundDragging = draggedEntity?.type === 'sound' && draggedEntity.soundId === sound.id;
+
+                              return (
+                                <SoundPanel
+                                  key={sound.id}
+                                  sound={sound}
+                                  index={sIdx}
+                                  isDragging={isSoundDragging}
+                                  dropPosition={soundDropPosition}
+                                  isGroupTarget={false}
+                                  onDragStart={(e) => onSoundDragStart(e, sound)}
+                                  onDragOver={(e) => handleGroupSoundDragOver(e, sound, group.id, sIdx)}
+                                  onDrop={handleDrop}
+                                  onDragEnd={handleDragEnd}
+                                />
+                              );
+                            })}
+                          </SoundGroupPanel>
+                        );
+                      }
                     })}
                   </div>
 

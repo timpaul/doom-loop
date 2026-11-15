@@ -145,6 +145,7 @@ export class AudioEngine {
     private currentOscType: OscillatorType = 'sine';
     private sequencePart: Tone.Part | null = null;
     private sequenceEventId: number | null = null;
+    public onSequenceEnd: (() => void) | null = null;
     private isInitialized = false;
     private isDisposed = false;
     // Incremented by every play()/stop() so a play() still awaiting initialisation can tell it has been superseded.
@@ -373,6 +374,7 @@ export class AudioEngine {
             Tone.Transport.clear(this.sequenceEventId);
             this.sequenceEventId = null;
         }
+        this.onSequenceEnd = null;
 
         this.dryGain.dispose();
         this.reverbSendGain.dispose();
@@ -435,24 +437,47 @@ export class AudioEngine {
                             
                             const randomFactor = Math.pow(2, (Math.random() * 2 - 1) * slack);
                             const nextDuration = event.duration * randomFactor;
+                            const isLastStep = stepIndex === events.length - 1;
                             stepIndex = (stepIndex + 1) % events.length;
-                            // For subsequent steps, time is calculated as time + nextDuration
-                            // We schedule the next callback
+
+                            if (isLastStep) {
+                                Tone.Transport.scheduleOnce(() => {
+                                    setTimeout(() => {
+                                        this.onSequenceEnd?.();
+                                    }, 0);
+                                }, "+" + nextDuration);
+                            }
                             this.sequenceEventId = Tone.Transport.scheduleOnce(scheduleNextStep, "+" + nextDuration);
                         };
 
                         if (Tone.Transport.state !== 'started') Tone.Transport.start();
                         this.sequenceEventId = Tone.Transport.scheduleOnce(scheduleNextStep, "+" + 0.05);
                     } else {
-                        this.sequencePart = new Tone.Part((time, event) => {
-                        if (event.notes && event.notes.length > 0) {
-                            const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
-                            this.noiseEnv.triggerAttackRelease(playDuration, time);
+                        const partEvents: any[] = events.map(e => ({ ...e }));
+                        if (loopLength > 0) {
+                            const endMarkerTime = loopLength > 0.1 ? loopLength - 0.01 : loopLength * 0.95;
+                            partEvents.push({
+                                time: endMarkerTime,
+                                notes: [],
+                                duration: 0.005,
+                                isEndMarker: true
+                            });
                         }
-                    }, events).start(0);
+                        this.sequencePart = new Tone.Part((time, event: any) => {
+                            if (event.isEndMarker) {
+                                setTimeout(() => {
+                                    this.onSequenceEnd?.();
+                                }, 0);
+                                return;
+                            }
+                            if (event.notes && event.notes.length > 0) {
+                                const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
+                                this.noiseEnv.triggerAttackRelease(playDuration, time);
+                            }
+                        }, partEvents).start(0);
 
-                    this.sequencePart.loop = true;
-                    this.sequencePart.loopEnd = loopLength;
+                        this.sequencePart.loop = true;
+                        this.sequencePart.loopEnd = loopLength;
 
                     if (Tone.Transport.state !== 'started') {
                         Tone.Transport.start();
@@ -507,7 +532,7 @@ export class AudioEngine {
                                     const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
                                     this.metalVoices[0].triggerAttackRelease(randomNote, playDuration, time);
                                 } else {
-                                    event.notes.slice(0, this.metalVoices.length).forEach((note, i) => {
+                                    event.notes.slice(0, this.metalVoices.length).forEach((note: string, i: number) => {
                                         this.metalVoices[i].triggerAttackRelease(note, playDuration, time);
                                     });
                                 }
@@ -515,26 +540,51 @@ export class AudioEngine {
                             
                             const randomFactor = Math.pow(2, (Math.random() * 2 - 1) * slack);
                             const nextDuration = event.duration * randomFactor;
+                            const isLastStep = stepIndex === events.length - 1;
                             stepIndex = (stepIndex + 1) % events.length;
+
+                            if (isLastStep) {
+                                Tone.Transport.scheduleOnce(() => {
+                                    setTimeout(() => {
+                                        this.onSequenceEnd?.();
+                                    }, 0);
+                                }, "+" + nextDuration);
+                            }
                             this.sequenceEventId = Tone.Transport.scheduleOnce(scheduleNextStep, "+" + nextDuration);
                         };
 
                         if (Tone.Transport.state !== 'started') Tone.Transport.start();
                         this.sequenceEventId = Tone.Transport.scheduleOnce(scheduleNextStep, "+" + 0.05);
                     } else {
-                        this.sequencePart = new Tone.Part((time, event) => {
-                            if (event.notes.length > 0 && this.metalVoices.length > 0) {
+                        const partEvents: any[] = events.map(e => ({ ...e }));
+                        if (loopLength > 0) {
+                            const endMarkerTime = loopLength > 0.1 ? loopLength - 0.01 : loopLength * 0.95;
+                            partEvents.push({
+                                time: endMarkerTime,
+                                notes: [],
+                                duration: 0.005,
+                                isEndMarker: true
+                            });
+                        }
+                        this.sequencePart = new Tone.Part((time, event: any) => {
+                            if (event.isEndMarker) {
+                                setTimeout(() => {
+                                    this.onSequenceEnd?.();
+                                }, 0);
+                                return;
+                            }
+                            if (event.notes && event.notes.length > 0 && this.metalVoices.length > 0) {
                                 const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
                                 if (playMode === 'random') {
                                     const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
                                     this.metalVoices[0].triggerAttackRelease(randomNote, playDuration, time);
                                 } else {
-                                    event.notes.slice(0, this.metalVoices.length).forEach((note, i) => {
+                                    event.notes.slice(0, this.metalVoices.length).forEach((note: string, i: number) => {
                                         this.metalVoices[i].triggerAttackRelease(note, playDuration, time);
                                     });
                                 }
                             }
-                        }, events).start(0);
+                        }, partEvents).start(0);
 
                         this.sequencePart.loop = true;
                         this.sequencePart.loopEnd = loopLength;
@@ -602,28 +652,52 @@ export class AudioEngine {
                             
                             const randomFactor = Math.pow(2, (Math.random() * 2 - 1) * slack);
                             const nextDuration = event.duration * randomFactor;
+                            const isLastStep = stepIndex === events.length - 1;
                             stepIndex = (stepIndex + 1) % events.length;
+
+                            if (isLastStep) {
+                                Tone.Transport.scheduleOnce(() => {
+                                    setTimeout(() => {
+                                        this.onSequenceEnd?.();
+                                    }, 0);
+                                }, "+" + nextDuration);
+                            }
                             this.sequenceEventId = Tone.Transport.scheduleOnce(scheduleNextStep, "+" + nextDuration);
                         };
 
                         if (Tone.Transport.state !== 'started') Tone.Transport.start();
                         this.sequenceEventId = Tone.Transport.scheduleOnce(scheduleNextStep, "+" + 0.05);
                     } else {
-                        this.sequencePart = new Tone.Part((time, event) => {
-
-                        if (event.notes.length > 0) {
-                            const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
-                            if (playMode === 'random') {
-                                const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
-                                this.polySynth.triggerAttackRelease([randomNote], playDuration, time);
-                            } else {
-                                this.polySynth.triggerAttackRelease(event.notes, playDuration, time);
-                            }
+                        const partEvents: any[] = events.map(e => ({ ...e }));
+                        if (loopLength > 0) {
+                            const endMarkerTime = loopLength > 0.1 ? loopLength - 0.01 : loopLength * 0.95;
+                            partEvents.push({
+                                time: endMarkerTime,
+                                notes: [],
+                                duration: 0.005,
+                                isEndMarker: true
+                            });
                         }
-                    }, events).start(0);
+                        this.sequencePart = new Tone.Part((time, event: any) => {
+                            if (event.isEndMarker) {
+                                setTimeout(() => {
+                                    this.onSequenceEnd?.();
+                                }, 0);
+                                return;
+                            }
+                            if (event.notes && event.notes.length > 0) {
+                                const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
+                                if (playMode === 'random') {
+                                    const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
+                                    this.polySynth.triggerAttackRelease([randomNote], playDuration, time);
+                                } else {
+                                    this.polySynth.triggerAttackRelease(event.notes, playDuration, time);
+                                }
+                            }
+                        }, partEvents).start(0);
 
-                    this.sequencePart.loop = true;
-                    this.sequencePart.loopEnd = loopLength;
+                        this.sequencePart.loop = true;
+                        this.sequencePart.loopEnd = loopLength;
 
                     // Ensure transport is running for parts to play
                     if (Tone.Transport.state !== 'started') {
@@ -671,6 +745,7 @@ export class AudioEngine {
             Tone.Transport.clear(this.sequenceEventId);
             this.sequenceEventId = null;
         }
+        this.onSequenceEnd = null;
 
         if (this.currentSource === 'noise') {
             this.noiseEnv.triggerRelease();

@@ -13,9 +13,11 @@ interface Position {
 }
 
 interface ControlLabelProps {
-  /** Key into CONTROL_HELP, e.g. "PLUCK.Attack" */
+  /** Key into CONTROL_HELP, e.g. "PLUCK.Attack", or direct help string */
   help: string;
   style?: React.CSSProperties;
+  className?: string;
+  placement?: 'left' | 'above' | 'below';
   children: React.ReactNode;
 }
 
@@ -24,16 +26,34 @@ interface ControlLabelProps {
  * the label when there is room, otherwise above it (or below if there is no
  * room above), clamped to the viewport.
  */
-export const ControlLabel: React.FC<ControlLabelProps> = ({ help, style, children }) => {
+export const ControlLabel: React.FC<ControlLabelProps> = ({ help, style, className, placement, children }) => {
   const ref = useRef<HTMLSpanElement>(null);
   const [pos, setPos] = useState<Position | null>(null);
-  const text = CONTROL_HELP[help];
+  const text = CONTROL_HELP[help] || help;
 
   const show = () => {
     const el = ref.current;
     if (!el || !text) return;
     const r = el.getBoundingClientRect();
     const vw = window.innerWidth;
+    if (placement === 'above') {
+      const center = r.left + r.width / 2;
+      const left = Math.min(Math.max(center, TIP_WIDTH / 2 + MARGIN), vw - TIP_WIDTH / 2 - MARGIN);
+      const arrowX = center - left;
+      if (r.top > 100) {
+        setPos({ placement: 'above', left, top: r.top - GAP + 4, arrowX });
+      } else {
+        setPos({ placement: 'below', left, top: r.bottom + GAP - 4, arrowX });
+      }
+      return;
+    }
+    if (placement === 'below') {
+      const center = r.left + r.width / 2;
+      const left = Math.min(Math.max(center, TIP_WIDTH / 2 + MARGIN), vw - TIP_WIDTH / 2 - MARGIN);
+      const arrowX = center - left;
+      setPos({ placement: 'below', left, top: r.bottom + GAP - 4, arrowX });
+      return;
+    }
     if (r.left >= TIP_WIDTH + GAP + MARGIN) {
       setPos({ placement: 'left', left: r.left - GAP, top: r.top + r.height / 2, arrowX: 0 });
       return;
@@ -53,7 +73,7 @@ export const ControlLabel: React.FC<ControlLabelProps> = ({ help, style, childre
   return (
     <span
       ref={ref}
-      className="control-label"
+      className={`control-label ${className || ''}`.trim()}
       style={style}
       tabIndex={text ? 0 : undefined}
       onMouseEnter={show}

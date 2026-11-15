@@ -13,8 +13,21 @@ export const Slider: React.FC<SliderProps> = ({ displayValue, className = '', st
     <div
       className={`slider-wrapper ${className}`.trim()}
       style={{ ...style, ['--slider-frac' as string]: frac }}
+      draggable={false}
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
-      <input type="range" {...props} />
+      <input
+        type="range"
+        draggable={false}
+        onDragStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        {...props}
+      />
       {displayValue !== undefined && displayValue !== null && (
         <span className="slider-value-display">{displayValue}</span>
       )}
