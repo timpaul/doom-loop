@@ -1,0 +1,487 @@
+{
+  "type": "doom-loop-mix",
+  "mix": {
+    "id": "mix-1794770274949",
+    "name": "Procedures",
+    "items": [
+      {
+        "id": "item-1794770282028-nt1hn",
+        "trackId": "track-1794764806841"
+      }
+    ],
+    "lengthMinutes": 5,
+    "shuffle": false,
+    "repeat": false,
+    "fadeInMinutes": 0,
+    "fadeOutMinutes": 0,
+    "crossFadeMinutes": 0,
+    "spread": 0,
+    "author": "Tim Paul",
+    "notes": "A place to test the more esoteric, procedural and probabilistic features of Doom Loop."
+  },
+  "tracks": [
+    {
+      "id": "track-1794764806841",
+      "name": "Pingala",
+      "sounds": [
+        {
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "random",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "D",
+                "F",
+                "A",
+                "C"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "D",
+                "F",
+                "A",
+                "C"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "D",
+                "F",
+                "A",
+                "C"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "D",
+                "F",
+                "A",
+                "C"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "D",
+                "F",
+                "A",
+                "C"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "D",
+                "F",
+                "A",
+                "C"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "D",
+                "F",
+                "A",
+                "C"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "D",
+                "F",
+                "A",
+                "C"
+              ],
+              "octave": 4
+            }
+          ],
+          "stepRatios": [
+            1,
+            1,
+            2,
+            3,
+            5,
+            8,
+            13,
+            21
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 3.98,
+          "slack": 0,
+          "oscillatorType": "pulse",
+          "fmHarmonicity": 1,
+          "fmModulationIndex": 10,
+          "metalHarmonicity": 5.1,
+          "metalResonance": 4000,
+          "pluckAttackNoise": 0.1,
+          "pluckResonance": 0.9,
+          "pluckDampening": 4000,
+          "kickPitchDecay": 0.05,
+          "kickOctaves": 10,
+          "envAttack": 0,
+          "envDecay": 2.74625,
+          "envSustain": 0.1,
+          "envRelease": 5.513679999999999,
+          "noteLengthRatio": 0.75,
+          "volume": 0.4,
+          "probability": 1,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 20000,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "volLfoPhaseOffset": 0,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "panLfoPhaseOffset": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 0,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 810.5134888071578,
+          "autoFilterOctaves": 0,
+          "autoFilterPhaseOffset": 0,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "detuneLfoPhaseOffset": 0,
+          "reverbAmount": 0.3,
+          "delayAmount": 0,
+          "delayTime": 0.25,
+          "delayFeedback": 0.5,
+          "chorusAmount": 0.4,
+          "distortionAmount": 0,
+          "chebyshevAmount": 0,
+          "id": "1",
+          "name": "Dm7",
+          "groupId": "group-1794765670912-pbyn79"
+        },
+        {
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "random",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D",
+                "F"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D",
+                "F"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D",
+                "F"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D",
+                "F"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D",
+                "F"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D",
+                "F"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D",
+                "F"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "G",
+                "B",
+                "D",
+                "F"
+              ],
+              "octave": 4
+            }
+          ],
+          "stepRatios": [
+            1,
+            1,
+            2,
+            3,
+            5,
+            8,
+            13,
+            21
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 3.98,
+          "slack": 0,
+          "oscillatorType": "pulse",
+          "fmHarmonicity": 1,
+          "fmModulationIndex": 10,
+          "metalHarmonicity": 5.1,
+          "metalResonance": 4000,
+          "pluckAttackNoise": 0.1,
+          "pluckResonance": 0.9,
+          "pluckDampening": 4000,
+          "kickPitchDecay": 0.05,
+          "kickOctaves": 10,
+          "envAttack": 0,
+          "envDecay": 2.74625,
+          "envSustain": 0.1,
+          "envRelease": 5.513679999999999,
+          "noteLengthRatio": 0.75,
+          "volume": 0.4,
+          "probability": 1,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 20000,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "volLfoPhaseOffset": 0,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "panLfoPhaseOffset": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 0,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 810.5134888071578,
+          "autoFilterOctaves": 0,
+          "autoFilterPhaseOffset": 0,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "detuneLfoPhaseOffset": 0,
+          "reverbAmount": 0.3,
+          "delayAmount": 0,
+          "delayTime": 0.25,
+          "delayFeedback": 0.5,
+          "chorusAmount": 0.4,
+          "distortionAmount": 0,
+          "chebyshevAmount": 0,
+          "id": "14",
+          "name": "G7",
+          "groupId": "group-1794765670912-pbyn79"
+        },
+        {
+          "sourceType": "tone",
+          "noiseColor": "brown",
+          "playMode": "random",
+          "isMuted": false,
+          "stepConfigs": [
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G",
+                "B"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G",
+                "B"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G",
+                "B"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G",
+                "B"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G",
+                "B"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G",
+                "B"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G",
+                "B"
+              ],
+              "octave": 4
+            },
+            {
+              "activeNotes": [
+                "C",
+                "E",
+                "G",
+                "B"
+              ],
+              "octave": 4
+            }
+          ],
+          "stepRatios": [
+            1,
+            1,
+            2,
+            3,
+            5,
+            8,
+            13,
+            21
+          ],
+          "seqLengthScale": "minute",
+          "seqLengthRate": 3.98,
+          "slack": 0,
+          "oscillatorType": "pulse",
+          "fmHarmonicity": 1,
+          "fmModulationIndex": 10,
+          "metalHarmonicity": 5.1,
+          "metalResonance": 4000,
+          "pluckAttackNoise": 0.1,
+          "pluckResonance": 0.9,
+          "pluckDampening": 4000,
+          "kickPitchDecay": 0.05,
+          "kickOctaves": 10,
+          "envAttack": 0,
+          "envDecay": 2.74625,
+          "envSustain": 0.1,
+          "envRelease": 5.513679999999999,
+          "noteLengthRatio": 0.75,
+          "volume": 0.4,
+          "probability": 1,
+          "pan": 0,
+          "filterMinFreq": 20,
+          "filterMaxFreq": 20000,
+          "filterFreq": 20000,
+          "filterQ": 1,
+          "volLfoType": "sine",
+          "volLfoScale": "minute",
+          "volLfoRate": 30,
+          "volLfoDepth": 0,
+          "volLfoPhaseOffset": 0,
+          "panLfoType": "sine",
+          "panLfoScale": "minute",
+          "panLfoRate": 30,
+          "panLfoDepth": 0,
+          "panLfoPhaseOffset": 0,
+          "autoFilterType": "sine",
+          "autoFilterRate": 0,
+          "autoFilterScale": "minute",
+          "autoFilterBaseFreq": 810.5134888071578,
+          "autoFilterOctaves": 0,
+          "autoFilterPhaseOffset": 0,
+          "detuneLfoType": "sine",
+          "detuneLfoScale": "minute",
+          "detuneLfoRate": 30,
+          "detuneLfoDepth": 0,
+          "detuneLfoPhaseOffset": 0,
+          "reverbAmount": 0.3,
+          "delayAmount": 0,
+          "delayTime": 0.25,
+          "delayFeedback": 0.5,
+          "chorusAmount": 0.4,
+          "distortionAmount": 0,
+          "chebyshevAmount": 0,
+          "id": "15",
+          "name": "Cmaj7",
+          "groupId": "group-1794765670912-pbyn79"
+        }
+      ],
+      "soundGroups": [
+        {
+          "id": "group-1794765670912-pbyn79",
+          "isMuted": false,
+          "playMode": "random",
+          "switchProbability": 0.33
+        }
+      ],
+      "reverbDecay": 12.9,
+      "reverbPreDelay": 0.043,
+      "reverbLowCut": 670,
+      "reverbHighCut": 10300,
+      "author": "Tim Paul",
+      "notes": "Initially designed to test the 'Sound group' feature. Notes are played from one of 3 chords: Dm7, G7 or Cmaj7. Note sequence timings are based on the Fibonnaci sequence. Each time a note sequence ends there's a 1-in-3 chance that track will switch to a new chord. The track is named after the Indian scholar who described the sequence, 1,400 years before Fibonnaci.",
+      "fog": 0,
+      "glue": 0.29,
+      "spatialize": 1.45,
+      "drift": 0,
+      "fripp": 0.3
+    }
+  ]
+}

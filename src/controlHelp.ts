@@ -88,10 +88,10 @@ export const CONTROL_HELP: Record<string, string> = {
   'TRACK.Notes': 'Any notes about the track, such as how it was made or when to listen to it.',
 
   // Sound Group
-  'GROUP.Group': 'Only one sound in a group will play at a time, selected at random.',
-  'GROUP.GROUP': 'Only one sound in a group will play at a time, selected at random.',
-  'Group': 'Only one sound in a group will play at a time, selected at random.',
-  'GROUP': 'Only one sound in a group will play at a time, selected at random.',
+  'GROUP.Group': 'Group sounds together to control how they play. The default behavior is to play one random sound at a time, but other settings are available.',
+  'GROUP.GROUP': 'Group sounds together to control how they play. The default behavior is to play one random sound at a time, but other settings are available.',
+  'Group': 'Group sounds together to control how they play. The default behavior is to play one random sound at a time, but other settings are available.',
+  'GROUP': 'Group sounds together to control how they play. The default behavior is to play one random sound at a time, but other settings are available.',
   'GROUP.Play': 'Play one random sound at a time or play all sounds together.',
   'GROUP.Switch': 'Probability of switching to a new sound when the current sound reaches the end of its sequence.',
 
