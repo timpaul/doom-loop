@@ -28,6 +28,7 @@ export class MixPlayer {
     private tracks: Map<string, TrackState> = new Map();
     private schedule: MixScheduleItem[] = [];
     private shuffledItems: MixItem[] = [];
+    private _mixDuration = 0; // in seconds
 
     private isPlaying = false;
     private lastTickTime = 0;
@@ -54,20 +55,53 @@ export class MixPlayer {
         return this.mix?.id || null;
     }
 
+    public get mixDurationSec(): number {
+        return this._mixDuration;
+    }
+
+    public get selectedMixItems(): MixItem[] {
+        return this.shuffledItems;
+    }
+
+    private getEffectiveStopAfter(mix: MixState): number {
+        const isStopAfterActive = mix.shuffle && !mix.repeat;
+        const maxTracks = Math.max(1, mix.items.length);
+        if (!isStopAfterActive || mix.stopAfter === undefined) {
+            return maxTracks;
+        }
+        return Math.min(Math.max(1, mix.stopAfter), maxTracks);
+    }
+
+    public regenerateSelection() {
+        if (!this.mix || this.mix.items.length === 0) {
+            this.shuffledItems = [];
+            this.calculateSchedule();
+            return;
+        }
+
+        const isStopAfterActive = this.mix.shuffle && !this.mix.repeat;
+        const stopAfter = this.getEffectiveStopAfter(this.mix);
+
+        if (this.mix.shuffle) {
+            const shuffled = shuffleArray(this.mix.items);
+            this.shuffledItems = isStopAfterActive ? shuffled.slice(0, stopAfter) : shuffled;
+        } else {
+            this.shuffledItems = [...this.mix.items];
+        }
+        this.calculateSchedule();
+        this._currentTime = 0;
+        window.dispatchEvent(new CustomEvent('mix-selection-changed', { detail: { mixId: this.mix.id } }));
+    }
+
     public loadMix(mix: MixState, tracks: TrackState[]) {
         this.stop();
         this.mix = mix;
-        if (mix.shuffle) {
-            this.shuffledItems = shuffleArray(mix.items);
-        } else {
-            this.shuffledItems = [...mix.items];
-        }
         this._currentTime = 0;
         this.tracks.clear();
         for (const t of tracks) {
             this.tracks.set(t.id, t);
         }
-        this.calculateSchedule();
+        this.regenerateSelection();
     }
 
     public updateMix(mix: MixState, tracks: TrackState[]) {
@@ -90,6 +124,8 @@ export class MixPlayer {
 
         const shuffleTurnedOn = mix.shuffle && !this.mix.shuffle;
         const shuffleTurnedOff = !mix.shuffle && this.mix.shuffle;
+        const isStopAfterActive = mix.shuffle && !mix.repeat;
+        const newStopAfter = this.getEffectiveStopAfter(mix);
 
         this.mix = mix;
         this.tracks.clear();
@@ -97,21 +133,43 @@ export class MixPlayer {
             this.tracks.set(t.id, t);
         }
 
+        if (!this.isPlaying) {
+            this.regenerateSelection();
+            return;
+        }
+
         if (shuffleTurnedOff) {
             this.shuffledItems = [...this.mix.items];
         } else if (shuffleTurnedOn) {
-            this.shuffledItems = shuffleArray(this.mix.items);
+            const shuffled = shuffleArray(this.mix.items);
+            this.shuffledItems = isStopAfterActive ? shuffled.slice(0, newStopAfter) : shuffled;
         } else if (this.mix.shuffle) {
-            // Keep existing shuffled order, minus removed, plus added randomly
             const newIds = new Set(this.mix.items.map(i => i.id));
             let newShuffled = this.shuffledItems.filter(i => newIds.has(i.id));
 
-            const currentIds = new Set(this.shuffledItems.map(i => i.id));
-            const addedItems = this.mix.items.filter(i => !currentIds.has(i.id));
-
-            for (const item of addedItems) {
-                const insertIdx = Math.floor(Math.random() * (newShuffled.length + 1));
-                newShuffled.splice(insertIdx, 0, item);
+            if (isStopAfterActive) {
+                if (newShuffled.length > newStopAfter) {
+                    if (targetFollowItem && newShuffled.some(i => i.id === targetFollowItem!.mixItemId)) {
+                        const targetIdx = newShuffled.findIndex(i => i.id === targetFollowItem!.mixItemId);
+                        if (targetIdx >= newStopAfter) {
+                            const item = newShuffled[targetIdx];
+                            newShuffled.splice(targetIdx, 1);
+                            newShuffled.splice(newStopAfter - 1, 0, item);
+                        }
+                    }
+                    newShuffled = newShuffled.slice(0, newStopAfter);
+                } else if (newShuffled.length < newStopAfter) {
+                    const currentIds = new Set(newShuffled.map(i => i.id));
+                    const available = shuffleArray(this.mix.items.filter(i => !currentIds.has(i.id)));
+                    newShuffled = [...newShuffled, ...available.slice(0, newStopAfter - newShuffled.length)];
+                }
+            } else {
+                const currentIds = new Set(newShuffled.map(i => i.id));
+                const addedItems = this.mix.items.filter(i => !currentIds.has(i.id));
+                for (const item of addedItems) {
+                    const insertIdx = Math.floor(Math.random() * (newShuffled.length + 1));
+                    newShuffled.splice(insertIdx, 0, item);
+                }
             }
             this.shuffledItems = newShuffled;
         } else {
@@ -147,26 +205,29 @@ export class MixPlayer {
                 item.fadeState = 'starting';
             }
         }
+        window.dispatchEvent(new CustomEvent('mix-selection-changed', { detail: { mixId: this.mix.id } }));
     }
 
     private calculateSchedule() {
-        if (!this.mix || this.mix.items.length === 0) {
+        if (!this.mix || this.mix.items.length === 0 || this.shuffledItems.length === 0) {
             this.schedule = [];
+            this._mixDuration = 0;
             return;
         }
 
-        const N = this.shuffledItems.length;
+        const N_full = this.mix.items.length;
         const totalLengthSec = this.mix.lengthMinutes * 60;
         const crossfadeSec = this.mix.crossFadeMinutes * 60;
 
-        const currentWeights = this.shuffledItems.map(item => item.weight || 1);
-        const totalWeight = currentWeights.reduce((a, b) => a + b, 0);
-        const totalTargetDuration = totalLengthSec + (N > 1 ? (N - 1) * crossfadeSec : 0);
+        const allWeights = this.mix.items.map(item => item.weight || 1);
+        const totalWeight = allWeights.reduce((a, b) => a + b, 0);
+        const totalTargetDuration = totalLengthSec + (N_full > 1 ? (N_full - 1) * crossfadeSec : 0);
 
         let currentStartTime = 0;
+        const K = this.shuffledItems.length;
 
         this.schedule = this.shuffledItems.map((item, index) => {
-            const weight = currentWeights[index];
+            const weight = item.weight || 1;
             const itemLengthSec = (weight / totalWeight) * totalTargetDuration;
 
             const startTime = currentStartTime;
@@ -177,7 +238,7 @@ export class MixPlayer {
             const fadeInDuration = index === 0 ? this.mix!.fadeInMinutes * 60 : crossfadeSec;
 
             // Last item fade out = mix fade out, otherwise crossfade
-            const fadeOutDuration = index === N - 1 ? this.mix!.fadeOutMinutes * 60 : crossfadeSec;
+            const fadeOutDuration = index === K - 1 ? this.mix!.fadeOutMinutes * 60 : crossfadeSec;
 
             return {
                 mixItemId: item.id,
@@ -189,10 +250,16 @@ export class MixPlayer {
                 fadeState: 'idle'
             };
         });
+
+        const lastItem = this.schedule[this.schedule.length - 1];
+        this._mixDuration = lastItem ? lastItem.endTime : 0;
     }
 
     public play() {
         if (this.isPlaying || !this.mix) return;
+        if (this._currentTime === 0 && !this.pendingSeekItemId) {
+            this.regenerateSelection();
+        }
         this.isPlaying = true;
         this.lastTickTime = Tone.now();
         this.tick();
@@ -232,7 +299,21 @@ export class MixPlayer {
 
     public seekToItem(mixItemId: string) {
         if (!this.mix) return;
-        const targetIndex = this.schedule.findIndex(i => i.mixItemId === mixItemId);
+        let targetIndex = this.schedule.findIndex(i => i.mixItemId === mixItemId);
+        if (targetIndex === -1) {
+            const item = this.mix.items.find(i => i.id === mixItemId);
+            if (item) {
+                const isStopAfterActive = this.mix.shuffle && !this.mix.repeat;
+                const stopAfter = this.getEffectiveStopAfter(this.mix);
+                const remaining = shuffleArray(this.mix.items.filter(i => i.id !== item.id));
+                this.shuffledItems = isStopAfterActive
+                    ? [item, ...remaining.slice(0, Math.max(0, stopAfter - 1))]
+                    : [item, ...remaining];
+                this.calculateSchedule();
+                window.dispatchEvent(new CustomEvent('mix-selection-changed', { detail: { mixId: this.mix.id } }));
+                targetIndex = this.schedule.findIndex(i => i.mixItemId === mixItemId);
+            }
+        }
         if (targetIndex !== -1) {
             const item = this.schedule[targetIndex];
 
@@ -267,7 +348,7 @@ export class MixPlayer {
     /** Fraction (0-1) of the way through the whole mix. */
     public getMixProgress(): number {
         if (!this.mix) return 0;
-        const total = this.mix.lengthMinutes * 60;
+        const total = this._mixDuration;
         if (total <= 0) return 0;
         return Math.min(1, Math.max(0, this.livePosition / total));
     }
@@ -299,7 +380,7 @@ export class MixPlayer {
         this._currentTime += deltaSec;
 
         // Loop repeat logic
-        const totalLengthSec = this.mix.lengthMinutes * 60;
+        const totalLengthSec = this._mixDuration;
         if (this._currentTime >= totalLengthSec) {
             if (this.mix.repeat) {
                 this._currentTime = 0;
@@ -312,9 +393,10 @@ export class MixPlayer {
                     item.fadeState = 'idle';
                 });
                 if (this.mix.shuffle) {
-                    this.shuffledItems = shuffleArray(this.mix.items);
+                    this.regenerateSelection();
+                } else {
+                    this.calculateSchedule();
                 }
-                this.calculateSchedule();
             } else {
                 this.stop();
                 window.dispatchEvent(new CustomEvent('mix-ended', { detail: { mixId: this.mix.id } }));

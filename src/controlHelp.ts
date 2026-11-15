@@ -104,8 +104,9 @@ export const CONTROL_HELP: Record<string, string> = {
   // Mix settings
   'MIX.Length': 'Total running time of the mix.',
   'MIX.Jitter': 'Randomly varies how long each track plays for.',
-  'MIX.Shuffle': 'Play the tracks in a random order.',
   'MIX.Repeat': 'Start the mix again from the beginning when it finishes.',
+  'MIX.Shuffle': 'Play the tracks in a random order.',
+  'MIX.Stop after': 'Number of tracks to play before stopping the mix.',
   'MIX.Fade in': 'Time for the mix to fade in at the start. Up to 10 minutes',
   'MIX.Fade out': 'Time for the mix to fade out at the end. Up to 10 minutes',
   'MIX.Author': 'Who made this mix.',

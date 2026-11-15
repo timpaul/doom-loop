@@ -604,9 +604,14 @@ const appReducer = (state: AppState, action: Action): AppState => {
             break;
         case 'REMOVE_MIX_ITEM':
             if (state.currentMixId) {
-                newState.savedMixes = state.savedMixes.map(m =>
-                    m.id === state.currentMixId ? { ...m, items: m.items.filter(item => item.id !== action.payload) } : m
-                );
+                newState.savedMixes = state.savedMixes.map(m => {
+                    if (m.id === state.currentMixId) {
+                        const newItems = m.items.filter(item => item.id !== action.payload);
+                        const newStopAfter = m.stopAfter !== undefined ? Math.min(m.stopAfter, Math.max(1, newItems.length)) : undefined;
+                        return { ...m, items: newItems, stopAfter: newStopAfter };
+                    }
+                    return m;
+                });
             }
             break;
         case 'REORDER_MIX_ITEMS':
@@ -728,6 +733,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                             mixPlayer.pendingSeekItemId = null;
                         }
                         mixPlayer.play();
+                    } else {
+                        // Mix is playing and state/settings changed
+                        const mix = state.savedMixes.find(m => m.id === state.currentMixId) 
+                                 || state.communityMixes.find(m => m.id === state.currentMixId);
+                        if (mix) {
+                            mixPlayer.updateMix(mix, [...state.savedTracks, ...state.communityTracks]);
+                        }
                     }
                 } else {
                     // Playing a track

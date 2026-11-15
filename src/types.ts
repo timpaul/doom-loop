@@ -114,6 +114,7 @@ export interface MixState {
     fadeOutMinutes: number;
     crossFadeMinutes: number;
     spread?: number;
+    stopAfter?: number;
     author?: string;
     notes?: string;
 }

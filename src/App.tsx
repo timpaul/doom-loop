@@ -1059,7 +1059,12 @@ const ExportIcon = () => (
 
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 500);
-    return () => clearInterval(interval);
+    const handleSelectionChange = () => setTick(t => t + 1);
+    window.addEventListener('mix-selection-changed', handleSelectionChange);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('mix-selection-changed', handleSelectionChange);
+    };
   }, []);
 
   const mix = state.savedMixes.find(m => m.id === id);
@@ -1082,15 +1087,22 @@ const ExportIcon = () => (
             const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
   useEffect(() => {
-    if (mix && state.currentMixId !== mix.id) {
-              dispatch({ type: 'LOAD_MIX', payload: mix.id });
+    if (mix) {
+      if (state.currentMixId !== mix.id) {
+        dispatch({ type: 'LOAD_MIX', payload: mix.id });
+      }
+      mixPlayer.updateMix(mix, [...state.savedTracks, ...state.communityTracks]);
     }
-  }, [mix, dispatch, state.currentMixId]);
+  }, [mix, dispatch, state.currentMixId, state.savedTracks, state.communityTracks]);
 
             if (!mix) return <NotFoundScreen type="Mix" />;
 
             const updateSettings = (updates: Partial<MixState>) => {
               dispatch({ type: 'UPDATE_MIX_SETTINGS', payload: updates });
+              if (mix) {
+                const updatedMix = { ...mix, ...updates };
+                mixPlayer.updateMix(updatedMix, [...state.savedTracks, ...state.communityTracks]);
+              }
   };
 
   const onDragStart = (e: React.DragEvent, index: number) => {
@@ -1110,6 +1122,27 @@ const ExportIcon = () => (
     }
               setDraggedIdx(null);
   };
+
+              const isStopAfterActive = mix.shuffle && !mix.repeat;
+              const maxStopAfter = Math.max(1, mix.items.length);
+              const effectiveStopAfter = isStopAfterActive && mix.stopAfter !== undefined
+                ? Math.min(Math.max(1, mix.stopAfter), maxStopAfter)
+                : mix.items.length;
+
+              let currentMixLengthMin = mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0);
+              if (isStopAfterActive && effectiveStopAfter < mix.items.length) {
+                if (mixPlayer.currentMixId === mix.id && mixPlayer.mixDurationSec > 0) {
+                  currentMixLengthMin = mixPlayer.mixDurationSec / 60;
+                } else {
+                  const N = mix.items.length;
+                  const crossfadeSec = mix.crossFadeMinutes * 60;
+                  const totalLengthSec = mix.lengthMinutes * 60;
+                  const fullTargetDuration = totalLengthSec + (N > 1 ? (N - 1) * crossfadeSec : 0);
+                  const avgItemSec = fullTargetDuration / N;
+                  const estSec = effectiveStopAfter * avgItemSec - (effectiveStopAfter > 1 ? (effectiveStopAfter - 1) * crossfadeSec : 0);
+                  currentMixLengthMin = estSec / 60;
+                }
+              }
 
               return (
               <div className="app-container">
@@ -1141,8 +1174,14 @@ const ExportIcon = () => (
                     style={{ textAlign: 'center' }}
                   />
                   <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', opacity: 0.8, letterSpacing: '0.5px' }}>
-                    {mix.items.length} track{mix.items.length !== 1 ? 's' : ''}
-                    {mix.items.length > 0 && ` \u00B7 ${formatLengthFullWords(mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0))}`}
+                    {mix.items.length > 0 && (
+                      <>
+                        {isStopAfterActive && effectiveStopAfter < mix.items.length
+                          ? `${effectiveStopAfter} of ${mix.items.length} tracks`
+                          : `${mix.items.length} track${mix.items.length !== 1 ? 's' : ''}`}
+                        {` \u00B7 ${formatLengthFullWords(currentMixLengthMin)}`}
+                      </>
+                    )}
                   </div>
                 </header>
 
@@ -1180,19 +1219,33 @@ const ExportIcon = () => (
                           />
                         </div>
                         <div className="control-row">
-                          <ControlLabel help="MIX.Shuffle">Shuffle</ControlLabel>
-                          <div className="segmented-control" style={{ marginTop: '0', width: '50%' }}>
-                            <button className={`segment-btn ${!mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: false })}>Off</button>
-                            <button className={`segment-btn ${mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: true })}>On</button>
-                          </div>
-                        </div>
-                        <div className="control-row">
                           <ControlLabel help="MIX.Repeat">Repeat</ControlLabel>
                           <div className="segmented-control" style={{ marginTop: '0', width: '50%' }}>
                             <button className={`segment-btn ${!mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: false })}>Off</button>
                             <button className={`segment-btn ${mix.repeat ? 'active' : ''}`} onClick={() => updateSettings({ repeat: true })}>On</button>
                           </div>
                         </div>
+                        <div className="control-row">
+                          <ControlLabel help="MIX.Shuffle">Shuffle</ControlLabel>
+                          <div className="segmented-control" style={{ marginTop: '0', width: '50%' }}>
+                            <button className={`segment-btn ${!mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: false })}>Off</button>
+                            <button className={`segment-btn ${mix.shuffle ? 'active' : ''}`} onClick={() => updateSettings({ shuffle: true })}>On</button>
+                          </div>
+                        </div>
+                        {mix.shuffle && !mix.repeat && (
+                          <div className="control-row">
+                            <ControlLabel help="MIX.Stop after">Stop after</ControlLabel>
+                            <Slider
+                              min="1"
+                              max={Math.max(1, mix.items.length)}
+                              step="1"
+                              value={effectiveStopAfter}
+                              onChange={e => updateSettings({ stopAfter: parseInt(e.target.value, 10) })}
+                              displayValue={`${effectiveStopAfter} track${effectiveStopAfter !== 1 ? 's' : ''}`}
+                              aria-label="Stop after"
+                            />
+                          </div>
+                        )}
                         <div className="control-row">
                           <ControlLabel help="MIX.Fade in">Fade in</ControlLabel>
                           <Slider
@@ -1889,7 +1942,22 @@ const useAudioActions = () => {
                               state.savedMixes.map(mix => {
                                 const isMixPlaying = state.isPlaying && state.playbackMode === 'mix' && state.currentMixId === mix.id;
 
-                                const totalLengthMin = mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0);
+                                const isStopAfterActive = mix.shuffle && !mix.repeat && mix.stopAfter !== undefined && mix.stopAfter < mix.items.length;
+                                const effectiveStopAfter = isStopAfterActive ? Math.max(1, Math.min(mix.stopAfter!, mix.items.length)) : mix.items.length;
+                                let totalLengthMin = mix.lengthMinutes + (mix.items.length > 1 ? (mix.items.length - 1) * mix.crossFadeMinutes : 0);
+                                if (isStopAfterActive) {
+                                  if (mixPlayer.currentMixId === mix.id && mixPlayer.mixDurationSec > 0) {
+                                    totalLengthMin = mixPlayer.mixDurationSec / 60;
+                                  } else {
+                                    const N = mix.items.length;
+                                    const crossfadeSec = mix.crossFadeMinutes * 60;
+                                    const totalLengthSec = mix.lengthMinutes * 60;
+                                    const fullTargetDuration = totalLengthSec + (N > 1 ? (N - 1) * crossfadeSec : 0);
+                                    const avgItemSec = fullTargetDuration / N;
+                                    const estSec = effectiveStopAfter * avgItemSec - (effectiveStopAfter > 1 ? (effectiveStopAfter - 1) * crossfadeSec : 0);
+                                    totalLengthMin = estSec / 60;
+                                  }
+                                }
                                 const totalLengthSec = totalLengthMin * 60;
                                 let mixTimeString = '';
                                 if (totalLengthSec >= 3600) {
