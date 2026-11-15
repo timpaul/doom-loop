@@ -65,6 +65,13 @@ header {
     gap: 24px;
 }
 
+.sounds-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+}
+
 /* Noise Panel Structure */
 .noise-panel {
     border: 1px solid var(--border-color);
@@ -73,6 +80,33 @@ header {
     transition: all 0.3s;
     width: 100%;
     background-color: var(--bg-primary);
+    position: relative;
+}
+
+.noise-panel.drop-indicator-above::before {
+    content: '';
+    position: absolute;
+    top: -13.5px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #57B4A6;
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.noise-panel.drop-indicator-below::after {
+    content: '';
+    position: absolute;
+    bottom: -13.5px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #57B4A6;
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 50;
 }
 
 .track-btn {
@@ -104,6 +138,11 @@ header {
     justify-content: space-between;
     padding: 16px;
     position: relative;
+    cursor: grab;
+}
+
+.noise-header:active {
+    cursor: grabbing;
 }
 
 .icon-btn {
@@ -695,6 +734,42 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
     position: relative;
 }
 
+.track-list-item[draggable="true"],
+.track-list-item[draggable] {
+    cursor: grab;
+}
+
+.track-list-item[draggable="true"]:active,
+.track-list-item[draggable]:active {
+    cursor: grabbing;
+}
+
+.track-list-item.drop-indicator-above::before {
+    content: '';
+    position: absolute;
+    top: calc(-0.6rem - 0.5px);
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #57B4A6;
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.track-list-item.drop-indicator-below::after {
+    content: '';
+    position: absolute;
+    bottom: calc(-0.6rem - 0.5px);
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #57B4A6;
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 50;
+}
+
 /* Absolutely positioned so panel height is identical with or without it */
 .playback-progress {
     position: absolute;
@@ -1236,6 +1311,7 @@ body:has(.community-mode) {
 .community-list-item .track-play-icon-circle {
     background-color: #333;
 }
+
 /* Control label help tooltips */
 .control-label[tabindex] {
     cursor: help;
@@ -1244,7 +1320,8 @@ body:has(.community-mode) {
 
 .control-help-tip {
     position: fixed;
-    width: 220px; /* keep in sync with TIP_WIDTH in ControlLabel.tsx */
+    width: 220px;
+    /* keep in sync with TIP_WIDTH in ControlLabel.tsx */
     padding: 6px 10px;
     border-radius: 4px;
     background-color: #57B4A6;
@@ -1264,7 +1341,10 @@ body:has(.community-mode) {
     border-color: transparent;
 }
 
-.control-help-tip.left { transform: translate(-100%, -50%); }
+.control-help-tip.left {
+    transform: translate(-100%, -50%);
+}
+
 .control-help-tip.left::after {
     left: 100%;
     top: 50%;
@@ -1273,7 +1353,10 @@ body:has(.community-mode) {
     border-left-color: #57B4A6;
 }
 
-.control-help-tip.above { transform: translate(-50%, -100%); }
+.control-help-tip.above {
+    transform: translate(-50%, -100%);
+}
+
 .control-help-tip.above::after {
     top: 100%;
     left: calc(50% + var(--arrow-x, 0px));
@@ -1282,7 +1365,10 @@ body:has(.community-mode) {
     border-top-color: #57B4A6;
 }
 
-.control-help-tip.below { transform: translate(-50%, 0); }
+.control-help-tip.below {
+    transform: translate(-50%, 0);
+}
+
 .control-help-tip.below::after {
     bottom: 100%;
     left: calc(50% + var(--arrow-x, 0px));

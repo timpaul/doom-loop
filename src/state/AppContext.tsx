@@ -91,6 +91,7 @@ export type Action =
     | { type: 'UPDATE_SOUND'; payload: { id: string; updates: Partial<SoundState> } }
     | { type: 'DELETE_SOUND'; payload: string }
     | { type: 'DUPLICATE_SOUND'; payload: string }
+    | { type: 'REORDER_SOUNDS'; payload: { sourceIndex: number; destIndex: number } }
     | { type: 'TOGGLE_EXPAND'; payload: string }
     | { type: 'SET_TRACK_NAME'; payload: string }
     | { type: 'UPDATE_TRACK_META'; payload: Partial<TrackState> }
@@ -264,6 +265,14 @@ const appReducer = (state: AppState, action: Action): AppState => {
             newState.sounds.splice(index + 1, 0, duplicatedSound);
             newState.expandedId = newId;
             newState.nextId = state.nextId + 1;
+            break;
+        }
+        case 'REORDER_SOUNDS': {
+            const { sourceIndex, destIndex } = action.payload;
+            const newSounds = [...state.sounds];
+            const [removed] = newSounds.splice(sourceIndex, 1);
+            newSounds.splice(destIndex, 0, removed);
+            newState.sounds = newSounds;
             break;
         }
         case 'TOGGLE_EXPAND':
@@ -648,7 +657,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
     }
 
     // AUTO-SAVE LOGIC
-    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'DUPLICATE_SOUND' || action.type === 'SET_TRACK_NAME' || action.type === 'CREATE_TRACK' || action.type === 'LOAD_TRACK' || action.type === 'LOAD_AND_PLAY_TRACK' || action.type === 'DUPLICATE_TRACK') {
+    if (action.type === 'UPDATE_SOUND' || action.type === 'ADD_SOUND' || action.type === 'DELETE_SOUND' || action.type === 'DUPLICATE_SOUND' || action.type === 'REORDER_SOUNDS' || action.type === 'SET_TRACK_NAME' || action.type === 'CREATE_TRACK' || action.type === 'LOAD_TRACK' || action.type === 'LOAD_AND_PLAY_TRACK' || action.type === 'DUPLICATE_TRACK') {
         const existingIdx = newState.savedTracks.findIndex(s => s.id === newState.currentTrackId);
         const updatedTracks = [...newState.savedTracks];
         if (existingIdx >= 0) {

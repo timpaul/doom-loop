@@ -124,7 +124,25 @@ const ExportIcon = () => (
 
       const myKeys = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
 
-      function SoundPanel({sound}: {sound: SoundState }) {
+      function SoundPanel({
+        sound,
+        index,
+        isDragging,
+        dropPosition,
+        onDragStart,
+        onDragOver,
+        onDrop,
+        onDragEnd
+      }: {
+        sound: SoundState;
+        index: number;
+        isDragging: boolean;
+        dropPosition: 'above' | 'below' | null;
+        onDragStart: (e: React.DragEvent, index: number) => void;
+        onDragOver: (e: React.DragEvent, index: number) => void;
+        onDrop: (e: React.DragEvent) => void;
+        onDragEnd: () => void;
+      }) {
   const {state, dispatch} = useAppState();
       const isExpanded = state.expandedId === sound.id;
 
@@ -217,7 +235,15 @@ const ExportIcon = () => (
   };
 
             return (
-            <div className={`noise-panel ${isExpanded ? 'expanded' : 'collapsed'}`}>
+            <div
+              className={`noise-panel ${isExpanded ? 'expanded' : 'collapsed'} ${dropPosition ? `drop-indicator-${dropPosition}` : ''}`.trim()}
+              draggable
+              onDragStart={(e) => onDragStart(e, index)}
+              onDragOver={(e) => onDragOver(e, index)}
+              onDrop={onDrop}
+              onDragEnd={onDragEnd}
+              style={{ opacity: isDragging ? 0.5 : 1 }}
+            >
               <div className="noise-header">
                 <button className="icon-btn expand-btn" onClick={onToggleExpand} aria-label="Toggle Panel">
                   <ChevronRightIcon isExpanded={isExpanded} />
@@ -1084,7 +1110,11 @@ const ExportIcon = () => (
     }
   };
 
-            const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const mixContainerRef = useRef<HTMLDivElement>(null);
+  const draggedMixIdxRef = useRef<number | null>(null);
+  const targetMixSlotRef = useRef<number | null>(null);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [targetSlot, setTargetSlot] = useState<number | null>(null);
 
   useEffect(() => {
     if (mix) {
@@ -1095,32 +1125,81 @@ const ExportIcon = () => (
     }
   }, [mix, dispatch, state.currentMixId, state.savedTracks, state.communityTracks]);
 
-            if (!mix) return <NotFoundScreen type="Mix" />;
+  if (!mix) return <NotFoundScreen type="Mix" />;
 
-            const updateSettings = (updates: Partial<MixState>) => {
-              dispatch({ type: 'UPDATE_MIX_SETTINGS', payload: updates });
-              if (mix) {
-                const updatedMix = { ...mix, ...updates };
-                mixPlayer.updateMix(updatedMix, [...state.savedTracks, ...state.communityTracks]);
-              }
-  };
-
-  const onDragStart = (e: React.DragEvent, index: number) => {
-                setDraggedIdx(index);
-              e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const onDragOver = (e: React.DragEvent) => {
-                e.preventDefault();
-              e.dataTransfer.dropEffect = 'move';
-  };
-
-  const onDrop = (e: React.DragEvent, index: number) => {
-                e.preventDefault();
-              if (draggedIdx !== null && draggedIdx !== index) {
-                dispatch({ type: 'REORDER_MIX_ITEMS', payload: { sourceIndex: draggedIdx, destIndex: index } });
+  const updateSettings = (updates: Partial<MixState>) => {
+    dispatch({ type: 'UPDATE_MIX_SETTINGS', payload: updates });
+    if (mix) {
+      const updatedMix = { ...mix, ...updates };
+      mixPlayer.updateMix(updatedMix, [...state.savedTracks, ...state.communityTracks]);
     }
-              setDraggedIdx(null);
+  };
+
+  const handleMixDragStart = (e: React.DragEvent, index: number) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('input, button, textarea, select')) {
+      e.preventDefault();
+      return;
+    }
+    draggedMixIdxRef.current = index;
+    setDraggedIdx(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleMixDragOver = (e: React.DragEvent) => {
+    const sourceIdx = draggedMixIdxRef.current;
+    if (sourceIdx === null) return;
+
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    const items = mixContainerRef.current?.querySelectorAll<HTMLElement>('.track-list-item');
+    if (!items || items.length === 0) return;
+
+    const mouseY = e.clientY;
+    let chosenSlot = items.length;
+
+    for (let i = 0; i < items.length; i++) {
+      const rect = items[i].getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (mouseY < midY) {
+        chosenSlot = i;
+        break;
+      }
+    }
+
+    if (targetMixSlotRef.current !== chosenSlot) {
+      targetMixSlotRef.current = chosenSlot;
+      setTargetSlot(chosenSlot);
+    }
+  };
+
+  const handleMixDrop = (e: React.DragEvent) => {
+    const sourceIndex = draggedMixIdxRef.current;
+    const slot = targetMixSlotRef.current;
+    if (sourceIndex === null) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (slot !== null) {
+      if (slot !== sourceIndex && slot !== sourceIndex + 1) {
+        const destIndex = slot > sourceIndex ? slot - 1 : slot;
+        dispatch({ type: 'REORDER_MIX_ITEMS', payload: { sourceIndex, destIndex } });
+      }
+    }
+
+    draggedMixIdxRef.current = null;
+    targetMixSlotRef.current = null;
+    setDraggedIdx(null);
+    setTargetSlot(null);
+  };
+
+  const handleMixDragEnd = () => {
+    draggedMixIdxRef.current = null;
+    targetMixSlotRef.current = null;
+    setDraggedIdx(null);
+    setTargetSlot(null);
   };
 
               const isStopAfterActive = mix.shuffle && !mix.repeat;
@@ -1145,7 +1224,11 @@ const ExportIcon = () => (
               }
 
               return (
-              <div className="app-container">
+              <div
+                className="app-container"
+                onDragOver={handleMixDragOver}
+                onDrop={handleMixDrop}
+              >
                 <div className="top-play-area">
                   <button
                     className="tracks-nav-btn"
@@ -1185,7 +1268,11 @@ const ExportIcon = () => (
                   </div>
                 </header>
 
-                <main className="main-content">
+                <main
+                  className="main-content"
+                  onDragOver={handleMixDragOver}
+                  onDrop={handleMixDrop}
+                >
                   <section className={`panel-group ${!isSettingsExpanded ? 'collapsed' : ''}`} style={{ marginBottom: '24px' }}>
                     <h2 className="panel-title" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
                       MIX SETTINGS
@@ -1307,7 +1394,13 @@ const ExportIcon = () => (
                     )}
                   </section>
 
-                  <div className="track-list" style={{ marginTop: '0' }}>
+                  <div
+                    ref={mixContainerRef}
+                    className="track-list"
+                    style={{ marginTop: '0' }}
+                    onDragOver={handleMixDragOver}
+                    onDrop={handleMixDrop}
+                  >
                     {mix.items.map((item, index) => {
                       const track = state.savedTracks.find(t => t.id === item.trackId);
                       if (!track) return null;
@@ -1329,15 +1422,22 @@ const ExportIcon = () => (
                         const s = Math.floor(itemLengthSec % 60).toString().padStart(2, '0');
                         itemTimeString = `${m}:${s}`;
                       }
+
+                      const isAbove = draggedIdx !== null && targetSlot === index && targetSlot !== draggedIdx && targetSlot !== draggedIdx + 1;
+                      const isBelow = draggedIdx !== null && targetSlot === mix.items.length && index === mix.items.length - 1 && targetSlot !== draggedIdx && targetSlot !== draggedIdx + 1;
+                      const dropPosition: 'above' | 'below' | null = isAbove ? 'above' : (isBelow ? 'below' : null);
+                      const dropClass = dropPosition ? `drop-indicator-${dropPosition}` : '';
+
                       return (
                         <div
                           key={item.id}
-                          className="track-list-item"
+                          className={`track-list-item ${dropClass}`.trim()}
                           draggable
-                          onDragStart={(e) => onDragStart(e, index)}
-                          onDragOver={(e) => onDragOver(e)}
-                          onDrop={(e) => onDrop(e, index)}
-                          style={{ opacity: draggedIdx === index ? 0.5 : 1, cursor: 'grab' }}
+                          onDragStart={(e) => handleMixDragStart(e, index)}
+                          onDragOver={handleMixDragOver}
+                          onDrop={handleMixDrop}
+                          onDragEnd={handleMixDragEnd}
+                          style={{ opacity: draggedIdx === index ? 0.5 : 1 }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
                             <button
@@ -1512,6 +1612,79 @@ const useAudioActions = () => {
 
   const currentTrack = state.savedTracks.find(t => t.id === id);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const draggedIdxRef = useRef<number | null>(null);
+  const targetSlotRef = useRef<number | null>(null);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [targetSlot, setTargetSlot] = useState<number | null>(null);
+
+  const onDragStart = (e: React.DragEvent, index: number) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('input, button, textarea, select, .noise-controls, .slider-wrapper')) {
+      e.preventDefault();
+      return;
+    }
+    draggedIdxRef.current = index;
+    setDraggedIdx(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    const sourceIdx = draggedIdxRef.current;
+    if (sourceIdx === null) return;
+
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    const panels = containerRef.current?.querySelectorAll<HTMLElement>('.noise-panel');
+    if (!panels || panels.length === 0) return;
+
+    const mouseY = e.clientY;
+    let chosenSlot = panels.length;
+
+    for (let i = 0; i < panels.length; i++) {
+      const rect = panels[i].getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (mouseY < midY) {
+        chosenSlot = i;
+        break;
+      }
+    }
+
+    if (targetSlotRef.current !== chosenSlot) {
+      targetSlotRef.current = chosenSlot;
+      setTargetSlot(chosenSlot);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    const sourceIndex = draggedIdxRef.current;
+    const slot = targetSlotRef.current;
+    if (sourceIndex === null) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (slot !== null) {
+      if (slot !== sourceIndex && slot !== sourceIndex + 1) {
+        const destIndex = slot > sourceIndex ? slot - 1 : slot;
+        dispatch({ type: 'REORDER_SOUNDS', payload: { sourceIndex, destIndex } });
+      }
+    }
+
+    draggedIdxRef.current = null;
+    targetSlotRef.current = null;
+    setDraggedIdx(null);
+    setTargetSlot(null);
+  };
+
+  const handleDragEnd = () => {
+    draggedIdxRef.current = null;
+    targetSlotRef.current = null;
+    setDraggedIdx(null);
+    setTargetSlot(null);
+  };
+
   useEffect(() => {
     if (currentTrack && state.currentTrackId !== currentTrack.id) {
                 dispatch({ type: 'LOAD_TRACK', payload: currentTrack });
@@ -1525,7 +1698,11 @@ const useAudioActions = () => {
   };
 
               return (
-              <div className="app-container">
+              <div
+                className="app-container"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
                 <div className="top-play-area">
                   <button
                     className="tracks-nav-btn"
@@ -1557,7 +1734,11 @@ const useAudioActions = () => {
                   />
                 </header>
 
-                <main className="main-content">
+                <main
+                  className="main-content"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
                   <section className={`panel-group ${!isSettingsExpanded ? 'collapsed' : ''}`} style={{ marginBottom: '24px' }}>
                     <h2 className="panel-title" onClick={() => setIsSettingsExpanded(!isSettingsExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
                       TRACK SETTINGS
@@ -1732,9 +1913,32 @@ const useAudioActions = () => {
                     )}
                   </section>
 
-                  {state.sounds.map(sound => (
-                    <SoundPanel key={sound.id} sound={sound} />
-                  ))}
+                  <div
+                    ref={containerRef}
+                    className="sounds-list-container"
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                  >
+                    {state.sounds.map((sound, index) => {
+                      const isAbove = draggedIdx !== null && targetSlot === index && targetSlot !== draggedIdx && targetSlot !== draggedIdx + 1;
+                      const isBelow = draggedIdx !== null && targetSlot === state.sounds.length && index === state.sounds.length - 1 && targetSlot !== draggedIdx && targetSlot !== draggedIdx + 1;
+                      const dropPosition: 'above' | 'below' | null = isAbove ? 'above' : (isBelow ? 'below' : null);
+
+                      return (
+                        <SoundPanel
+                          key={sound.id}
+                          sound={sound}
+                          index={index}
+                          isDragging={draggedIdx === index}
+                          dropPosition={dropPosition}
+                          onDragStart={onDragStart}
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                          onDragEnd={handleDragEnd}
+                        />
+                      );
+                    })}
+                  </div>
 
                   <div className="add-noise-container">
                     <button className="add-noise-btn" onClick={addSound}>Add a sound</button>
