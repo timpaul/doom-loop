@@ -528,24 +528,27 @@ export class MixPlayer {
                 groupChosen.set(group.id, newChosen.id);
                 const oldSound = track.sounds.find(s => s.id === activeSoundId);
                 const newSound = track.sounds.find(s => s.id === newChosen.id);
-                if (oldSound) audioManager.syncSoundState({ ...oldSound, isMuted: true }, true, item.mixItemId);
-                if (newSound) audioManager.syncSoundState({ ...newSound, isMuted: false }, true, item.mixItemId);
+                if (oldSound) audioManager.syncSoundState(oldSound, true, item.mixItemId, true);
+                if (newSound) audioManager.syncSoundState(newSound, true, item.mixItemId, false);
                 setupGroupSwitch(group, newChosen.id);
             }, item.mixItemId);
         };
 
         this.getAudibleSounds(track).forEach(sound => {
             let isGroupMuted = false;
+            let isGroupStandby = false;
             if (sound.groupId) {
                 const group = groupMap.get(sound.groupId);
-                if (!group || group.isMuted || (group.playMode !== 'all' && groupChosen.get(sound.groupId) !== sound.id)) {
+                if (!group || group.isMuted) {
                     isGroupMuted = true;
+                } else if (group.playMode !== 'all' && groupChosen.get(sound.groupId) !== sound.id) {
+                    isGroupStandby = true;
                 }
             }
             const prob = sound.probability ?? 1.0;
             const isProbMuted = prob < 1.0 && (prob <= 0 || Math.random() >= prob);
             const effectiveSound = (isGroupMuted || isProbMuted) ? { ...sound, isMuted: true } : sound;
-            audioManager.syncSoundState(effectiveSound, true, item.mixItemId);
+            audioManager.syncSoundState(effectiveSound, true, item.mixItemId, isGroupStandby);
         });
 
         for (const group of soundGroups) {

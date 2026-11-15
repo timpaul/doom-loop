@@ -143,6 +143,7 @@ export class AudioEngine {
     private currentSource: SoundType | null = null;
     private currentSynthVoice: SoundType = 'tone';
     private currentOscType: OscillatorType = 'sine';
+    private isContinuous = false;
     private sequencePart: Tone.Part | null = null;
     private sequenceEventId: number | null = null;
     public onSequenceEnd: (() => void) | null = null;
@@ -401,6 +402,7 @@ export class AudioEngine {
 
         if (sourceType === 'noise') {
             const { color, events, loopLength, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { color: NoiseColor, events?: Array<{ time: number, notes: string[], duration: number }>, loopLength?: number, noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            this.isContinuous = isContinuous;
 
             // Native Tone.js noise types
             if (color === 'white' || color === 'pink' || color === 'brown') {
@@ -474,38 +476,27 @@ export class AudioEngine {
                                 const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
                                 this.noiseEnv.triggerAttackRelease(playDuration, time);
                             }
-                        }, partEvents).start(0);
+                        }, partEvents);
 
                         this.sequencePart.loop = true;
                         this.sequencePart.loopEnd = loopLength;
 
-                    if (Tone.Transport.state !== 'started') {
-                        Tone.Transport.start();
-                    } else {
-                        // Catch up timing
-                        const currentTransportTime = Tone.Transport.seconds;
-                        const currentLoopTime = loopLength > 0 ? (currentTransportTime % loopLength) : 0;
-                        if (currentLoopTime > 0.05) {
-                            const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
+                        const isTransportRunning = Tone.Transport.state === 'started';
+                        const startTime = (isTransportRunning && Tone.Transport.seconds >= 0.05) ? Tone.Transport.seconds + 0.05 : 0;
+                        this.sequencePart.start(startTime);
 
-                            if (activeEvent) {
-                                const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
-                                const timeIntoEvent = currentLoopTime - activeEvent.time;
-                                if (timeIntoEvent < playDuration) {
-                                    const remainingPlayDuration = playDuration - timeIntoEvent;
-                                    this.noiseEnv.triggerAttackRelease(remainingPlayDuration, Tone.now());
-                                }
-                            }
+                        if (!isTransportRunning) {
+                            Tone.Transport.start();
                         }
                     }
                 }
+            } else {
+                this.noiseEnv.triggerAttack();
             }
-        } else {
-            this.noiseEnv.triggerAttack();
-        }
         } else if (sourceType === 'metal') {
             // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
             const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            this.isContinuous = isContinuous;
 
             this.setEnvelope(envelope);
 
@@ -584,36 +575,17 @@ export class AudioEngine {
                                     });
                                 }
                             }
-                        }, partEvents).start(0);
+                        }, partEvents);
 
                         this.sequencePart.loop = true;
                         this.sequencePart.loopEnd = loopLength;
 
-                        if (Tone.Transport.state !== 'started') {
+                        const isTransportRunning = Tone.Transport.state === 'started';
+                        const startTime = (isTransportRunning && Tone.Transport.seconds >= 0.05) ? Tone.Transport.seconds + 0.05 : 0;
+                        this.sequencePart.start(startTime);
+
+                        if (!isTransportRunning) {
                             Tone.Transport.start();
-                        } else {
-                            const currentTransportTime = Tone.Transport.seconds;
-                            const currentLoopTime = loopLength > 0 ? (currentTransportTime % loopLength) : 0;
-
-                            if (currentLoopTime > 0.05) {
-                                const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
-                                if (activeEvent && activeEvent.notes && activeEvent.notes.length > 0 && this.metalVoices.length > 0) {
-                                    const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
-                                    const timeIntoEvent = currentLoopTime - activeEvent.time;
-
-                                    if (timeIntoEvent < playDuration) {
-                                        const remainingPlayDuration = playDuration - timeIntoEvent;
-                                        if (playMode === 'random') {
-                                            const randomNote = activeEvent.notes[Math.floor(Math.random() * activeEvent.notes.length)];
-                                            this.metalVoices[0].triggerAttackRelease(randomNote, remainingPlayDuration, Tone.now());
-                                        } else {
-                                            activeEvent.notes.slice(0, this.metalVoices.length).forEach((note, i) => {
-                                                this.metalVoices[i].triggerAttackRelease(note, remainingPlayDuration, Tone.now());
-                                            });
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -621,6 +593,7 @@ export class AudioEngine {
         } else if (sourceType === 'tone' || sourceType === 'fm' || sourceType === 'pluck' || sourceType === 'kick') {
             // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
             const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            this.isContinuous = isContinuous;
 
             // Apply envelope to synthesizer
             this.setEnvelope(envelope);
@@ -694,48 +667,52 @@ export class AudioEngine {
                                     this.polySynth.triggerAttackRelease(event.notes, playDuration, time);
                                 }
                             }
-                        }, partEvents).start(0);
+                        }, partEvents);
 
                         this.sequencePart.loop = true;
                         this.sequencePart.loopEnd = loopLength;
 
-                    // Ensure transport is running for parts to play
-                    if (Tone.Transport.state !== 'started') {
-                        Tone.Transport.start();
-                    } else {
-                        // The Transport is already running, meaning this sequence might have been added
-                        // in the middle of a long note and Tone.Part won't trigger until the loop restarts or the next event hits.
-                        // We manually trigger the currently overlapping event for the remainder of its duration so there's no silence!
-                        const currentTransportTime = Tone.Transport.seconds;
-                        const currentLoopTime = loopLength > 0 ? (currentTransportTime % loopLength) : 0;
+                        const isTransportRunning = Tone.Transport.state === 'started';
+                        const startTime = (isTransportRunning && Tone.Transport.seconds >= 0.05) ? Tone.Transport.seconds + 0.05 : 0;
+                        this.sequencePart.start(startTime);
 
-                        if (currentLoopTime > 0.05) {
-                            const activeEvent = events.find(e => currentLoopTime >= e.time && currentLoopTime < e.time + e.duration);
-                            if (activeEvent && activeEvent.notes.length > 0) {
-                                const playDuration = Math.max(0.01, activeEvent.duration * noteLengthRatio);
-                                const timeIntoEvent = currentLoopTime - activeEvent.time;
-
-                                // Only trigger retrospectively if the note is still supposed to be *active* early in its duration
-                                if (timeIntoEvent < playDuration) {
-                                    const remainingPlayDuration = playDuration - timeIntoEvent;
-                                    if (playMode === 'random') {
-                                        const randomNote = activeEvent.notes[Math.floor(Math.random() * activeEvent.notes.length)];
-                                        this.polySynth.triggerAttackRelease([randomNote], remainingPlayDuration, Tone.now());
-                                    } else {
-                                        this.polySynth.triggerAttackRelease(activeEvent.notes, remainingPlayDuration, Tone.now());
-                                    }
-                                }
-                            }
+                        if (!isTransportRunning) {
+                            Tone.Transport.start();
                         }
                     }
                 }
             }
         }
     }
-}
+
+    public stopSequence() {
+        this.playToken++;
+        if (this.sequencePart) {
+            this.sequencePart.stop();
+            this.sequencePart.dispose();
+            this.sequencePart = null;
+        }
+        if (this.sequenceEventId !== null) {
+            Tone.Transport.clear(this.sequenceEventId);
+            this.sequenceEventId = null;
+        }
+        this.onSequenceEnd = null;
+
+        if (this.currentSource === 'noise') {
+            this.noiseEnv.triggerRelease();
+        } else if (this.isContinuous) {
+            if (this.currentSource === 'metal') {
+                this.metalVoices.forEach(voice => voice.stopOscillators());
+            } else if (this.currentSource !== null) {
+                this.polySynth.releaseAll();
+            }
+            this.isContinuous = false;
+        }
+    }
 
     public stop() {
         this.playToken++;
+        this.isContinuous = false;
         if (this.sequencePart) {
             this.sequencePart.stop();
             this.sequencePart.dispose();

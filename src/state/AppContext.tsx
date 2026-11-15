@@ -1026,6 +1026,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
                     state.sounds.forEach(sound => {
                         let isGroupMuted = false;
+                        let isGroupStandby = false;
                         if (sound.groupId) {
                             const group = (state.soundGroups || []).find(g => g.id === sound.groupId);
                             if (!group || group.isMuted) {
@@ -1033,7 +1034,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                             } else if (group.playMode !== 'all') {
                                 const activeId = state.activeGroupSoundIds ? state.activeGroupSoundIds[group.id] : undefined;
                                 if (sound.id !== activeId) {
-                                    isGroupMuted = true;
+                                    isGroupStandby = true;
                                 }
                             }
                         }
@@ -1042,7 +1043,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         const isProbMuted = prob <= 0 ? true : (prob >= 1.0 ? false : probMutedSoundIdsRef.current.has(sound.id));
                         const effectiveIsMuted = sound.isMuted || isGroupMuted || isProbMuted;
                         const effectiveSound = effectiveIsMuted !== sound.isMuted ? { ...sound, isMuted: effectiveIsMuted } : sound;
-                        audioManager.syncSoundState(effectiveSound, true);
+                        audioManager.syncSoundState(effectiveSound, true, undefined, isGroupStandby);
                     });
                     audioManager.cleanupEngines(state.sounds.map(s => s.id));
 

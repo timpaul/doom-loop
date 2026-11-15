@@ -640,7 +640,7 @@ class AudioManager {
         return engine;
     }
 
-    public syncSoundState(sound: SoundState, isPlaying: boolean, mixItemId?: string) {
+    public syncSoundState(sound: SoundState, isPlaying: boolean, mixItemId?: string, isGroupStandby?: boolean) {
         const engineId = mixItemId ? `${mixItemId}-${sound.id}` : sound.id;
         const engine = this.getEngine(sound.id, mixItemId);
         this.soundStates.set(engineId, sound);
@@ -670,8 +670,14 @@ class AudioManager {
             release: sound.envRelease
         });
 
-        if (!isPlaying) {
+        if (!isPlaying || sound.isMuted) {
             engine.stop();
+            this.previousSources.delete(engineId);
+            return;
+        }
+
+        if (isGroupStandby) {
+            engine.stopSequence();
             this.previousSources.delete(engineId);
             return;
         }
@@ -840,6 +846,10 @@ class AudioManager {
             this.mainTrackBus.stop();
         }
         this.trackBuses.forEach(bus => bus.stop());
+        if (Tone.Transport.state === 'started') {
+            Tone.Transport.stop();
+            Tone.Transport.position = 0;
+        }
     }
 
     public clearAll() {
@@ -857,6 +867,10 @@ class AudioManager {
         if (this.mainTrackBus) {
             this.mainTrackBus.dispose();
             this.mainTrackBus = null;
+        }
+        if (Tone.Transport.state === 'started') {
+            Tone.Transport.stop();
+            Tone.Transport.position = 0;
         }
     }
 
