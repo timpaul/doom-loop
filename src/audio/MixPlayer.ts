@@ -507,6 +507,16 @@ export class MixPlayer {
         const soundGroups = track.soundGroups || [];
         const groupMap = new Map(soundGroups.map(g => [g.id, g]));
 
+        const trackGroupPlayMode = track.groupPlayMode ?? 'all';
+        const trackGroupSwitchProb = track.groupSwitchProbability ?? 0;
+        const eligibleTrackGroups = soundGroups.filter(g => !g.isMuted);
+        let chosenTrackGroupId: string | null = null;
+        if (trackGroupPlayMode !== 'all' && eligibleTrackGroups.length > 0) {
+            chosenTrackGroupId = trackGroupPlayMode === 'sequence'
+                ? eligibleTrackGroups[0].id
+                : eligibleTrackGroups[Math.floor(Math.random() * eligibleTrackGroups.length)].id;
+        }
+
         for (const group of soundGroups) {
             if (group.isMuted) continue;
             if (group.playMode === 'all') continue;
@@ -518,6 +528,27 @@ export class MixPlayer {
                 groupChosen.set(group.id, chosen.id);
             }
         }
+
+        const syncTrackSounds = () => {
+            this.getAudibleSounds(track).forEach(sound => {
+                let isGroupMuted = false;
+                let isGroupStandby = false;
+                if (sound.groupId) {
+                    const group = groupMap.get(sound.groupId);
+                    if (!group || group.isMuted) {
+                        isGroupMuted = true;
+                    } else if (trackGroupPlayMode !== 'all' && chosenTrackGroupId && chosenTrackGroupId !== sound.groupId) {
+                        isGroupStandby = true;
+                    } else if (group.playMode !== 'all' && groupChosen.get(sound.groupId) !== sound.id) {
+                        isGroupStandby = true;
+                    }
+                }
+                const prob = sound.probability ?? 1.0;
+                const isProbMuted = prob < 1.0 && (prob <= 0 || Math.random() >= prob);
+                const effectiveSound = (isGroupMuted || isProbMuted) ? { ...sound, isMuted: true } : sound;
+                audioManager.syncSoundState(effectiveSound, true, item.mixItemId, isGroupStandby);
+            });
+        };
 
         const setupGroupSwitch = (group: SoundGroupState, activeSoundId: string) => {
             const switchProb = group.switchProbability ?? 0;
@@ -537,36 +568,89 @@ export class MixPlayer {
                     newChosen = candidates[Math.floor(Math.random() * candidates.length)];
                 }
                 groupChosen.set(group.id, newChosen.id);
-                const oldSound = track.sounds.find(s => s.id === activeSoundId);
-                const newSound = track.sounds.find(s => s.id === newChosen.id);
-                if (oldSound) audioManager.syncSoundState(oldSound, true, item.mixItemId, true);
-                if (newSound) audioManager.syncSoundState(newSound, true, item.mixItemId, false);
+                syncTrackSounds();
                 setupGroupSwitch(group, newChosen.id);
             }, item.mixItemId);
         };
 
-        this.getAudibleSounds(track).forEach(sound => {
-            let isGroupMuted = false;
-            let isGroupStandby = false;
-            if (sound.groupId) {
-                const group = groupMap.get(sound.groupId);
-                if (!group || group.isMuted) {
-                    isGroupMuted = true;
-                } else if (group.playMode !== 'all' && groupChosen.get(sound.groupId) !== sound.id) {
-                    isGroupStandby = true;
+        syncTrackSounds();
+
+        const setupTrackGroupListeners = () => {
+            if (trackGroupPlayMode === 'all') {
+                for (const group of soundGroups) {
+                    if (group.isMuted || group.playMode === 'all') continue;
+                    const activeId = groupChosen.get(group.id);
+                    if (activeId) setupGroupSwitch(group, activeId);
+                }
+            } else if (chosenTrackGroupId) {
+                const activeGroup = groupMap.get(chosenTrackGroupId);
+                if (activeGroup && !activeGroup.isMuted) {
+                    const groupSounds = track.sounds.filter(s => s.groupId === chosenTrackGroupId && !s.isMuted);
+                    if (groupSounds.length > 0) {
+                        let longestSound = groupSounds[0];
+                        for (const s of groupSounds) {
+                            if ((s.seqLengthRate ?? 0) > (longestSound.seqLengthRate ?? 0)) {
+                                longestSound = s;
+                            }
+                        }
+
+                        const switchTrackGroup = (): boolean => {
+                            if (trackGroupSwitchProb <= 0 || Math.random() >= trackGroupSwitchProb) return false;
+                            const eligible = soundGroups.filter(g => !g.isMuted);
+                            if (eligible.length <= 1) return false;
+                            let nextGroup: SoundGroupState;
+                            if (trackGroupPlayMode === 'sequence') {
+                                const currIdx = eligible.findIndex(g => g.id === chosenTrackGroupId);
+                                const nextIdx = currIdx === -1 ? 0 : (currIdx + 1) % eligible.length;
+                                nextGroup = eligible[nextIdx];
+                            } else {
+                                const otherGroups = eligible.filter(g => g.id !== chosenTrackGroupId);
+                                const candidates = otherGroups.length > 0 ? otherGroups : eligible;
+                                nextGroup = candidates[Math.floor(Math.random() * candidates.length)];
+                            }
+                            chosenTrackGroupId = nextGroup.id;
+                            syncTrackSounds();
+                            setupTrackGroupListeners();
+                            return true;
+                        };
+
+                        if (activeGroup.playMode === 'all') {
+                            audioManager.setOnSequenceEnd(longestSound.id, () => {
+                                switchTrackGroup();
+                            }, item.mixItemId);
+                        } else {
+                            const activeSoundId = groupChosen.get(chosenTrackGroupId) || longestSound.id;
+                            audioManager.setOnSequenceEnd(activeSoundId, () => {
+                                const didSwitch = switchTrackGroup();
+                                if (!didSwitch) {
+                                    const switchProb = activeGroup.switchProbability ?? 0;
+                                    if (switchProb > 0 && Math.random() < switchProb) {
+                                        const eligibleSounds = track.sounds.filter(s => s.groupId === activeGroup.id && !s.isMuted);
+                                        if (eligibleSounds.length > 1) {
+                                            let newChosen: SoundState;
+                                            if (activeGroup.playMode === 'sequence') {
+                                                const currIdx = eligibleSounds.findIndex(s => s.id === activeSoundId);
+                                                const nextIdx = currIdx === -1 ? 0 : (currIdx + 1) % eligibleSounds.length;
+                                                newChosen = eligibleSounds[nextIdx];
+                                            } else {
+                                                const otherSounds = eligibleSounds.filter(s => s.id !== activeSoundId);
+                                                const candidates = otherSounds.length > 0 ? otherSounds : eligibleSounds;
+                                                newChosen = candidates[Math.floor(Math.random() * candidates.length)];
+                                            }
+                                            groupChosen.set(activeGroup.id, newChosen.id);
+                                            syncTrackSounds();
+                                            setupTrackGroupListeners();
+                                        }
+                                    }
+                                }
+                            }, item.mixItemId);
+                        }
+                    }
                 }
             }
-            const prob = sound.probability ?? 1.0;
-            const isProbMuted = prob < 1.0 && (prob <= 0 || Math.random() >= prob);
-            const effectiveSound = (isGroupMuted || isProbMuted) ? { ...sound, isMuted: true } : sound;
-            audioManager.syncSoundState(effectiveSound, true, item.mixItemId, isGroupStandby);
-        });
+        };
 
-        for (const group of soundGroups) {
-            if (group.isMuted || group.playMode === 'all') continue;
-            const activeId = groupChosen.get(group.id);
-            if (activeId) setupGroupSwitch(group, activeId);
-        }
+        setupTrackGroupListeners();
     }
 
     private stopTrackSync(item: MixScheduleItem) {

@@ -86,6 +86,8 @@ export const CONTROL_HELP: Record<string, string> = {
   'TRACK.Reverb high cut': 'Rolls off high frequencies in the reverb tail for a darker, warmer sound.',
   'TRACK.Author': 'Who made this track.',
   'TRACK.Notes': 'Any notes about the track, such as how it was made or when to listen to it.',
+  'TRACK.GroupPlay': 'Control how groups in the track play: play all groups together, one random group at a time, or groups in sequence.',
+  'TRACK.GroupSwitch': 'Probability of switching to a new group at the end of the longest sound sequencer length in the group.',
 
   // Sound Group
   'GROUP.Group': 'Group sounds together to control how they play. The default behavior is to play one random sound at a time, but other settings are available.',

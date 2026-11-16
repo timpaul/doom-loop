@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { DEFAULT_SOUND, migrateSound, getTrackItems, flattenTrackItems } from '../types';
-import type { SoundState, TrackState, SoundGroupState, TrackItem } from '../types';
+import type { SoundState, TrackState, SoundGroupState, TrackItem, GroupPlayMode } from '../types';
 import { audioManager } from '../audio/AudioManager';
 import { mixPlayer } from '../audio/MixPlayer';
 
@@ -79,6 +79,7 @@ export interface AppState {
     sounds: SoundState[];
     soundGroups: SoundGroupState[];
     activeGroupSoundIds: Record<string, string>;
+    activeTrackGroupId: string | null;
     expandedId: string;
     nextId: number;
     playbackMode: 'track' | 'mix';
@@ -99,6 +100,7 @@ export type Action =
     | { type: 'TOGGLE_MUTE_SOUND_GROUP'; payload: string }
     | { type: 'UPDATE_SOUND_GROUP'; payload: { groupId: string; updates: Partial<SoundGroupState> } }
     | { type: 'SWITCH_GROUP_SOUND'; payload: { groupId: string; targetSoundId: string } }
+    | { type: 'SWITCH_TRACK_GROUP'; payload: { targetGroupId: string } }
     | { type: 'MOVE_SOUND_TO_GROUP'; payload: { soundId: string; targetGroupId: string; insertIndex: number } }
     | { type: 'MOVE_SOUND_TO_TOP_LEVEL'; payload: { soundId: string; targetIndex: number } }
     | { type: 'REORDER_TOP_LEVEL_GROUP'; payload: { groupId: string; targetIndex: number } }
@@ -155,6 +157,27 @@ function computeActiveGroupSoundIds(
     }
 
     return nextActive;
+}
+
+function computeActiveTrackGroupId(
+    soundGroups: SoundGroupState[],
+    groupPlayMode: GroupPlayMode = 'all',
+    prevActiveGroupId: string | null = null
+): string | null {
+    if (groupPlayMode === 'all') return null;
+    const eligible = soundGroups.filter(g => !g.isMuted);
+    if (eligible.length === 0) return null;
+
+    if (prevActiveGroupId && eligible.some(g => g.id === prevActiveGroupId)) {
+        return prevActiveGroupId;
+    }
+
+    if (groupPlayMode === 'sequence') {
+        return eligible[0].id;
+    } else {
+        const chosen = eligible[Math.floor(Math.random() * eligible.length)];
+        return chosen.id;
+    }
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -248,6 +271,7 @@ const getInitialState = (): AppState => {
         sounds,
         soundGroups,
         activeGroupSoundIds: {},
+        activeTrackGroupId: null,
         toastMessage: null,
         expandedId,
         nextId: parseJSON('noisemaker_nextId', 2),
@@ -417,6 +441,10 @@ const appReducer = (state: AppState, action: Action): AppState => {
             };
             break;
         }
+        case 'SWITCH_TRACK_GROUP': {
+            newState.activeTrackGroupId = action.payload.targetGroupId;
+            break;
+        }
         case 'MOVE_SOUND_TO_GROUP': {
             const { soundId, targetGroupId, insertIndex } = action.payload;
             const items = getTrackItems(state.sounds, state.soundGroups);
@@ -501,6 +529,9 @@ const appReducer = (state: AppState, action: Action): AppState => {
             newState.currentTrackName = action.payload;
             break;
         case 'UPDATE_TRACK_META': {
+            const currentTrack = state.savedTracks.find(t => t.id === state.currentTrackId);
+            const prevMode = currentTrack?.groupPlayMode ?? 'all';
+
             const existingIdx = state.savedTracks.findIndex(t => t.id === state.currentTrackId);
             if (existingIdx >= 0) {
                 newState.savedTracks = state.savedTracks.map(t =>
@@ -519,8 +550,22 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     reverbDecay: 4,
                     sounds: state.sounds,
                     soundGroups: state.soundGroups,
+                    groupPlayMode: 'all',
+                    groupSwitchProbability: 0,
                     ...action.payload
                 }];
+            }
+
+            if (action.payload.groupPlayMode && action.payload.groupPlayMode !== prevMode) {
+                if (action.payload.groupPlayMode === 'all') {
+                    newState.activeTrackGroupId = null;
+                } else {
+                    newState.activeTrackGroupId = computeActiveTrackGroupId(
+                        newState.soundGroups,
+                        action.payload.groupPlayMode,
+                        null
+                    );
+                }
             }
             break;
         }
@@ -618,6 +663,8 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 reverbPreDelay: trackToDuplicate.reverbPreDelay ?? 0.01,
                 reverbLowCut: trackToDuplicate.reverbLowCut ?? 20,
                 reverbHighCut: trackToDuplicate.reverbHighCut ?? 20000,
+                groupPlayMode: trackToDuplicate.groupPlayMode ?? 'all',
+                groupSwitchProbability: trackToDuplicate.groupSwitchProbability ?? 0,
                 sounds: trackToDuplicate.sounds.map((s, index) => ({
                     ...s,
                     id: `${Date.now()}-${index}`,
@@ -655,6 +702,8 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     reverbPreDelay: typeof importData.reverbPreDelay === 'number' ? importData.reverbPreDelay : 0.01,
                     reverbLowCut: typeof importData.reverbLowCut === 'number' ? importData.reverbLowCut : 20,
                     reverbHighCut: typeof importData.reverbHighCut === 'number' ? importData.reverbHighCut : 20000,
+                    groupPlayMode: importData.groupPlayMode ?? 'all',
+                    groupSwitchProbability: typeof importData.groupSwitchProbability === 'number' ? importData.groupSwitchProbability : 0,
                     sounds: importedSounds,
                     soundGroups: Array.isArray(importData.soundGroups) ? importData.soundGroups : []
                 };
@@ -901,10 +950,17 @@ const appReducer = (state: AppState, action: Action): AppState => {
         newState.savedTracks = updatedTracks;
     }
 
-    // Update activeGroupSoundIds for sound groups
-    if (action.type !== 'SWITCH_GROUP_SOUND') {
+    // Update activeGroupSoundIds and activeTrackGroupId
+    if (action.type !== 'SWITCH_GROUP_SOUND' && action.type !== 'SWITCH_TRACK_GROUP') {
         if (newState.isPlaying && newState.playbackMode === 'track') {
             const isFreshPlay = !state.isPlaying || state.playbackMode !== 'track' || state.currentTrackId !== newState.currentTrackId;
+            const currentTrack = newState.savedTracks.find(t => t.id === newState.currentTrackId) || newState.communityTracks.find(t => t.id === newState.currentTrackId);
+            const groupPlayMode = currentTrack?.groupPlayMode ?? 'all';
+            newState.activeTrackGroupId = computeActiveTrackGroupId(
+                newState.soundGroups,
+                groupPlayMode,
+                isFreshPlay ? null : (newState.activeTrackGroupId ?? null)
+            );
             newState.activeGroupSoundIds = computeActiveGroupSoundIds(
                 newState.sounds,
                 newState.soundGroups,
@@ -912,6 +968,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             );
         } else {
             newState.activeGroupSoundIds = {};
+            newState.activeTrackGroupId = null;
         }
     }
 
@@ -1012,6 +1069,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     }
 
                     const currentTrack = state.savedTracks.find(t => t.id === state.currentTrackId) || state.communityTracks.find(t => t.id === state.currentTrackId);
+                    const trackGroupPlayMode = currentTrack?.groupPlayMode ?? 'all';
                     audioManager.setTrackTranspose(currentTrack?.transpose ?? 0);
                     audioManager.setTrackSpatialize(currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1);
                     audioManager.setTrackGlue(currentTrack?.glue ?? 0);
@@ -1045,6 +1103,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                             const group = (state.soundGroups || []).find(g => g.id === sound.groupId);
                             if (!group || group.isMuted) {
                                 isGroupMuted = true;
+                            } else if (trackGroupPlayMode !== 'all' && state.activeTrackGroupId && state.activeTrackGroupId !== sound.groupId) {
+                                isGroupStandby = true;
                             } else if (group.playMode !== 'all') {
                                 const activeId = state.activeGroupSoundIds ? state.activeGroupSoundIds[group.id] : undefined;
                                 if (sound.id !== activeId) {
@@ -1067,40 +1127,109 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     });
 
                     if (state.playbackMode === 'track') {
-                        (state.soundGroups || []).forEach(group => {
-                            if (group.isMuted || group.playMode === 'all') return;
-                            const activeId = state.activeGroupSoundIds?.[group.id];
-                            if (!activeId) return;
+                        const triggerGroupSoundSwitch = (groupId: string) => {
+                            const curr = stateRef.current;
+                            if (!curr.isPlaying || curr.playbackMode !== 'track') return;
+                            const currGroup = (curr.soundGroups || []).find(g => g.id === groupId);
+                            if (!currGroup || currGroup.isMuted || currGroup.playMode === 'all') return;
+                            const switchProb = currGroup.switchProbability ?? 0;
+                            if (switchProb <= 0 || Math.random() >= switchProb) return;
 
-                            audioManager.setOnSequenceEnd(activeId, () => {
-                                const curr = stateRef.current;
-                                if (!curr.isPlaying || curr.playbackMode !== 'track') return;
-                                const currGroup = (curr.soundGroups || []).find(g => g.id === group.id);
-                                if (!currGroup || currGroup.isMuted || currGroup.playMode === 'all') return;
-                                const switchProb = currGroup.switchProbability ?? 0;
-                                if (switchProb <= 0 || Math.random() >= switchProb) return;
+                            const currActiveId = curr.activeGroupSoundIds?.[groupId];
+                            const eligible = curr.sounds.filter(s =>
+                                s.groupId === groupId && !s.isMuted
+                            );
+                            if (eligible.length <= 1) return;
+                            let nextSound: SoundState;
+                            if (currGroup.playMode === 'sequence') {
+                                const currentIndex = eligible.findIndex(s => s.id === currActiveId);
+                                const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % eligible.length;
+                                nextSound = eligible[nextIndex];
+                            } else {
+                                const otherSounds = eligible.filter(s => s.id !== currActiveId);
+                                const candidates = otherSounds.length > 0 ? otherSounds : eligible;
+                                nextSound = candidates[Math.floor(Math.random() * candidates.length)];
+                            }
+                            dispatch({
+                                type: 'SWITCH_GROUP_SOUND',
+                                payload: { groupId, targetSoundId: nextSound.id }
+                            });
+                        };
 
-                                const currActiveId = curr.activeGroupSoundIds?.[group.id];
-                                const eligible = curr.sounds.filter(s =>
-                                    s.groupId === group.id && !s.isMuted
-                                );
-                                if (eligible.length <= 1) return;
-                                let nextSound: SoundState;
-                                if (currGroup.playMode === 'sequence') {
-                                    const currentIndex = eligible.findIndex(s => s.id === currActiveId);
-                                    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % eligible.length;
-                                    nextSound = eligible[nextIndex];
-                                } else {
-                                    const otherSounds = eligible.filter(s => s.id !== currActiveId);
-                                    const candidates = otherSounds.length > 0 ? otherSounds : eligible;
-                                    nextSound = candidates[Math.floor(Math.random() * candidates.length)];
-                                }
-                                dispatch({
-                                    type: 'SWITCH_GROUP_SOUND',
-                                    payload: { groupId: group.id, targetSoundId: nextSound.id }
+                        const triggerTrackGroupSwitch = (): boolean => {
+                            const curr = stateRef.current;
+                            if (!curr.isPlaying || curr.playbackMode !== 'track') return false;
+                            const currTrack = curr.savedTracks.find(t => t.id === curr.currentTrackId) || curr.communityTracks.find(t => t.id === curr.currentTrackId);
+                            const mode = currTrack?.groupPlayMode ?? 'all';
+                            if (mode === 'all') return false;
+                            const switchProb = currTrack?.groupSwitchProbability ?? 0;
+                            if (switchProb <= 0 || Math.random() >= switchProb) return false;
+
+                            const eligibleGroups = (curr.soundGroups || []).filter(g => !g.isMuted);
+                            if (eligibleGroups.length <= 1) return false;
+
+                            const currentActiveGroupId = curr.activeTrackGroupId;
+                            let nextGroup: SoundGroupState;
+                            if (mode === 'sequence') {
+                                const currIdx = eligibleGroups.findIndex(g => g.id === currentActiveGroupId);
+                                const nextIdx = currIdx === -1 ? 0 : (currIdx + 1) % eligibleGroups.length;
+                                nextGroup = eligibleGroups[nextIdx];
+                            } else {
+                                const otherGroups = eligibleGroups.filter(g => g.id !== currentActiveGroupId);
+                                const candidates = otherGroups.length > 0 ? otherGroups : eligibleGroups;
+                                nextGroup = candidates[Math.floor(Math.random() * candidates.length)];
+                            }
+
+                            dispatch({
+                                type: 'SWITCH_TRACK_GROUP',
+                                payload: { targetGroupId: nextGroup.id }
+                            });
+                            return true;
+                        };
+
+                        if (trackGroupPlayMode === 'all') {
+                            (state.soundGroups || []).forEach(group => {
+                                if (group.isMuted || group.playMode === 'all') return;
+                                const activeId = state.activeGroupSoundIds?.[group.id];
+                                if (!activeId) return;
+
+                                audioManager.setOnSequenceEnd(activeId, () => {
+                                    triggerGroupSoundSwitch(group.id);
                                 });
                             });
-                        });
+                        } else {
+                            const activeGroupId = state.activeTrackGroupId;
+                            if (activeGroupId) {
+                                const activeGroup = (state.soundGroups || []).find(g => g.id === activeGroupId);
+                                if (activeGroup && !activeGroup.isMuted) {
+                                    const groupSounds = state.sounds.filter(s => s.groupId === activeGroupId && !s.isMuted);
+                                    if (groupSounds.length > 0) {
+                                        // Find the sound with the LONGEST sequencer length in this group
+                                        let longestSound = groupSounds[0];
+                                        for (const s of groupSounds) {
+                                            if ((s.seqLengthRate ?? 0) > (longestSound.seqLengthRate ?? 0)) {
+                                                longestSound = s;
+                                            }
+                                        }
+
+                                        if (activeGroup.playMode === 'all') {
+                                            audioManager.setOnSequenceEnd(longestSound.id, () => {
+                                                triggerTrackGroupSwitch();
+                                            });
+                                        } else {
+                                            const activeSoundId = state.activeGroupSoundIds?.[activeGroupId];
+                                            const triggerSoundId = activeSoundId || longestSound.id;
+                                            audioManager.setOnSequenceEnd(triggerSoundId, () => {
+                                                const didSwitchTrackGroup = triggerTrackGroupSwitch();
+                                                if (!didSwitchTrackGroup) {
+                                                    triggerGroupSoundSwitch(activeGroupId);
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1119,7 +1248,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             prevIsPlayingRef.current = false;
             probMutedSoundIdsRef.current.clear();
         }
-    }, [state.isPlaying, state.playbackMode, state.currentTrackId, state.currentMixId, state.sounds, state.soundGroups, state.activeGroupSoundIds, state.savedTracks, state.savedMixes, state.communityTracks, state.communityMixes]);
+    }, [state.isPlaying, state.playbackMode, state.currentTrackId, state.currentMixId, state.sounds, state.soundGroups, state.activeGroupSoundIds, state.activeTrackGroupId, state.savedTracks, state.savedMixes, state.communityTracks, state.communityMixes]);
 
     return (
         <AppContext.Provider value={{ state, dispatch }}>

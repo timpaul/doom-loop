@@ -104,6 +104,8 @@ export interface TrackState {
     reverbPreDelay?: number;
     reverbLowCut?: number;
     reverbHighCut?: number;
+    groupPlayMode?: GroupPlayMode;
+    groupSwitchProbability?: number;
     sounds: SoundState[];
     soundGroups?: SoundGroupState[];
 }

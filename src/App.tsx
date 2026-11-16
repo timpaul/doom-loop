@@ -293,7 +293,10 @@ const UngroupIcon = () => (
                   {(() => {
                     const isTrackPlaying = state.isPlaying && state.playbackMode === 'track';
                     const group = sound.groupId ? state.soundGroups?.find(g => g.id === sound.groupId) : undefined;
-                    const isStandby = Boolean(group && isTrackPlaying && !group.isMuted && group.playMode !== 'all' && !sound.isMuted && state.activeGroupSoundIds?.[sound.groupId!] !== sound.id);
+                    const currentTrack = state.savedTracks.find(t => t.id === state.currentTrackId) || state.communityTracks.find(t => t.id === state.currentTrackId);
+                    const isTrackGroupActive = !currentTrack?.groupPlayMode || currentTrack.groupPlayMode === 'all' || state.activeTrackGroupId === sound.groupId;
+                    const isGroupActiveSound = !group || group.playMode === 'all' || state.activeGroupSoundIds?.[sound.groupId!] === sound.id;
+                    const isStandby = Boolean(group && isTrackPlaying && !group.isMuted && !sound.isMuted && (!isTrackGroupActive || !isGroupActiveSound));
                     return (
                       <button
                         className={`mute-toggle-btn ${sound.isMuted ? '' : (isStandby ? 'standby' : 'active')}`}
@@ -1102,6 +1105,7 @@ function SoundGroupPanel({
   onGroupDragOver,
   onGroupDrop,
   onGroupDragEnd,
+  isStandby,
   children
 }: {
   group: SoundGroupState;
@@ -1117,6 +1121,7 @@ function SoundGroupPanel({
   onGroupDragOver: (e: React.DragEvent) => void;
   onGroupDrop: (e: React.DragEvent) => void;
   onGroupDragEnd: (e: React.DragEvent) => void;
+  isStandby?: boolean;
   children: React.ReactNode;
 }) {
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
@@ -1171,9 +1176,9 @@ function SoundGroupPanel({
             <ChevronRightIcon isExpanded={isExpanded} />
           </button>
           <button
-            className={`mute-toggle-btn ${!group.isMuted ? 'active' : ''}`}
+            className={`mute-toggle-btn ${group.isMuted ? '' : (isStandby ? 'standby' : 'active')}`}
             onClick={onToggleMute}
-            aria-label={group.isMuted ? "Unmute Sound Group" : "Mute Sound Group"}
+            aria-label={group.isMuted ? "Unmute Sound Group" : (isStandby ? "Mute Sound Group (Standby)" : "Mute Sound Group")}
           />
         </div>
       </div>
@@ -1796,7 +1801,9 @@ const useAudioActions = () => {
               const navigate = useNavigate();
               const {togglePlay} = useAudioActions();
               const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+              const [isTrackEffectsExpanded, setIsTrackEffectsExpanded] = useState(false);
               const [isReverbExpanded, setIsReverbExpanded] = useState(false);
+              const [isGroupSettingsExpanded, setIsGroupSettingsExpanded] = useState(false);
               const [isInfoExpanded, setIsInfoExpanded] = useState(false);
 
   const currentTrack = state.savedTracks.find(t => t.id === id);
@@ -2134,65 +2141,77 @@ const useAudioActions = () => {
                     </h2>
                     {isSettingsExpanded && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
-                        <div className="control-row" style={{ marginTop: '0' }}>
-                          <ControlLabel help="TRACK.Transpose">Transpose</ControlLabel>
-                          <Slider
-                            min="-12" max="12" step="1"
-                            value={currentTrack?.transpose ?? 0}
-                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { transpose: parseInt(e.target.value, 10) } })}
-                            aria-label="Transpose"
-                            displayValue={(currentTrack?.transpose ?? 0) > 0 ? `+${currentTrack?.transpose} st` : `${currentTrack?.transpose ?? 0} st`}
-                          />
-                        </div>
-                        <div className="control-row">
-                          <ControlLabel help="TRACK.Spatialize">Spatialize</ControlLabel>
-                          <Slider
-                            min="0" max="2" step="0.05"
-                            value={currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1}
-                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { spatialize: parseFloat(e.target.value) } })}
-                            aria-label="Spatialize"
-                            displayValue={(currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1) === 0 ? '0% (Mono)' : `${Math.round((currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1) * 100)}%`}
-                          />
-                        </div>
-                        <div className="control-row">
-                          <ControlLabel help="TRACK.Glue">Glue</ControlLabel>
-                          <Slider
-                            min="0" max="1" step="0.01"
-                            value={currentTrack?.glue ?? 0}
-                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { glue: parseFloat(e.target.value) } })}
-                            aria-label="Glue compressor"
-                            displayValue={(currentTrack?.glue ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.glue ?? 0)}
-                          />
-                        </div>
-                        <div className="control-row">
-                          <ControlLabel help="TRACK.Fog">Fog</ControlLabel>
-                          <Slider
-                            min="0" max="1" step="0.01"
-                            value={currentTrack?.fog ?? 0}
-                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { fog: parseFloat(e.target.value) } })}
-                            aria-label="Fog filter"
-                            displayValue={(currentTrack?.fog ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.fog ?? 0)}
-                          />
-                        </div>
-                        <div className="control-row">
-                          <ControlLabel help="TRACK.Drift">Drift</ControlLabel>
-                          <Slider
-                            min="0" max="1" step="0.01"
-                            value={currentTrack?.drift ?? 0}
-                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { drift: parseFloat(e.target.value) } })}
-                            aria-label="Tape drift"
-                            displayValue={(currentTrack?.drift ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.drift ?? 0)}
-                          />
-                        </div>
-                        <div className="control-row">
-                          <ControlLabel help="TRACK.Fripp">Fripp</ControlLabel>
-                          <Slider
-                            min="0" max="1" step="0.01"
-                            value={currentTrack?.fripp ?? 0}
-                            onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { fripp: parseFloat(e.target.value) } })}
-                            aria-label="Frippertronics tape loop"
-                            displayValue={(currentTrack?.fripp ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.fripp ?? 0)}
-                          />
+                        <div className={`sub-panel ${!isTrackEffectsExpanded ? 'collapsed' : ''}`} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                          <h3 className="panel-title" onClick={() => setIsTrackEffectsExpanded(!isTrackEffectsExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer' }}>
+                            TRACK EFFECTS
+                            <div className="icon-btn" style={{ width: '20px', height: '20px', marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <ChevronRightIcon isExpanded={isTrackEffectsExpanded} />
+                            </div>
+                          </h3>
+                          {isTrackEffectsExpanded && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                              <div className="control-row" style={{ marginTop: '0' }}>
+                                <ControlLabel help="TRACK.Transpose">Transpose</ControlLabel>
+                                <Slider
+                                  min="-12" max="12" step="1"
+                                  value={currentTrack?.transpose ?? 0}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { transpose: parseInt(e.target.value, 10) } })}
+                                  aria-label="Transpose"
+                                  displayValue={(currentTrack?.transpose ?? 0) > 0 ? `+${currentTrack?.transpose} st` : `${currentTrack?.transpose ?? 0} st`}
+                                />
+                              </div>
+                              <div className="control-row">
+                                <ControlLabel help="TRACK.Spatialize">Spatialize</ControlLabel>
+                                <Slider
+                                  min="0" max="2" step="0.05"
+                                  value={currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { spatialize: parseFloat(e.target.value) } })}
+                                  aria-label="Spatialize"
+                                  displayValue={(currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1) === 0 ? '0% (Mono)' : `${Math.round((currentTrack?.spatialize ?? currentTrack?.stereoWidth ?? 1) * 100)}%`}
+                                />
+                              </div>
+                              <div className="control-row">
+                                <ControlLabel help="TRACK.Glue">Glue</ControlLabel>
+                                <Slider
+                                  min="0" max="1" step="0.01"
+                                  value={currentTrack?.glue ?? 0}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { glue: parseFloat(e.target.value) } })}
+                                  aria-label="Glue compressor"
+                                  displayValue={(currentTrack?.glue ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.glue ?? 0)}
+                                />
+                              </div>
+                              <div className="control-row">
+                                <ControlLabel help="TRACK.Fog">Fog</ControlLabel>
+                                <Slider
+                                  min="0" max="1" step="0.01"
+                                  value={currentTrack?.fog ?? 0}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { fog: parseFloat(e.target.value) } })}
+                                  aria-label="Fog filter"
+                                  displayValue={(currentTrack?.fog ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.fog ?? 0)}
+                                />
+                              </div>
+                              <div className="control-row">
+                                <ControlLabel help="TRACK.Drift">Drift</ControlLabel>
+                                <Slider
+                                  min="0" max="1" step="0.01"
+                                  value={currentTrack?.drift ?? 0}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { drift: parseFloat(e.target.value) } })}
+                                  aria-label="Tape drift"
+                                  displayValue={(currentTrack?.drift ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.drift ?? 0)}
+                                />
+                              </div>
+                              <div className="control-row">
+                                <ControlLabel help="TRACK.Fripp">Fripp</ControlLabel>
+                                <Slider
+                                  min="0" max="1" step="0.01"
+                                  value={currentTrack?.fripp ?? 0}
+                                  onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { fripp: parseFloat(e.target.value) } })}
+                                  aria-label="Frippertronics tape loop"
+                                  displayValue={(currentTrack?.fripp ?? 0) === 0 ? 'Off' : formatPercentDisplay(currentTrack?.fripp ?? 0)}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className={`sub-panel ${!isReverbExpanded ? 'collapsed' : ''}`} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
@@ -2244,6 +2263,56 @@ const useAudioActions = () => {
                                   displayValue={(currentTrack?.reverbHighCut ?? 20000) >= 20000 ? 'Off' : `${((currentTrack?.reverbHighCut ?? 20000) / 1000).toFixed(1)} kHz`}
                                 />
                               </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className={`sub-panel ${!isGroupSettingsExpanded ? 'collapsed' : ''}`} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
+                          <h3 className="panel-title" onClick={() => setIsGroupSettingsExpanded(!isGroupSettingsExpanded)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer' }}>
+                            GROUPS
+                            <div className="icon-btn" style={{ width: '20px', height: '20px', marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <ChevronRightIcon isExpanded={isGroupSettingsExpanded} />
+                            </div>
+                          </h3>
+                          {isGroupSettingsExpanded && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                              <div className="control-row" style={{ marginTop: 0 }}>
+                                <ControlLabel help="TRACK.GroupPlay">Play</ControlLabel>
+                                <div className="segmented-control" style={{ marginTop: 0 }}>
+                                  <button
+                                    className={`segment-btn ${(currentTrack?.groupPlayMode ?? 'all') === 'all' ? 'active' : ''}`}
+                                    onClick={() => dispatch({ type: 'UPDATE_TRACK_META', payload: { groupPlayMode: 'all' } })}
+                                  >
+                                    All
+                                  </button>
+                                  <button
+                                    className={`segment-btn ${(currentTrack?.groupPlayMode ?? 'all') === 'random' ? 'active' : ''}`}
+                                    onClick={() => dispatch({ type: 'UPDATE_TRACK_META', payload: { groupPlayMode: 'random' } })}
+                                  >
+                                    Random
+                                  </button>
+                                  <button
+                                    className={`segment-btn ${(currentTrack?.groupPlayMode ?? 'all') === 'sequence' ? 'active' : ''}`}
+                                    onClick={() => dispatch({ type: 'UPDATE_TRACK_META', payload: { groupPlayMode: 'sequence' } })}
+                                  >
+                                    Sequence
+                                  </button>
+                                </div>
+                              </div>
+                              {(currentTrack?.groupPlayMode ?? 'all') !== 'all' && (
+                                <div className="control-row">
+                                  <ControlLabel help="TRACK.GroupSwitch">Switch</ControlLabel>
+                                  <Slider
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={currentTrack?.groupSwitchProbability ?? 0}
+                                    onChange={e => dispatch({ type: 'UPDATE_TRACK_META', payload: { groupSwitchProbability: parseFloat(e.target.value) } })}
+                                    aria-label="Track Group Switch"
+                                    displayValue={formatPercentDisplay(currentTrack?.groupSwitchProbability ?? 0)}
+                                  />
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -2335,6 +2404,9 @@ const useAudioActions = () => {
                         const isBelow = dropTarget?.kind === 'top-item' && dropTarget.itemIndex === itemIndex && dropTarget.position === 'below';
                         const dropPosition: 'above' | 'below' | null = isAbove ? 'above' : (isBelow ? 'below' : null);
                         const isDragging = draggedEntity?.type === 'group' && draggedEntity.groupId === group.id;
+                        const isTrackPlaying = state.isPlaying && state.playbackMode === 'track';
+                        const isTrackGroupActive = !currentTrack?.groupPlayMode || currentTrack.groupPlayMode === 'all' || state.activeTrackGroupId === group.id;
+                        const isGroupStandby = isTrackPlaying && !group.isMuted && !isTrackGroupActive;
 
                         return (
                           <SoundGroupPanel
@@ -2342,6 +2414,7 @@ const useAudioActions = () => {
                             group={group}
                             sounds={item.sounds}
                             isExpanded={isGroupExpanded}
+                            isStandby={isGroupStandby}
                             onToggleExpand={() => toggleGroupCollapse(group.id)}
                             onUngroup={() => dispatch({ type: 'UNGROUP_SOUNDS', payload: group.id })}
                             onToggleMute={() => dispatch({ type: 'TOGGLE_MUTE_SOUND_GROUP', payload: group.id })}
