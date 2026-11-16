@@ -145,8 +145,12 @@ function computeActiveGroupSoundIds(
         if (isCurrentStillEligible) {
             nextActive[group.id] = currentActiveId;
         } else {
-            const chosen = eligible[Math.floor(Math.random() * eligible.length)];
-            nextActive[group.id] = chosen.id;
+            if (group.playMode === 'sequence') {
+                nextActive[group.id] = eligible[0].id;
+            } else {
+                const chosen = eligible[Math.floor(Math.random() * eligible.length)];
+                nextActive[group.id] = chosen.id;
+            }
         }
     }
 
@@ -391,9 +395,19 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'UPDATE_SOUND_GROUP': {
             const { groupId, updates } = action.payload;
+            const prevGroup = (state.soundGroups || []).find(g => g.id === groupId);
             newState.soundGroups = (state.soundGroups || []).map(g =>
                 g.id === groupId ? { ...g, ...updates } : g
             );
+            if (updates.playMode === 'sequence' && prevGroup?.playMode !== 'sequence') {
+                const eligible = newState.sounds.filter(s => s.groupId === groupId && !s.isMuted);
+                if (eligible.length > 0) {
+                    newState.activeGroupSoundIds = {
+                        ...(state.activeGroupSoundIds || {}),
+                        [groupId]: eligible[0].id
+                    };
+                }
+            }
             break;
         }
         case 'SWITCH_GROUP_SOUND': {
@@ -1071,9 +1085,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                                     s.groupId === group.id && !s.isMuted
                                 );
                                 if (eligible.length <= 1) return;
-                                const otherSounds = eligible.filter(s => s.id !== currActiveId);
-                                const candidates = otherSounds.length > 0 ? otherSounds : eligible;
-                                const nextSound = candidates[Math.floor(Math.random() * candidates.length)];
+                                let nextSound: SoundState;
+                                if (currGroup.playMode === 'sequence') {
+                                    const currentIndex = eligible.findIndex(s => s.id === currActiveId);
+                                    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % eligible.length;
+                                    nextSound = eligible[nextIndex];
+                                } else {
+                                    const otherSounds = eligible.filter(s => s.id !== currActiveId);
+                                    const candidates = otherSounds.length > 0 ? otherSounds : eligible;
+                                    nextSound = candidates[Math.floor(Math.random() * candidates.length)];
+                                }
                                 dispatch({
                                     type: 'SWITCH_GROUP_SOUND',
                                     payload: { groupId: group.id, targetSoundId: nextSound.id }

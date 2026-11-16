@@ -92,7 +92,7 @@ export const CONTROL_HELP: Record<string, string> = {
   'GROUP.GROUP': 'Group sounds together to control how they play. The default behavior is to play one random sound at a time, but other settings are available.',
   'Group': 'Group sounds together to control how they play. The default behavior is to play one random sound at a time, but other settings are available.',
   'GROUP': 'Group sounds together to control how they play. The default behavior is to play one random sound at a time, but other settings are available.',
-  'GROUP.Play': 'Play one random sound at a time or play all sounds together.',
+  'GROUP.Play': 'Play all sounds together, play one random sound at a time, or play sounds in sequence.',
   'GROUP.Switch': 'Probability of switching to a new sound when the current sound reaches the end of its sequence.',
 
   // Effects

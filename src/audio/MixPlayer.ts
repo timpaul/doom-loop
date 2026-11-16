@@ -1,5 +1,5 @@
 import { audioManager } from './AudioManager';
-import type { MixState, TrackState, MixItem, SoundGroupState } from '../types';
+import type { MixState, TrackState, MixItem, SoundGroupState, SoundState } from '../types';
 import * as Tone from 'tone';
 
 export interface MixScheduleItem {
@@ -512,7 +512,9 @@ export class MixPlayer {
             if (group.playMode === 'all') continue;
             const groupSounds = track.sounds.filter(s => s.groupId === group.id && !s.isMuted);
             if (groupSounds.length > 0) {
-                const chosen = groupSounds[Math.floor(Math.random() * groupSounds.length)];
+                const chosen = group.playMode === 'sequence'
+                    ? groupSounds[0]
+                    : groupSounds[Math.floor(Math.random() * groupSounds.length)];
                 groupChosen.set(group.id, chosen.id);
             }
         }
@@ -522,9 +524,18 @@ export class MixPlayer {
             if (switchProb <= 0) return;
             audioManager.setOnSequenceEnd(activeSoundId, () => {
                 if (Math.random() >= switchProb) return;
-                const otherSounds = track.sounds.filter(s => s.groupId === group.id && !s.isMuted && s.id !== activeSoundId);
-                if (otherSounds.length === 0) return;
-                const newChosen = otherSounds[Math.floor(Math.random() * otherSounds.length)];
+                const eligible = track.sounds.filter(s => s.groupId === group.id && !s.isMuted);
+                if (eligible.length <= 1) return;
+                let newChosen: SoundState;
+                if (group.playMode === 'sequence') {
+                    const currentIndex = eligible.findIndex(s => s.id === activeSoundId);
+                    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % eligible.length;
+                    newChosen = eligible[nextIndex];
+                } else {
+                    const otherSounds = eligible.filter(s => s.id !== activeSoundId);
+                    const candidates = otherSounds.length > 0 ? otherSounds : eligible;
+                    newChosen = candidates[Math.floor(Math.random() * candidates.length)];
+                }
                 groupChosen.set(group.id, newChosen.id);
                 const oldSound = track.sounds.find(s => s.id === activeSoundId);
                 const newSound = track.sounds.find(s => s.id === newChosen.id);

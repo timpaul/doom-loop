@@ -79,7 +79,7 @@ export interface SoundState {
     chebyshevAmount: number;
 }
 
-export type GroupPlayMode = 'random' | 'all';
+export type GroupPlayMode = 'random' | 'all' | 'sequence';
 
 export interface SoundGroupState {
     id: string;

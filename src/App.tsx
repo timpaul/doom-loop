@@ -1206,13 +1206,19 @@ function SoundGroupPanel({
                       className={`segment-btn ${playMode === 'all' ? 'active' : ''}`}
                       onClick={() => onUpdateGroup({ playMode: 'all' })}
                     >
-                      All sounds
+                      All
                     </button>
                     <button
-                      className={`segment-btn ${playMode !== 'all' ? 'active' : ''}`}
+                      className={`segment-btn ${playMode === 'random' ? 'active' : ''}`}
                       onClick={() => onUpdateGroup({ playMode: 'random' })}
                     >
-                      Random sound
+                      Random
+                    </button>
+                    <button
+                      className={`segment-btn ${playMode === 'sequence' ? 'active' : ''}`}
+                      onClick={() => onUpdateGroup({ playMode: 'sequence' })}
+                    >
+                      Sequence
                     </button>
                   </div>
                 </div>
