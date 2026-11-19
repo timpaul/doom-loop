@@ -164,6 +164,14 @@ const UngroupIcon = () => (
 
       const [chordInput, setChordInput] = useState('');
       const [selectedStep, setSelectedStep] = useState(0);
+      const [playingState, setPlayingState] = useState<{ step: number | null; notes: string[] }>(() => audioManager.getPlayingStep(sound.id));
+
+      useEffect(() => {
+        return audioManager.subscribeStep(sound.id, (step, notes) => {
+          setPlayingState({ step, notes });
+        });
+      }, [sound.id]);
+
       const [collapsedPanels, setCollapsedPanels] = useState<Record<string, boolean>>({
         'SEQUENCER': false,
         'ENVELOPE': false,
@@ -247,6 +255,16 @@ const UngroupIcon = () => (
             update({autoFilterBaseFreq: newFreq });
   };
 
+            const isTrackPlaying = state.isPlaying && state.playbackMode === 'track';
+            const group = sound.groupId ? state.soundGroups?.find(g => g.id === sound.groupId) : undefined;
+            const currentTrack = state.savedTracks.find(t => t.id === state.currentTrackId) || state.communityTracks.find(t => t.id === state.currentTrackId);
+            const isTrackGroupActive = !currentTrack?.groupPlayMode || currentTrack.groupPlayMode === 'all' || state.activeTrackGroupId === sound.groupId;
+            const isGroupActiveSound = !group || group.playMode === 'all' || state.activeGroupSoundIds?.[sound.groupId!] === sound.id;
+            const isStandby = Boolean(group && isTrackPlaying && !group.isMuted && !sound.isMuted && (!isTrackGroupActive || !isGroupActiveSound));
+            const isSoundAudible = isTrackPlaying && !sound.isMuted && !isStandby;
+            const activePlayingStep = isSoundAudible ? playingState.step : null;
+            const activePlayingNotes = isSoundAudible ? playingState.notes : [];
+
             const [canDrag, setCanDrag] = useState(false);
 
             return (
@@ -297,21 +315,11 @@ const UngroupIcon = () => (
                       <TrashIcon />
                     </button>
                   </div>
-                  {(() => {
-                    const isTrackPlaying = state.isPlaying && state.playbackMode === 'track';
-                    const group = sound.groupId ? state.soundGroups?.find(g => g.id === sound.groupId) : undefined;
-                    const currentTrack = state.savedTracks.find(t => t.id === state.currentTrackId) || state.communityTracks.find(t => t.id === state.currentTrackId);
-                    const isTrackGroupActive = !currentTrack?.groupPlayMode || currentTrack.groupPlayMode === 'all' || state.activeTrackGroupId === sound.groupId;
-                    const isGroupActiveSound = !group || group.playMode === 'all' || state.activeGroupSoundIds?.[sound.groupId!] === sound.id;
-                    const isStandby = Boolean(group && isTrackPlaying && !group.isMuted && !sound.isMuted && (!isTrackGroupActive || !isGroupActiveSound));
-                    return (
-                      <button
-                        className={`mute-toggle-btn ${sound.isMuted ? '' : (isStandby ? 'standby' : 'active')}`}
-                        onClick={() => update({ isMuted: !sound.isMuted })}
-                        aria-label={sound.isMuted ? "Unmute Sound" : (isStandby ? "Mute Sound (Standby)" : "Mute Sound")}
-                      />
-                    );
-                  })()}
+                  <button
+                    className={`mute-toggle-btn ${sound.isMuted ? '' : (isStandby ? 'standby' : 'active')}`}
+                    onClick={() => update({ isMuted: !sound.isMuted })}
+                    aria-label={sound.isMuted ? "Unmute Sound" : (isStandby ? "Mute Sound (Standby)" : "Mute Sound")}
+                  />
                 </div>
               </div>
 
@@ -533,27 +541,32 @@ const UngroupIcon = () => (
                           <ControlLabel help="SEQUENCER.Ratios">Ratios</ControlLabel>
                           <div className="ratios-container">
                             {[0, 1, 2, 3, 4, 5, 6, 7].map(step => (
-                              <input
-                                key={step}
-                                type="text"
-                                className="ratio-input"
-                                value={sound.stepRatios[step] === null ? '' : sound.stepRatios[step]}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  const newRatios = [...sound.stepRatios];
-                                  if (val === '') {
-                                    newRatios[step] = null;
-                                  } else if (val === '-') {
-                                    newRatios[step] = '-';
-                                  } else {
-                                    const num = parseInt(val, 10);
-                                    if (!isNaN(num) && num >= 0) {
-                                      newRatios[step] = num;
+                              <div key={step} className="ratio-input-wrapper">
+                                <span
+                                  className={`step-playing-dot ${activePlayingStep === step ? 'active' : ''}`}
+                                  aria-hidden="true"
+                                />
+                                <input
+                                  type="text"
+                                  className="ratio-input"
+                                  value={sound.stepRatios[step] === null ? '' : sound.stepRatios[step]}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const newRatios = [...sound.stepRatios];
+                                    if (val === '') {
+                                      newRatios[step] = null;
+                                    } else if (val === '-') {
+                                      newRatios[step] = '-';
+                                    } else {
+                                      const num = parseInt(val, 10);
+                                      if (!isNaN(num) && num >= 0) {
+                                        newRatios[step] = num;
+                                      }
                                     }
-                                  }
-                                  update({ stepRatios: newRatios });
-                                }}
-                              />
+                                    update({ stepRatios: newRatios });
+                                  }}
+                                />
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -610,6 +623,10 @@ const UngroupIcon = () => (
                                   className={`segment-btn ${selectedStep === step ? 'active' : ''}`}
                                   onClick={() => setSelectedStep(step)}
                                 >
+                                  <span
+                                    className={`step-playing-dot ${activePlayingStep === step ? 'active' : ''}`}
+                                    aria-hidden="true"
+                                  />
                                   {step + 1}
                                 </button>
                               ))}
@@ -652,40 +669,50 @@ const UngroupIcon = () => (
 
                           <div className="keyboard-container" style={{ marginTop: '21px' }} role="group" aria-label="Select notes">
                             <div className="keyboard-row black-keys">
-                              {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => (
-                                <button
-                                  key={note}
-                                  className={`key-btn black-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
-                                  onClick={() => {
-                                    if (!sound.stepConfigs) return;
-                                    const notes = sound.stepConfigs[selectedStep].activeNotes || [];
-                                    const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
-                                    const newConfigs = [...sound.stepConfigs];
-                                    newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
-                                    update({ stepConfigs: newConfigs });
-                                  }}
-                                  aria-pressed={sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note)}
-                                  aria-label={note}
-                                />
-                              ))}
+                              {['C#', 'Eb', 'F#', 'G#', 'Bb'].map(note => {
+                                const isNoteActive = Boolean(sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note));
+                                const isNotePlaying = activePlayingStep === selectedStep && activePlayingNotes.includes(note);
+                                const isDormant = isSoundAudible && !isNotePlaying;
+                                return (
+                                  <button
+                                    key={note}
+                                    className={`key-btn black-key ${isNoteActive ? 'active' : ''} ${isNoteActive && isDormant ? 'dormant' : ''}`}
+                                    onClick={() => {
+                                      if (!sound.stepConfigs) return;
+                                      const notes = sound.stepConfigs[selectedStep].activeNotes || [];
+                                      const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
+                                      const newConfigs = [...sound.stepConfigs];
+                                      newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
+                                      update({ stepConfigs: newConfigs });
+                                    }}
+                                    aria-pressed={isNoteActive}
+                                    aria-label={note}
+                                  />
+                                );
+                              })}
                             </div>
                             <div className="keyboard-row white-keys">
-                              {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(note => (
-                                <button
-                                  key={note}
-                                  className={`key-btn white-key ${sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note) ? 'active' : ''}`}
-                                  onClick={() => {
-                                    if (!sound.stepConfigs) return;
-                                    const notes = sound.stepConfigs[selectedStep].activeNotes || [];
-                                    const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
-                                    const newConfigs = [...sound.stepConfigs];
-                                    newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
-                                    update({ stepConfigs: newConfigs });
-                                  }}
-                                  aria-pressed={sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note)}
-                                  aria-label={note}
-                                />
-                              ))}
+                              {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(note => {
+                                const isNoteActive = Boolean(sound.stepConfigs?.[selectedStep]?.activeNotes?.includes(note));
+                                const isNotePlaying = activePlayingStep === selectedStep && activePlayingNotes.includes(note);
+                                const isDormant = isSoundAudible && !isNotePlaying;
+                                return (
+                                  <button
+                                    key={note}
+                                    className={`key-btn white-key ${isNoteActive ? 'active' : ''} ${isNoteActive && isDormant ? 'dormant' : ''}`}
+                                    onClick={() => {
+                                      if (!sound.stepConfigs) return;
+                                      const notes = sound.stepConfigs[selectedStep].activeNotes || [];
+                                      const newNotes = notes.includes(note) ? notes.filter(n => n !== note) : [...notes, note];
+                                      const newConfigs = [...sound.stepConfigs];
+                                      newConfigs[selectedStep] = { ...newConfigs[selectedStep], activeNotes: newNotes };
+                                      update({ stepConfigs: newConfigs });
+                                    }}
+                                    aria-pressed={isNoteActive}
+                                    aria-label={note}
+                                  />
+                                );
+                              })}
                             </div>
                           </div>
                         </>

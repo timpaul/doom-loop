@@ -466,6 +466,8 @@ class AudioManager {
     private trackBuses: Map<string, TrackBus> = new Map();
     private mainTrackBus: TrackBus | null = null;
     private pendingDisposalEngines: Map<string, { engine: AudioEngine; timer: ReturnType<typeof setTimeout> }> = new Map();
+    private soundPlayingSteps: Map<string, { step: number | null; notes: string[] }> = new Map();
+    private stepListeners: Map<string, Set<(step: number | null, notes: string[]) => void>> = new Map();
 
     private isInitialized = false;
 
@@ -625,6 +627,9 @@ class AudioManager {
             clearTimeout(pending.timer);
             this.pendingDisposalEngines.delete(engineId);
             this.engines.set(engineId, pending.engine);
+            pending.engine.onStep = (step, notes) => {
+                this.notifyStep(id, step, notes);
+            };
             return pending.engine;
         }
 
@@ -632,12 +637,48 @@ class AudioManager {
         if (!engine) {
             const bus = this.getTrackBus(mixItemId);
             engine = new AudioEngine(bus.dryGain, bus.reverb);
+            engine.onStep = (step, notes) => {
+                this.notifyStep(id, step, notes);
+            };
             this.engines.set(engineId, engine);
             if (this.isInitialized) {
                 engine.initialize();
             }
+        } else {
+            engine.onStep = (step, notes) => {
+                this.notifyStep(id, step, notes);
+            };
         }
         return engine;
+    }
+
+    public getPlayingStep(soundId: string): { step: number | null; notes: string[] } {
+        return this.soundPlayingSteps.get(soundId) ?? { step: null, notes: [] };
+    }
+
+    public subscribeStep(soundId: string, listener: (step: number | null, notes: string[]) => void): () => void {
+        let listeners = this.stepListeners.get(soundId);
+        if (!listeners) {
+            listeners = new Set();
+            this.stepListeners.set(soundId, listeners);
+        }
+        listeners.add(listener);
+        const curr = this.soundPlayingSteps.get(soundId) ?? { step: null, notes: [] };
+        listener(curr.step, curr.notes);
+        return () => {
+            listeners?.delete(listener);
+            if (listeners?.size === 0) {
+                this.stepListeners.delete(soundId);
+            }
+        };
+    }
+
+    private notifyStep(soundId: string, step: number | null, notes: string[]) {
+        this.soundPlayingSteps.set(soundId, { step, notes });
+        const listeners = this.stepListeners.get(soundId);
+        if (listeners) {
+            listeners.forEach(l => l(step, notes));
+        }
     }
 
     public syncSoundState(sound: SoundState, isPlaying: boolean, mixItemId?: string, isGroupStandby?: boolean) {
@@ -688,7 +729,7 @@ class AudioManager {
 
         // Compute sequence events for both tone and noise
         const totalDuration = sound.seqLengthRate;
-        const validSteps = sound.stepConfigs.map((config, index) => ({ config, ratio: sound.stepRatios[index] }))
+        const validSteps = sound.stepConfigs.map((config, index) => ({ config, ratio: sound.stepRatios[index], stepIndex: index }))
             .filter(item => (typeof item.ratio === 'number' && item.ratio > 0) || item.ratio === '-');
         const isContinuous = validSteps.length === 0;
         const totalRatio = validSteps.reduce((sum, item) => {
@@ -696,7 +737,7 @@ class AudioManager {
             return sum + r;
         }, 0);
 
-        const events: Array<{ time: number, notes: string[], duration: number }> = [];
+        const events: Array<{ time: number, notes: string[], duration: number, stepIndex?: number }> = [];
         let currentTime = 0;
 
         if (isContinuous) {
@@ -714,7 +755,8 @@ class AudioManager {
                 events.push({
                     time: currentTime,
                     notes,
-                    duration: stepDuration
+                    duration: stepDuration,
+                    stepIndex: step.stepIndex
                 });
                 currentTime += stepDuration;
             }
@@ -841,6 +883,10 @@ class AudioManager {
             pending.engine.stop();
         }
         this.engines.forEach(engine => engine.stop());
+        this.soundPlayingSteps.clear();
+        this.stepListeners.forEach(listeners => {
+            listeners.forEach(l => l(null, []));
+        });
         this.previousSources.clear();
         if (this.mainTrackBus) {
             this.mainTrackBus.stop();

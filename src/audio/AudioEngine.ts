@@ -147,6 +147,10 @@ export class AudioEngine {
     private sequencePart: Tone.Part | null = null;
     private sequenceEventId: number | null = null;
     public onSequenceEnd: (() => void) | null = null;
+    public onStep: ((stepIndex: number | null, playingNotes: string[]) => void) | null = null;
+    public currentPlayingStep: number | null = null;
+    public currentPlayingNotes: string[] = [];
+    private stepTimers: Set<ReturnType<typeof setTimeout>> = new Set();
     private isInitialized = false;
     private isDisposed = false;
     // Incremented by every play()/stop() so a play() still awaiting initialisation can tell it has been superseded.
@@ -376,6 +380,9 @@ export class AudioEngine {
             this.sequenceEventId = null;
         }
         this.onSequenceEnd = null;
+        this.clearStepTimers();
+        this.onStep?.(null, []);
+        this.onStep = null;
 
         this.dryGain.dispose();
         this.reverbSendGain.dispose();
@@ -401,7 +408,7 @@ export class AudioEngine {
         this.currentSource = sourceType;
 
         if (sourceType === 'noise') {
-            const { color, events, loopLength, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { color: NoiseColor, events?: Array<{ time: number, notes: string[], duration: number }>, loopLength?: number, noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            const { color, events, loopLength, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { color: NoiseColor, events?: Array<{ time: number, notes: string[], duration: number, stepIndex?: number }>, loopLength?: number, noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
             this.isContinuous = isContinuous;
 
             // Native Tone.js noise types
@@ -432,6 +439,10 @@ export class AudioEngine {
                             if (!events || events.length === 0) return;
                             const event = events[stepIndex];
                             
+                            if (typeof event.stepIndex === 'number') {
+                                this.scheduleStepNotification(event.stepIndex, [], time);
+                            }
+
                             if (event.notes && event.notes.length > 0) {
                                 const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
                                 this.noiseEnv.triggerAttackRelease(playDuration, time);
@@ -471,6 +482,9 @@ export class AudioEngine {
                                     this.onSequenceEnd?.();
                                 }, 0);
                                 return;
+                            }
+                            if (typeof event.stepIndex === 'number') {
+                                this.scheduleStepNotification(event.stepIndex, [], time);
                             }
                             if (event.notes && event.notes.length > 0) {
                                 const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
@@ -495,7 +509,7 @@ export class AudioEngine {
             }
         } else if (sourceType === 'metal') {
             // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
-            const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number, stepIndex?: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
             this.isContinuous = isContinuous;
 
             this.setEnvelope(envelope);
@@ -517,16 +531,23 @@ export class AudioEngine {
                             if (!events || events.length === 0 || this.metalVoices.length === 0) return;
                             const event = events[stepIndex];
                             
+                            let notesPlaying: string[] = [];
                             if (event.notes && event.notes.length > 0) {
                                 const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
                                 if (playMode === 'random') {
                                     const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
+                                    notesPlaying = [randomNote.replace(/[0-9]/g, '')];
                                     this.metalVoices[0].triggerAttackRelease(randomNote, playDuration, time);
                                 } else {
+                                    notesPlaying = event.notes.map((n: string) => n.replace(/[0-9]/g, ''));
                                     event.notes.slice(0, this.metalVoices.length).forEach((note: string, i: number) => {
                                         this.metalVoices[i].triggerAttackRelease(note, playDuration, time);
                                     });
                                 }
+                            }
+
+                            if (typeof event.stepIndex === 'number') {
+                                this.scheduleStepNotification(event.stepIndex, notesPlaying, time);
                             }
                             
                             const randomFactor = Math.pow(2, (Math.random() * 2 - 1) * slack);
@@ -564,16 +585,22 @@ export class AudioEngine {
                                 }, 0);
                                 return;
                             }
+                            let notesPlaying: string[] = [];
                             if (event.notes && event.notes.length > 0 && this.metalVoices.length > 0) {
                                 const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
                                 if (playMode === 'random') {
                                     const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
+                                    notesPlaying = [randomNote.replace(/[0-9]/g, '')];
                                     this.metalVoices[0].triggerAttackRelease(randomNote, playDuration, time);
                                 } else {
+                                    notesPlaying = event.notes.map((n: string) => n.replace(/[0-9]/g, ''));
                                     event.notes.slice(0, this.metalVoices.length).forEach((note: string, i: number) => {
                                         this.metalVoices[i].triggerAttackRelease(note, playDuration, time);
                                     });
                                 }
+                            }
+                            if (typeof event.stepIndex === 'number') {
+                                this.scheduleStepNotification(event.stepIndex, notesPlaying, time);
                             }
                         }, partEvents);
 
@@ -592,7 +619,7 @@ export class AudioEngine {
             }
         } else if (sourceType === 'tone' || sourceType === 'fm' || sourceType === 'pluck' || sourceType === 'kick') {
             // Expecting value to be: { events: [...], loopLength: number, playMode: string, noteLengthRatio: number, isContinuous: boolean, envelope: { ... } }
-            const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
+            const { events, loopLength, playMode, noteLengthRatio = 1.0, isContinuous = false, slack = 0, envelope } = value as { events: Array<{ time: number, notes: string[], duration: number, stepIndex?: number }>, loopLength: number, playMode: 'chord' | 'random', noteLengthRatio?: number, isContinuous?: boolean, slack?: number, envelope: { attack: number, decay: number, sustain: number, release: number } };
             this.isContinuous = isContinuous;
 
             // Apply envelope to synthesizer
@@ -613,14 +640,21 @@ export class AudioEngine {
                             if (!events || events.length === 0) return;
                             const event = events[stepIndex];
                             
+                            let notesPlaying: string[] = [];
                             if (event.notes && event.notes.length > 0) {
                                 const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
                                 if (playMode === 'random') {
                                     const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
+                                    notesPlaying = [randomNote.replace(/[0-9]/g, '')];
                                     this.polySynth.triggerAttackRelease([randomNote], playDuration, time);
                                 } else {
+                                    notesPlaying = event.notes.map((n: string) => n.replace(/[0-9]/g, ''));
                                     this.polySynth.triggerAttackRelease(event.notes, playDuration, time);
                                 }
+                            }
+
+                            if (typeof event.stepIndex === 'number') {
+                                this.scheduleStepNotification(event.stepIndex, notesPlaying, time);
                             }
                             
                             const randomFactor = Math.pow(2, (Math.random() * 2 - 1) * slack);
@@ -658,14 +692,20 @@ export class AudioEngine {
                                 }, 0);
                                 return;
                             }
+                            let notesPlaying: string[] = [];
                             if (event.notes && event.notes.length > 0) {
                                 const playDuration = Math.max(0.01, event.duration * noteLengthRatio);
                                 if (playMode === 'random') {
                                     const randomNote = event.notes[Math.floor(Math.random() * event.notes.length)];
+                                    notesPlaying = [randomNote.replace(/[0-9]/g, '')];
                                     this.polySynth.triggerAttackRelease([randomNote], playDuration, time);
                                 } else {
+                                    notesPlaying = event.notes.map((n: string) => n.replace(/[0-9]/g, ''));
                                     this.polySynth.triggerAttackRelease(event.notes, playDuration, time);
                                 }
+                            }
+                            if (typeof event.stepIndex === 'number') {
+                                this.scheduleStepNotification(event.stepIndex, notesPlaying, time);
                             }
                         }, partEvents);
 
@@ -685,6 +725,28 @@ export class AudioEngine {
         }
     }
 
+    private scheduleStepNotification(stepIndex: number, playingNotes: string[], time: number) {
+        if (!this.onStep) return;
+        const currentToken = this.playToken;
+        const delayMs = Math.max(0, (time - Tone.context.currentTime) * 1000);
+        const timer = setTimeout(() => {
+            this.stepTimers.delete(timer);
+            if (this.playToken === currentToken) {
+                this.currentPlayingStep = stepIndex;
+                this.currentPlayingNotes = playingNotes;
+                this.onStep?.(stepIndex, playingNotes);
+            }
+        }, delayMs);
+        this.stepTimers.add(timer);
+    }
+
+    private clearStepTimers() {
+        this.stepTimers.forEach(t => clearTimeout(t));
+        this.stepTimers.clear();
+        this.currentPlayingStep = null;
+        this.currentPlayingNotes = [];
+    }
+
     public stopSequence() {
         this.playToken++;
         if (this.sequencePart) {
@@ -697,6 +759,8 @@ export class AudioEngine {
             this.sequenceEventId = null;
         }
         this.onSequenceEnd = null;
+        this.clearStepTimers();
+        this.onStep?.(null, []);
 
         if (this.currentSource === 'noise') {
             this.noiseEnv.triggerRelease();
@@ -723,6 +787,8 @@ export class AudioEngine {
             this.sequenceEventId = null;
         }
         this.onSequenceEnd = null;
+        this.clearStepTimers();
+        this.onStep?.(null, []);
 
         if (this.currentSource === 'noise') {
             this.noiseEnv.triggerRelease();
