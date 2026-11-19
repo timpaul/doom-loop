@@ -100,6 +100,13 @@ const TrashIcon = () => (
       </svg>
       )
 
+const EditIcon = ({ size = 20 }: { size?: number }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+        <path d="M15 5l4 4" />
+      </svg>
+      )
+
 const DuplicateIcon = () => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -1667,6 +1674,17 @@ function SoundGroupPanel({
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                             <div className="track-list-item-actions">
+                              <button
+                                className="icon-btn"
+                                data-tooltip="Edit"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/tracks/${track.id}`);
+                                }}
+                                aria-label="Edit Track"
+                              >
+                                <EditIcon />
+                              </button>
                               <button className="icon-btn" data-tooltip="Duplicate" onClick={() => dispatch({ type: 'ADD_TRACK_TO_MIX', payload: item.trackId })} aria-label="Duplicate Track">
                                 <DuplicateIcon />
                               </button>
