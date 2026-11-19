@@ -1231,7 +1231,7 @@ function SoundGroupPanel({
               }}
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}
             >
-              GROUP SETTINGS
+              SETTINGS
               <div className="icon-btn" style={{ width: '20px', height: '20px', marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ChevronRightIcon isExpanded={isSettingsExpanded} />
               </div>
